@@ -7,26 +7,26 @@ set __problem to {
     params: "first, second",
     statement: "Two texts are anagrams if one can be made by rearranging the letters of the other. Give back true or false. Ignore spaces and the difference between capital and small letters.",
     examples: [
-        {args: ["listen", "silent"], expect: true},
-        {args: ["hello", "world"], expect: false},
-        {args: ["Dormitory", "dirty room"], expect: true}
+    {args: ["listen", "silent"], expect: true},
+    {args: ["hello", "world"], expect: false},
+    {args: ["Dormitory", "dirty room"], expect: true}
     ],
     hints: [
-        "If the two texts are anagrams, they contain exactly the same letters, just in a different order. What would make the order stop mattering?",
-        "Sorting the letters of each text puts them in a standard order. Anagrams give identical sorted letters.",
-        "Tidy first (no spaces, one case). Then make a list of the letters, sort it, and compare the two sorted lists."
+    "If the two texts are anagrams, they contain exactly the same letters, just in a different order. What would make the order stop mattering?",
+    "Sorting the letters of each text puts them in a standard order. Anagrams give identical sorted letters.",
+    "Tidy first (no spaces, one case). Then make a list of the letters, sort it, and compare the two sorted lists."
     ],
     hidden: [
-        {args: ["abc", "ab"], expect: false, note: "different lengths"},
-        {args: ["aabb", "bbaa"], expect: true},
-        {args: ["rat", "car"], expect: false},
-        {args: ["", ""], expect: true, note: "two empty texts"},
-        {args: ["Astronomer", "Moon starer"], expect: true},
-        {args: ["aab", "abb"], expect: false, note: "same letters but not the same number of each"}
+    {args: ["abc", "ab"], expect: false, note: "different lengths"},
+    {args: ["aabb", "bbaa"], expect: true},
+    {args: ["rat", "car"], expect: false},
+    {args: ["", ""], expect: true, note: "two empty texts"},
+    {args: ["Astronomer", "Moon starer"], expect: true},
+    {args: ["aab", "abb"], expect: false, note: "same letters but not the same number of each"}
     ],
     complexity: "O(n log n) time (because of the sort)",
     explanation: "Anagrams are the same letters in a different order, so putting the letters of both texts in the same standard order (sorted) makes the anagrams identical and everything else different. Counting how often each letter appears in a map gives the same answer in O(n) time."
-}
+    }
 # --- solution ---
 define letters_of with text
     set letters to []

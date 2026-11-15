@@ -7,25 +7,25 @@ set __problem to {
     params: "rows, columns",
     statement: "A robot stands in the top-left corner of a grid with the given number of rows and columns and wants to reach the bottom-right corner. It can only move right or down. Give back how many different paths it can take.",
     examples: [
-        {args: [2, 2], expect: 2},
-        {args: [3, 3], expect: 6},
-        {args: [1, 5], expect: 1}
+    {args: [2, 2], expect: 2},
+    {args: [3, 3], expect: 6},
+    {args: [1, 5], expect: 1}
     ],
     hidden: [
-        {args: [3, 7], expect: 28},
-        {args: [7, 3], expect: 28},
-        {args: [1, 1], expect: 1},
-        {args: [10, 10], expect: 48620},
-        {args: [15, 15], expect: 40116600, note: "too many paths to count one by one"}
+    {args: [3, 7], expect: 28},
+    {args: [7, 3], expect: 28},
+    {args: [1, 1], expect: 1},
+    {args: [10, 10], expect: 48620},
+    {args: [15, 15], expect: 40116600, note: "too many paths to count one by one"}
     ],
     hints: [
-        "To reach a square you must have come from the square above it or from the square to its left. So paths(square) = paths(above) + paths(left).",
-        "Written as plain recursion this recomputes the same squares again and again, and is hopeless for a 15 x 15 grid (over a hundred million calls).",
-        "Fill the grid in order instead, one row at a time. The first row is all 1s (only one way along the edge). Each other square is the one above plus the one to its left. You only need to remember one row."
+    "To reach a square you must have come from the square above it or from the square to its left. So paths(square) = paths(above) + paths(left).",
+    "Written as plain recursion this recomputes the same squares again and again, and is hopeless for a 15 x 15 grid (over a hundred million calls).",
+    "Fill the grid in order instead, one row at a time. The first row is all 1s (only one way along the edge). Each other square is the one above plus the one to its left. You only need to remember one row."
     ],
     complexity: "O(rows x columns) time, O(columns) extra space",
     explanation: "The number of paths to a square is the number reaching the square above plus the number reaching the square on its left, and every square on the top row or left column can only be reached one way. Filling the table row by row works out each square once. A single list of numbers is enough, because updating a square needs only itself (the value from the row above) and its left neighbour (already updated in this row)."
-}
+    }
 # --- solution ---
 define __reference with rows, columns
     set row to []

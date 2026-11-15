@@ -7,26 +7,26 @@ set __problem to {
     params: "tree",
     statement: "A node is a map {value: ..., left: ..., right: ...} (a child is nothing when missing). The tree is a binary search tree if, for every node, ALL values in its left part are smaller than the node's value and ALL values in its right part are bigger. Equal values are not allowed. Give back true or false. An empty tree (nothing) counts as true.",
     examples: [
-        {args: [__node(2, __leaf(1), __leaf(3))], expect: true},
-        {args: [__node(5, __leaf(1), __node(4, __leaf(3), __leaf(6)))], expect: false},
-        {args: [__leaf(1)], expect: true}
+    {args: [__node(2, __leaf(1), __leaf(3))], expect: true},
+    {args: [__node(5, __leaf(1), __node(4, __leaf(3), __leaf(6)))], expect: false},
+    {args: [__leaf(1)], expect: true}
     ],
     hints: [
-        "Checking only that each node is bigger than its left child and smaller than its right child is not enough. Look at a grandchild.",
-        "Every node must lie inside a range of allowed values. The root can be anything; going left makes the node's value the new upper limit; going right makes it the new lower limit.",
-        "Write a helper check(node, low, high) where low and high may be nothing (no limit). A node is fine if low < value < high, and both children are fine with the updated limits."
+    "Checking only that each node is bigger than its left child and smaller than its right child is not enough. Look at a grandchild.",
+    "Every node must lie inside a range of allowed values. The root can be anything; going left makes the node's value the new upper limit; going right makes it the new lower limit.",
+    "Write a helper check(node, low, high) where low and high may be nothing (no limit). A node is fine if low < value < high, and both children are fine with the updated limits."
     ],
     hidden: [
-        {args: [nothing], expect: true, note: "an empty tree"},
-        {args: [__node(10, __node(5, __leaf(1), __leaf(15)), __leaf(20))], expect: false, note: "15 is in the left part of 10 but is bigger than 10"},
-        {args: [__node(2, __leaf(2), __leaf(3))], expect: false, note: "equal values"},
-        {args: [__node(5, __node(4, __node(3, __node(2, __leaf(1), nothing), nothing), nothing), nothing)], expect: true},
-        {args: [__right_chain(800)], expect: true, note: "a long chain"},
-        {args: [__node(8, __node(3, __leaf(1), __node(6, __leaf(4), __leaf(7))), __node(10, nothing, __node(14, __leaf(13), nothing)))], expect: true}
+    {args: [nothing], expect: true, note: "an empty tree"},
+    {args: [__node(10, __node(5, __leaf(1), __leaf(15)), __leaf(20))], expect: false, note: "15 is in the left part of 10 but is bigger than 10"},
+    {args: [__node(2, __leaf(2), __leaf(3))], expect: false, note: "equal values"},
+    {args: [__node(5, __node(4, __node(3, __node(2, __leaf(1), nothing), nothing), nothing), nothing)], expect: true},
+    {args: [__right_chain(800)], expect: true, note: "a long chain"},
+    {args: [__node(8, __node(3, __leaf(1), __node(6, __leaf(4), __leaf(7))), __node(10, nothing, __node(14, __leaf(13), nothing)))], expect: true}
     ],
     complexity: "O(n) time",
     explanation: "A node is only valid if it fits between limits set by ALL of its ancestors, not just its parent. Passing the limits down the recursion does that: going left, the current value becomes the new upper limit; going right, it becomes the new lower limit. Each node is checked once against the two limits it inherited. (An in-order walk of a valid search tree gives strictly increasing values, which is another way to check.)"
-}
+    }
 define __leaf with v
     give back {value: v, left: nothing, right: nothing}
 end

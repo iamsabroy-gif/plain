@@ -7,24 +7,24 @@ set __problem to {
     params: "items, k",
     statement: "Give back a new list where every item has moved k places to the right. Items that fall off the end come back round at the front. k can be bigger than the length of the list.",
     examples: [
-        {args: [[1, 2, 3, 4, 5], 2], expect: [4, 5, 1, 2, 3]},
-        {args: [[1, 2], 3], expect: [2, 1]},
-        {args: [[], 5], expect: []}
+    {args: [[1, 2, 3, 4, 5], 2], expect: [4, 5, 1, 2, 3]},
+    {args: [[1, 2], 3], expect: [2, 1]},
+    {args: [[], 5], expect: []}
     ],
     hints: [
-        "Try it on paper with [1, 2, 3, 4, 5] and k = 2. Which items end up at the front?",
-        "The last k items move to the front, and everything else follows them. Slicing gives you both parts.",
-        "Rotating by the length of the list changes nothing, so k % length is all that matters. (And watch out for an empty list: you can't divide by zero.)"
+    "Try it on paper with [1, 2, 3, 4, 5] and k = 2. Which items end up at the front?",
+    "The last k items move to the front, and everything else follows them. Slicing gives you both parts.",
+    "Rotating by the length of the list changes nothing, so k % length is all that matters. (And watch out for an empty list: you can't divide by zero.)"
     ],
     hidden: [
-        {args: [[1, 2, 3], 0], expect: [1, 2, 3], note: "no rotation"},
-        {args: [[1, 2, 3], 3], expect: [1, 2, 3], note: "a whole turn"},
-        {args: [[1, 2, 3, 4], 6], expect: [3, 4, 1, 2], note: "k bigger than the list"},
-        {args: [["a", "b", "c"], 1], expect: ["c", "a", "b"]}
+    {args: [[1, 2, 3], 0], expect: [1, 2, 3], note: "no rotation"},
+    {args: [[1, 2, 3], 3], expect: [1, 2, 3], note: "a whole turn"},
+    {args: [[1, 2, 3, 4], 6], expect: [3, 4, 1, 2], note: "k bigger than the list"},
+    {args: [["a", "b", "c"], 1], expect: ["c", "a", "b"]}
     ],
     complexity: "O(n) time",
     explanation: "Moving k places right means the last k items become the first k. Taking the remainder k % length first removes whole turns. Then slice(items, length - k + 1, length) gives the tail and slice(items, 1, length - k) gives the rest; joining the tail in front of the rest is the answer. An empty list has to be handled first because the remainder would divide by zero."
-}
+    }
 # --- solution ---
 define __reference with items, k
     set n to length of items

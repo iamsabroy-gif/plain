@@ -7,25 +7,25 @@ set __problem to {
     params: "tree",
     statement: "A tree is made of nodes: a node is a map {value: ..., left: ..., right: ...} where left and right are other nodes, or nothing when there is no child. Give back the height: the number of nodes on the longest path from the top node down to a node with no children. An empty tree (nothing) has height 0.",
     examples: [
-        {args: [nothing], expect: 0},
-        {args: [__leaf(1)], expect: 1},
-        {args: [__node(3, __leaf(9), __node(20, __leaf(15), __leaf(7)))], expect: 3}
+    {args: [nothing], expect: 0},
+    {args: [__leaf(1)], expect: 1},
+    {args: [__node(3, __leaf(9), __node(20, __leaf(15), __leaf(7)))], expect: 3}
     ],
     hints: [
-        "Trees are recursive: each child is itself a tree. So the height of a tree is built from the heights of its two children.",
-        "Base case: nothing has height 0.",
-        "Otherwise the height is 1 (for this node) plus the taller of the two children: 1 + max(tree_height(left), tree_height(right))."
+    "Trees are recursive: each child is itself a tree. So the height of a tree is built from the heights of its two children.",
+    "Base case: nothing has height 0.",
+    "Otherwise the height is 1 (for this node) plus the taller of the two children: 1 + max(tree_height(left), tree_height(right))."
     ],
     hidden: [
-        {args: [__node(1, nothing, __leaf(2))], expect: 2, note: "a child only on the right"},
-        {args: [__node(1, __node(2, __node(3, nothing, __leaf(4)), nothing), __leaf(5))], expect: 4},
-        {args: [__leaf(7)], expect: 1},
-        {args: [__left_chain(1000)], expect: 1000, note: "a very tall, thin tree"},
-        {args: [__node(1, __left_chain(3), __left_chain(6))], expect: 7}
+    {args: [__node(1, nothing, __leaf(2))], expect: 2, note: "a child only on the right"},
+    {args: [__node(1, __node(2, __node(3, nothing, __leaf(4)), nothing), __leaf(5))], expect: 4},
+    {args: [__leaf(7)], expect: 1},
+    {args: [__left_chain(1000)], expect: 1000, note: "a very tall, thin tree"},
+    {args: [__node(1, __left_chain(3), __left_chain(6))], expect: 7}
     ],
     complexity: "O(n) time (every node is visited once)",
     explanation: "A tree is either empty or a node with two smaller trees below it, so a recursive action fits perfectly. An empty tree has height 0. A node is one level taller than its taller child: 1 + max(left height, right height). The recursion visits every node exactly once."
-}
+    }
 define __leaf with v
     give back {value: v, left: nothing, right: nothing}
 end

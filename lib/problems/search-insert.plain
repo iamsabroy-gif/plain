@@ -7,26 +7,26 @@ set __problem to {
     params: "numbers, target",
     statement: "The list is sorted from smallest to biggest. Give back the position (counting from 1) where the target is, or where it would have to be put to keep the list sorted. If it is already there, give back its position.",
     examples: [
-        {args: [[1, 3, 5, 6], 5], expect: 3},
-        {args: [[1, 3, 5, 6], 2], expect: 2},
-        {args: [[1, 3, 5, 6], 7], expect: 5}
+    {args: [[1, 3, 5, 6], 5], expect: 3},
+    {args: [[1, 3, 5, 6], 2], expect: 2},
+    {args: [[1, 3, 5, 6], 7], expect: 5}
     ],
     hints: [
-        "This is a binary search that can't fail: it always ends up pointing at the right place.",
-        "You are looking for the first position whose item is at least the target.",
-        "Keep low = 1 and high = length + 1. While low is less than high, look at the middle: if its item is less than the target, low = middle + 1, otherwise high = middle. The answer is low."
+    "This is a binary search that can't fail: it always ends up pointing at the right place.",
+    "You are looking for the first position whose item is at least the target.",
+    "Keep low = 1 and high = length + 1. While low is less than high, look at the middle: if its item is less than the target, low = middle + 1, otherwise high = middle. The answer is low."
     ],
     hidden: [
-        {args: [[1, 3, 5, 6], 0], expect: 1, note: "smaller than everything"},
-        {args: [[], 4], expect: 1, note: "an empty list"},
-        {args: [[1], 1], expect: 1},
-        {args: [[1, 3], 3], expect: 2},
-        {args: [[2, 4, 6, 8], 5], expect: 3},
-        {args: [range(2, 100000, 2), 77777], expect: 38889, note: "a long list"}
+    {args: [[1, 3, 5, 6], 0], expect: 1, note: "smaller than everything"},
+    {args: [[], 4], expect: 1, note: "an empty list"},
+    {args: [[1], 1], expect: 1},
+    {args: [[1, 3], 3], expect: 2},
+    {args: [[2, 4, 6, 8], 5], expect: 3},
+    {args: [range(2, 100000, 2), 77777], expect: 38889, note: "a long list"}
     ],
     complexity: "O(log n) time",
     explanation: "Keep a range of positions that could still be the answer, from 1 up to length + 1 (one past the end is allowed, because the target may belong at the end). Look at the middle item: if it is smaller than the target, the answer is to its right; otherwise it is at the middle or to its left. The range shrinks until one position is left. Using 'less than' (not 'at most') makes the answer the FIRST place the target could go, so an existing copy is found rather than skipped."
-}
+    }
 # --- solution ---
 define __reference with numbers, target
     set low to 1

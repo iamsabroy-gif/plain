@@ -7,26 +7,26 @@ set __problem to {
     params: "coins, amount",
     statement: "You have unlimited coins of each value in the list. Give back the smallest number of coins that add up to exactly the amount, or -1 if it can't be done. An amount of 0 needs 0 coins.",
     examples: [
-        {args: [[1, 2, 5], 11], expect: 3},
-        {args: [[2], 3], expect: -1},
-        {args: [[1], 0], expect: 0}
+    {args: [[1, 2, 5], 11], expect: 3},
+    {args: [[2], 3], expect: -1},
+    {args: [[1], 0], expect: 0}
     ],
     hints: [
-        "Picking the biggest coin each time (the greedy way) is not always right: with coins 1, 3, 4 and amount 6 it gives 4 + 1 + 1 (3 coins), but 3 + 3 uses 2.",
-        "Let best[a] be the fewest coins for amount a. For a coin c, best[a] could be 1 + best[a - c]. Try every coin and keep the smallest.",
-        "Fill a list best[0..amount] from 0 upwards (best[0] = 0). Use a huge number for 'not possible yet', and turn it into -1 at the end."
+    "Picking the biggest coin each time (the greedy way) is not always right: with coins 1, 3, 4 and amount 6 it gives 4 + 1 + 1 (3 coins), but 3 + 3 uses 2.",
+    "Let best[a] be the fewest coins for amount a. For a coin c, best[a] could be 1 + best[a - c]. Try every coin and keep the smallest.",
+    "Fill a list best[0..amount] from 0 upwards (best[0] = 0). Use a huge number for 'not possible yet', and turn it into -1 at the end."
     ],
     hidden: [
-        {args: [[1, 5, 10, 25], 63], expect: 6},
-        {args: [[1, 3, 4], 6], expect: 2, note: "the greedy way gives the wrong answer"},
-        {args: [[2, 5, 10, 1], 27], expect: 4},
-        {args: [[5, 7], 3], expect: -1},
-        {args: [[186, 419, 83, 408], 6249], expect: 20},
-        {args: [[1, 2, 5], 10000], expect: 2000, note: "a big amount (trying every combination is hopeless)"}
+    {args: [[1, 5, 10, 25], 63], expect: 6},
+    {args: [[1, 3, 4], 6], expect: 2, note: "the greedy way gives the wrong answer"},
+    {args: [[2, 5, 10, 1], 27], expect: 4},
+    {args: [[5, 7], 3], expect: -1},
+    {args: [[186, 419, 83, 408], 6249], expect: 20},
+    {args: [[1, 2, 5], 10000], expect: 2000, note: "a big amount (trying every combination is hopeless)"}
     ],
     complexity: "O(amount x coins) time, O(amount) extra space",
     explanation: "The fewest coins for an amount a is 1 + the fewest for a - c, for whichever coin c leaves the best result. Those smaller amounts are needed by many bigger ones, so they are worked out once, in order from 0 up, and stored in a list. 'Impossible' is stored as a number too big to ever win a comparison. The greedy idea of always taking the biggest coin fails for some coin sets, which is why the table is needed."
-}
+    }
 # --- solution ---
 define __reference with coins, amount
     set impossible to amount + 1

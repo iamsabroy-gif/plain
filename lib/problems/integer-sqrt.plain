@@ -7,26 +7,26 @@ set __problem to {
     params: "n",
     statement: "Give back the square root of the whole number n (zero or more), rounded down to a whole number. Do not use sqrt() or the ^ power sign for fractions: use only whole-number maths.",
     examples: [
-        {args: [16], expect: 4},
-        {args: [8], expect: 2},
-        {args: [0], expect: 0}
+    {args: [16], expect: 4},
+    {args: [8], expect: 2},
+    {args: [0], expect: 0}
     ],
     hints: [
-        "The answer is the biggest whole number r with r * r at most n. You can test any guess r that way.",
-        "Counting r upwards from 0 works for small n, but one of the tests has n close to a trillion.",
-        "Guessing is a search! If r * r is too big the answer is lower; if not, it could be r or higher. Binary search between 0 and n."
+    "The answer is the biggest whole number r with r * r at most n. You can test any guess r that way.",
+    "Counting r upwards from 0 works for small n, but one of the tests has n close to a trillion.",
+    "Guessing is a search! If r * r is too big the answer is lower; if not, it could be r or higher. Binary search between 0 and n."
     ],
     hidden: [
-        {args: [1], expect: 1},
-        {args: [15], expect: 3},
-        {args: [99], expect: 9},
-        {args: [1000000], expect: 1000},
-        {args: [2147395600], expect: 46340, note: "a perfect square"},
-        {args: [999999999999], expect: 999999, note: "far too big to count up to"}
+    {args: [1], expect: 1},
+    {args: [15], expect: 3},
+    {args: [99], expect: 9},
+    {args: [1000000], expect: 1000},
+    {args: [2147395600], expect: 46340, note: "a perfect square"},
+    {args: [999999999999], expect: 999999, note: "far too big to count up to"}
     ],
     complexity: "O(log n) time",
     explanation: "The test 'r * r is at most n' is true for small r and false for big r, so the answer is the boundary between the two. A boundary like that can be found by binary search: try the middle, and discard the half that can't contain the boundary. About log2(n) tries are enough, so even a number near a trillion needs only around 40."
-}
+    }
 # --- solution ---
 define __reference with n
     set low to 0

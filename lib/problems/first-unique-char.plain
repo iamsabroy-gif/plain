@@ -7,25 +7,25 @@ set __problem to {
     params: "text",
     statement: "Give back the position (counting from 1) of the first character in the text that appears only once in the whole text. If every character repeats, give back 0.",
     examples: [
-        {args: ["leetcode"], expect: 1},
-        {args: ["loveleetcode"], expect: 3},
-        {args: ["aabb"], expect: 0}
+    {args: ["leetcode"], expect: 1},
+    {args: ["loveleetcode"], expect: 3},
+    {args: ["aabb"], expect: 0}
     ],
     hints: [
-        "You can't know a character is unique until you have seen the whole text. So you need two passes.",
-        "First pass: count how many times each character appears. A map from character to count is perfect.",
-        "Second pass: go through the text again from the start and stop at the first character whose count is 1."
+    "You can't know a character is unique until you have seen the whole text. So you need two passes.",
+    "First pass: count how many times each character appears. A map from character to count is perfect.",
+    "Second pass: go through the text again from the start and stop at the first character whose count is 1."
     ],
     hidden: [
-        {args: ["abcabcd"], expect: 7},
-        {args: ["z"], expect: 1},
-        {args: [""], expect: 0, note: "an empty text"},
-        {args: ["aabbccd"], expect: 7},
-        {args: ["swiss"], expect: 2}
+    {args: ["abcabcd"], expect: 7},
+    {args: ["z"], expect: 1},
+    {args: [""], expect: 0, note: "an empty text"},
+    {args: ["aabbccd"], expect: 7},
+    {args: ["swiss"], expect: 2}
     ],
     complexity: "O(n) time, O(1) extra space for a fixed alphabet",
     explanation: "The first unique character can only be found once all characters have been counted, so there are two passes. The first fills a map of counts. The second walks the text in order and returns the position of the first character whose count is exactly 1; if none is found, the answer is 0."
-}
+    }
 # --- solution ---
 define __reference with text
     set counts to {}

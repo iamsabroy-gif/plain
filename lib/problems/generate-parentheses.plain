@@ -7,24 +7,24 @@ set __problem to {
     params: "n",
     statement: "Give back every way to write n pairs of round brackets so that they are properly matched, such as \"(())\" and \"()()\" for n = 2. Give them in alphabetical order (\"(\" comes before \")\").",
     examples: [
-        {args: [1], expect: ["()"]},
-        {args: [2], expect: ["(())", "()()"]},
-        {args: [3], expect: ["((()))", "(()())", "(())()", "()(())", "()()()"]}
+    {args: [1], expect: ["()"]},
+    {args: [2], expect: ["(())", "()()"]},
+    {args: [3], expect: ["((()))", "(()())", "(())()", "()(())", "()()()"]}
     ],
     hints: [
-        "Build the text one character at a time. At each step you may add an opening bracket or a closing one, but not always.",
-        "You may add \"(\" while you have used fewer than n of them. You may add \")\" only while there are more opening brackets so far than closing ones.",
-        "If you try \"(\" before \")\" at every step, the answers come out in alphabetical order by themselves. When the text has 2n characters, add it to the answer."
+    "Build the text one character at a time. At each step you may add an opening bracket or a closing one, but not always.",
+    "You may add \"(\" while you have used fewer than n of them. You may add \")\" only while there are more opening brackets so far than closing ones.",
+    "If you try \"(\" before \")\" at every step, the answers come out in alphabetical order by themselves. When the text has 2n characters, add it to the answer."
     ],
     hidden: [
-        {args: [4], expect: ["(((())))", "((()()))", "((())())", "((()))()", "(()(()))", "(()()())", "(()())()", "(())(())", "(())()()", "()((()))", "()(()())", "()(())()", "()()(())", "()()()()"]},
-        {args: [5], expect: __all_by_splitting(5), note: "42 of them (checked against a completely different way of building them)"},
-        {args: [6], expect: __all_by_splitting(6), note: "132 of them"},
-        {args: [7], expect: __all_by_splitting(7), note: "429 of them"}
+    {args: [4], expect: ["(((())))", "((()()))", "((())())", "((()))()", "(()(()))", "(()()())", "(()())()", "(())(())", "(())()()", "()((()))", "()(()())", "()(())()", "()()(())", "()()()()"]},
+    {args: [5], expect: __all_by_splitting(5), note: "42 of them (checked against a completely different way of building them)"},
+    {args: [6], expect: __all_by_splitting(6), note: "132 of them"},
+    {args: [7], expect: __all_by_splitting(7), note: "429 of them"}
     ],
     complexity: "About 4^n / sqrt(n) answers (the Catalan number), each of length 2n",
     explanation: "A text of brackets is matched exactly when no prefix has more closing than opening brackets and the totals are equal. So build the text left to right, adding \"(\" while fewer than n have been used and \")\" while it would not exceed the opening count. Only valid prefixes are ever extended, so no dead ends are explored. Because \"(\" is tried before \")\" everywhere, the finished texts appear in alphabetical order. The number of answers grows as the Catalan numbers: 1, 2, 5, 14, 42, ..."
-}
+    }
 # an independent way to build the answers, for the larger test: split at the first pair
 define __all_by_splitting with n
     if n is 0 then

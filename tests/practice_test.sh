@@ -60,6 +60,15 @@ printf 'define fibonacci with n\n    if n is less than 2 then\n        give back
 "$PLAIN" practice fibonacci --file naive.plain > naive.out 2>&1 && { echo "FAILED: naive fibonacci should not pass n = 50"; fail=1; }
 check naive.out 'fibonacci(10)  gave  55' "naive fibonacci passes the small tests"
 check naive.out 'far too big for the simplest recursion' "the slow hidden test is named"
+# the advanced problems really do need the faster idea: the naive version is correct but is stopped on the big test
+printf 'define climb_ways with n\n    if n is at most 2 then\n        give back n\n    end\n    give back climb_ways(n - 1) + climb_ways(n - 2)\nend\n' > climb.plain
+"$PLAIN" practice climbing-stairs --file climb.plain > climb.out 2>&1 && { echo "FAILED: naive climbing stairs should not pass n = 45"; fail=1; }
+check climb.out 'climb_ways(3)  gave  3' "naive climbing stairs passes the small tests"
+check climb.out 'I stopped checking' "naive climbing stairs is stopped on the big test"
+printf 'define fewest_coins with coins, amount\n    if amount is 0 then\n        give back 0\n    end\n    set best to -1\n    for each c in coins\n        if c is at most amount then\n            set sub to fewest_coins(coins, amount - c)\n            if sub is not -1 and (best is -1 or sub + 1 is less than best) then\n                set best to sub + 1\n            end\n        end\n    end\n    give back best\nend\n' > coins.plain
+"$PLAIN" practice coin-change --file coins.plain > coins.out 2>&1 && { echo "FAILED: naive coin change should not pass the big amount"; fail=1; }
+check coins.out 'fewest_coins(\[1\], 0)  gave  0' "naive coin change passes the small tests"
+check coins.out 'I stopped checking' "naive coin change is stopped on the big test"
 printf 'define two_sum with numbers, target\n    give back numbers[99]\nend\n' > err.plain
 "$PLAIN" practice two-sum --file err.plain > err.out 2>&1; check err.out 'there is no item 99' "errors in the learner's code are explained"
 "$PLAIN" practice nosuchthing > nope.out 2>&1; check nope.out 'There is no problem called' "unknown problem"

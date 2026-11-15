@@ -7,24 +7,24 @@ set __problem to {
     params: "numbers, k",
     statement: "Give back the k-th biggest number in the list (k = 1 is the biggest). Repeated numbers count separately: in [5, 5, 3] the 2nd biggest is 5.",
     examples: [
-        {args: [[3, 2, 1, 5, 6, 4], 2], expect: 5},
-        {args: [[3, 2, 3, 1, 2, 4, 5, 5, 6], 4], expect: 4},
-        {args: [[1], 1], expect: 1}
+    {args: [[3, 2, 1, 5, 6, 4], 2], expect: 5},
+    {args: [[3, 2, 3, 1, 2, 4, 5, 5, 6], 4], expect: 4},
+    {args: [[1], 1], expect: 1}
     ],
     hints: [
-        "If the list were sorted, where would the k-th biggest be?",
-        "sort() puts the numbers smallest first; reverse() turns that round.",
-        "After sorting biggest first, the answer is item k. (A heap can do better for huge lists: keep only the k biggest.)"
+    "If the list were sorted, where would the k-th biggest be?",
+    "sort() puts the numbers smallest first; reverse() turns that round.",
+    "After sorting biggest first, the answer is item k. (A heap can do better for huge lists: keep only the k biggest.)"
     ],
     hidden: [
-        {args: [[7, 7, 7], 2], expect: 7, note: "repeated numbers"},
-        {args: [[-1, -2, -3], 3], expect: -3},
-        {args: [[5, 3], 2], expect: 3},
-        {args: [range(1, 5000), 10], expect: 4991, note: "a long list"}
+    {args: [[7, 7, 7], 2], expect: 7, note: "repeated numbers"},
+    {args: [[-1, -2, -3], 3], expect: -3},
+    {args: [[5, 3], 2], expect: 3},
+    {args: [range(1, 5000), 10], expect: 4991, note: "a long list"}
     ],
     complexity: "O(n log n) time with a sort; O(n log k) with a heap",
     explanation: "Sorting puts every number in rank order, so the k-th biggest is simply item k of the list sorted biggest-first (or item n - k + 1 of the list sorted smallest-first). If the list is huge and k is small, sorting everything wastes work: a heap that never holds more than k numbers keeps just the k biggest seen so far, and its smallest is the answer."
-}
+    }
 # --- solution ---
 define __reference with numbers, k
     give back reverse(sort(numbers))[k]

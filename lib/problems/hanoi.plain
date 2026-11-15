@@ -7,24 +7,24 @@ set __problem to {
     params: "n",
     statement: "n disks of different sizes sit on peg \"A\", biggest at the bottom. Move them all to peg \"C\", one at a time, never putting a bigger disk on a smaller one; peg \"B\" is a spare. Give back the shortest list of moves, each move as [from, to], like [\"A\", \"C\"].",
     examples: [
-        {args: [1], expect: [["A", "C"]]},
-        {args: [2], expect: [["A", "B"], ["A", "C"], ["B", "C"]]},
-        {args: [3], expect: [["A", "C"], ["A", "B"], ["C", "B"], ["A", "C"], ["B", "A"], ["B", "C"], ["A", "C"]]}
+    {args: [1], expect: [["A", "C"]]},
+    {args: [2], expect: [["A", "B"], ["A", "C"], ["B", "C"]]},
+    {args: [3], expect: [["A", "C"], ["A", "B"], ["C", "B"], ["A", "C"], ["B", "A"], ["B", "C"], ["A", "C"]]}
     ],
     hidden: [
-        {args: [0], expect: [], note: "no disks, no moves"},
-        {args: [4], expect: [["A", "B"], ["A", "C"], ["B", "C"], ["A", "B"], ["C", "A"], ["C", "B"], ["A", "B"], ["A", "C"], ["B", "C"], ["B", "A"], ["C", "A"], ["B", "C"], ["A", "B"], ["A", "C"], ["B", "C"]]},
-        {args: [6], expect: __reference(6), note: "63 moves"},
-        {args: [10], expect: __reference(10), note: "1023 moves (checked against the recursive solution)"}
+    {args: [0], expect: [], note: "no disks, no moves"},
+    {args: [4], expect: [["A", "B"], ["A", "C"], ["B", "C"], ["A", "B"], ["C", "A"], ["C", "B"], ["A", "B"], ["A", "C"], ["B", "C"], ["B", "A"], ["C", "A"], ["B", "C"], ["A", "B"], ["A", "C"], ["B", "C"]]},
+    {args: [6], expect: __reference(6), note: "63 moves"},
+    {args: [10], expect: __reference(10), note: "1023 moves (checked against the recursive solution)"}
     ],
     hints: [
-        "Assume you already know how to move n - 1 disks. What does moving n disks need?",
-        "Move the top n - 1 disks to the spare peg, move the big bottom disk to the target, then move the n - 1 disks from the spare onto it.",
-        "Write a helper with the pegs as values: move_disks(n, from, to, spare, moves). Base case: n is 0, do nothing."
+    "Assume you already know how to move n - 1 disks. What does moving n disks need?",
+    "Move the top n - 1 disks to the spare peg, move the big bottom disk to the target, then move the n - 1 disks from the spare onto it.",
+    "Write a helper with the pegs as values: move_disks(n, from, to, spare, moves). Base case: n is 0, do nothing."
     ],
     complexity: "2^n - 1 moves (this is the least possible)",
     explanation: "To move n disks from one peg to another, first move the n - 1 smaller disks out of the way onto the spare peg, then move the biggest disk, then move the n - 1 disks on top of it. Each of those smaller jobs is the same problem with one disk fewer, so a helper that calls itself twice solves it. The number of moves doubles with each extra disk (2^n - 1 in all), which is why the problem is a classic example of work that grows exponentially."
-}
+    }
 # --- solution ---
 define move_disks with n, from_peg, to_peg, spare, moves
     if n is 0 then

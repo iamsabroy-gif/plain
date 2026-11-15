@@ -7,7 +7,7 @@ WORK=$(mktemp -d)
 fail=0
 "$PLAIN" format --print "$DIR/format/ugly.plain" > "$WORK/ugly.out"
 cmp -s "$WORK/ugly.out" "$DIR/format/ugly.expected" || { echo "FAILED: format/ugly"; diff "$DIR/format/ugly.expected" "$WORK/ugly.out" | head; fail=1; }
-"$PLAIN" format --check "$DIR"/../lib/*.plain >/dev/null || { echo "FAILED: lib/ is not in the standard style - run: plain format lib/*.plain"; fail=1; }
+"$PLAIN" format --check "$DIR"/../lib/*.plain "$DIR"/../lib/problems/*.plain >/dev/null || { echo "FAILED: lib/ is not in the standard style - run: plain format lib/*.plain lib/problems/*.plain"; fail=1; }
 cp "$WORK/ugly.out" "$WORK/again.plain"
 "$PLAIN" format --check "$WORK/again.plain" >/dev/null || { echo "FAILED: format is not idempotent on ugly"; fail=1; }
 for file in "$DIR"/cases/*.plain "$DIR"/../examples/*.plain "$DIR"/../lib/*.plain; do

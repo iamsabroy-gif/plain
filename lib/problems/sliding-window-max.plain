@@ -7,25 +7,25 @@ set __problem to {
     params: "numbers, k",
     statement: "A window of k neighbouring items slides along the list one step at a time. Give back the biggest number in each window position. (k is at least 1 and at most the length of the list.)",
     examples: [
-        {args: [[1, 3, -1, -3, 5, 3, 6, 7], 3], expect: [3, 3, 5, 5, 6, 7]},
-        {args: [[1], 1], expect: [1]},
-        {args: [[9, 8, 7], 2], expect: [9, 8]}
+    {args: [[1, 3, -1, -3, 5, 3, 6, 7], 3], expect: [3, 3, 5, 5, 6, 7]},
+    {args: [[1], 1], expect: [1]},
+    {args: [[9, 8, 7], 2], expect: [9, 8]}
     ],
     hints: [
-        "The simple way is to find the biggest of the k numbers in every window. That is n x k steps, which is slow when both are big.",
-        "When a new number arrives, any earlier number in the window that is smaller than it can never be the maximum again. You can forget them.",
-        "Keep a deque of positions whose numbers are decreasing from front to back. The front is the current maximum. Drop the front when it leaves the window, and drop from the back everything smaller than the new number."
+    "The simple way is to find the biggest of the k numbers in every window. That is n x k steps, which is slow when both are big.",
+    "When a new number arrives, any earlier number in the window that is smaller than it can never be the maximum again. You can forget them.",
+    "Keep a deque of positions whose numbers are decreasing from front to back. The front is the current maximum. Drop the front when it leaves the window, and drop from the back everything smaller than the new number."
     ],
     hidden: [
-        {args: [[1, 2, 3, 4], 4], expect: [4], note: "the window is the whole list"},
-        {args: [[4, 3, 2, 1], 2], expect: [4, 3, 2]},
-        {args: [[5, 5, 5], 2], expect: [5, 5]},
-        {args: [[-1, -2, -3], 1], expect: [-1, -2, -3], note: "windows of one"},
-        {args: [range(1, 3000), 500], expect: range(500, 3000), note: "a long list with a wide window"}
+    {args: [[1, 2, 3, 4], 4], expect: [4], note: "the window is the whole list"},
+    {args: [[4, 3, 2, 1], 2], expect: [4, 3, 2]},
+    {args: [[5, 5, 5], 2], expect: [5, 5]},
+    {args: [[-1, -2, -3], 1], expect: [-1, -2, -3], note: "windows of one"},
+    {args: [range(1, 3000), 500], expect: range(500, 3000), note: "a long list with a wide window"}
     ],
     complexity: "O(n) time",
     explanation: "A deque of positions is kept so that their numbers decrease from front to back. A new number first removes every smaller number from the back (they are older and smaller, so they could never be a window maximum again), then joins at the back. The front is always the biggest number in the window; if its position has slid out of the window, it is removed from the front. Every position enters and leaves the deque once, so the whole job is linear."
-}
+    }
 # --- solution ---
 use "deque"
 

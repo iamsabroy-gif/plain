@@ -7,25 +7,25 @@ set __problem to {
     params: "items",
     statement: "A list may contain other lists, which may contain others. Give back one flat list with all the non-list items, in order.",
     examples: [
-        {args: [[1, [2, [3, 4]], 5]], expect: [1, 2, 3, 4, 5]},
-        {args: [[]], expect: []},
-        {args: [[[1], [2]]], expect: [1, 2]}
+    {args: [[1, [2, [3, 4]], 5]], expect: [1, 2, 3, 4, 5]},
+    {args: [[]], expect: []},
+    {args: [[[1], [2]]], expect: [1, 2]}
     ],
     hints: [
-        "Go through the items one by one. An item is either a plain value or another list.",
-        "type_of(item) tells you which: it says \"list\" for a list.",
-        "A plain value goes straight into the answer. A list is the same problem again: flatten it, and add everything it gives back."
+    "Go through the items one by one. An item is either a plain value or another list.",
+    "type_of(item) tells you which: it says \"list\" for a list.",
+    "A plain value goes straight into the answer. A list is the same problem again: flatten it, and add everything it gives back."
     ],
     hidden: [
-        {args: [[[[[1]]]]], expect: [1], note: "lists inside lists inside lists"},
-        {args: [[1, 2, 3]], expect: [1, 2, 3], note: "already flat"},
-        {args: [[[], [1, []], 2]], expect: [1, 2], note: "empty lists in the way"},
-        {args: [["a", ["b", ["c"]]]], expect: ["a", "b", "c"]},
-        {args: [[[1, 2], [3, [4, [5, [6]]]]]], expect: [1, 2, 3, 4, 5, 6]}
+    {args: [[[[[1]]]]], expect: [1], note: "lists inside lists inside lists"},
+    {args: [[1, 2, 3]], expect: [1, 2, 3], note: "already flat"},
+    {args: [[[], [1, []], 2]], expect: [1, 2], note: "empty lists in the way"},
+    {args: [["a", ["b", ["c"]]]], expect: ["a", "b", "c"]},
+    {args: [[[1, 2], [3, [4, [5, [6]]]]]], expect: [1, 2, 3, 4, 5, 6]}
     ],
     complexity: "O(total items) time",
     explanation: "A nested list is a tree: a list is a branch and every other value is a leaf. Walking through it, a leaf is added to the answer; a branch is flattened by the same action (that is the recursion) and its leaves are added. The recursion stops by itself when an item is not a list, and empty lists simply contribute nothing."
-}
+    }
 # --- solution ---
 define __reference with items
     set result to []

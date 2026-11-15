@@ -7,25 +7,25 @@ set __problem to {
     params: "words, prefix",
     statement: "Give back every different word from the list that starts with the prefix, in alphabetical order. The same word may appear in the list more than once, but should appear only once in the answer. An empty prefix matches everything.",
     examples: [
-        {args: [["apple", "app", "apricot", "banana"], "ap"], expect: ["app", "apple", "apricot"]},
-        {args: [["apple", "app", "apricot", "banana"], "b"], expect: ["banana"]},
-        {args: [["apple", "app", "apricot", "banana"], "z"], expect: []}
+    {args: [["apple", "app", "apricot", "banana"], "ap"], expect: ["app", "apple", "apricot"]},
+    {args: [["apple", "app", "apricot", "banana"], "b"], expect: ["banana"]},
+    {args: [["apple", "app", "apricot", "banana"], "z"], expect: []}
     ],
     hints: [
-        "You could test every word with starts_with. Fine for a short list; for a big dictionary asked many times it repeats work.",
-        "A trie shares the beginnings of words: a box per letter, with the next letters hanging below. Words that start the same share their first boxes.",
-        "Put every word into a Trie (use \"trie\"). To answer a prefix, walk down its letters and collect everything below. The library's words_with_prefix does exactly that; try writing the walk yourself."
+    "You could test every word with starts_with. Fine for a short list; for a big dictionary asked many times it repeats work.",
+    "A trie shares the beginnings of words: a box per letter, with the next letters hanging below. Words that start the same share their first boxes.",
+    "Put every word into a Trie (use \"trie\"). To answer a prefix, walk down its letters and collect everything below. The library's words_with_prefix does exactly that; try writing the walk yourself."
     ],
     hidden: [
-        {args: [[], "a"], expect: [], note: "no words"},
-        {args: [["a", "ab", "abc"], ""], expect: ["a", "ab", "abc"], note: "an empty prefix"},
-        {args: [["dog", "do", "dot"], "do"], expect: ["do", "dog", "dot"], note: "the prefix is itself a word"},
-        {args: [["go", "go", "gone"], "g"], expect: ["go", "gone"], note: "a repeated word"},
-        {args: [map_each(range(1, 3000), action with i gives "w" + text(i % 700)), "w69"], expect: ["w69", "w690", "w691", "w692", "w693", "w694", "w695", "w696", "w697", "w698", "w699"], note: "3,000 words"}
+    {args: [[], "a"], expect: [], note: "no words"},
+    {args: [["a", "ab", "abc"], ""], expect: ["a", "ab", "abc"], note: "an empty prefix"},
+    {args: [["dog", "do", "dot"], "do"], expect: ["do", "dog", "dot"], note: "the prefix is itself a word"},
+    {args: [["go", "go", "gone"], "g"], expect: ["go", "gone"], note: "a repeated word"},
+    {args: [map_each(range(1, 3000), action with i gives "w" + text(i % 700)), "w69"], expect: ["w69", "w690", "w691", "w692", "w693", "w694", "w695", "w696", "w697", "w698", "w699"], note: "3,000 words"}
     ],
     complexity: "O(total letters) to build; O(prefix + answers) per question",
     explanation: "A trie stores each word as a path of letters from a shared root, so words with the same start share the same boxes. To find all words with a prefix, follow the prefix's letters down (if the path breaks, nothing matches) and then collect every word-ending below that point. The work depends on the length of the prefix and the size of the answer, not on how many words are stored."
-}
+    }
 # --- solution ---
 use "trie"
 

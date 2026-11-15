@@ -7,24 +7,24 @@ set __problem to {
     params: "n",
     statement: "You climb a staircase of n steps, taking 1 or 2 steps at a time. Give back how many different ways there are to reach the top (n is at least 1).",
     examples: [
-        {args: [1], expect: 1},
-        {args: [2], expect: 2},
-        {args: [3], expect: 3}
+    {args: [1], expect: 1},
+    {args: [2], expect: 2},
+    {args: [3], expect: 3}
     ],
     hints: [
-        "Think about the very last move. You arrived at step n either from step n - 1 (one step) or from step n - 2 (two steps).",
-        "So ways(n) = ways(n - 1) + ways(n - 2). That looks familiar: the same shape as the Fibonacci numbers.",
-        "Written as plain recursion it repeats the same work over and over and is hopeless for n = 45. Remember each answer: build ways(1), ways(2), ways(3) ... upwards, keeping only the last two."
+    "Think about the very last move. You arrived at step n either from step n - 1 (one step) or from step n - 2 (two steps).",
+    "So ways(n) = ways(n - 1) + ways(n - 2). That looks familiar: the same shape as the Fibonacci numbers.",
+    "Written as plain recursion it repeats the same work over and over and is hopeless for n = 45. Remember each answer: build ways(1), ways(2), ways(3) ... upwards, keeping only the last two."
     ],
     hidden: [
-        {args: [4], expect: 5},
-        {args: [10], expect: 89},
-        {args: [30], expect: 1346269, note: "slow if the same sub-answers are worked out again and again"},
-        {args: [45], expect: 1836311903, note: "far too many ways to count one at a time"}
+    {args: [4], expect: 5},
+    {args: [10], expect: 89},
+    {args: [30], expect: 1346269, note: "slow if the same sub-answers are worked out again and again"},
+    {args: [45], expect: 1836311903, note: "far too many ways to count one at a time"}
     ],
     complexity: "O(n) time, O(1) extra space",
     explanation: "This is a dynamic programming problem: the answer for n is made of the answers for smaller n, and the same smaller answers are needed again and again. Instead of recursing from the top (which recomputes them exponentially often), work from the bottom and keep what you need: the ways to reach the previous two steps. Each new step is just their sum, so n steps take n additions."
-}
+    }
 # --- solution ---
 define __reference with n
     set two_back to 1

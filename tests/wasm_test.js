@@ -42,6 +42,9 @@ function check(name, ok, detail) { if (!ok) { failures++; console.log("FAILED: "
   r = await runPlain(["-e", 'use "dsa"\nset s to new Stack()\ns\'s push(1)\ns\'s push(2)\nsay s\'s pop()']);
   check("the built-in library works", r.stdout === "2\n", JSON.stringify(r));
 
+  r = await runPlain(["-e", 'use "dsa"\nset t to new Trie()\nt\'s put("tea")\nt\'s put("ten")\nset a to new AVLTree()\nfor i from 1 to 100\n    a\'s put(i)\nend\nset c to new LRUCache(1)\nc\'s put("x", 1)\nc\'s put("y", 2)\nset d to new Deque()\nd\'s push_front(1)\nd\'s push_back(2)\nsay t\'s words_with_prefix("te"), a\'s height(), c\'s keys(), d\'s to_list()']);
+  check("the newer data structures work in the browser build", r.stdout === '["tea", "ten"] 7 ["y"] [1, 2]\n', JSON.stringify(r));
+
   r = await runPlain(["-e", "start_task(action gives 1)"]);
   check("tasks are refused politely", /web playground/.test(r.stderr), JSON.stringify(r));
 

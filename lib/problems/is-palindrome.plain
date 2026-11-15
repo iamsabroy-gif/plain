@@ -7,26 +7,26 @@ set __problem to {
     params: "text",
     statement: "A palindrome reads the same forwards and backwards. Give back true if the text is one, ignoring spaces and the difference between capital and small letters. (The tests have no other punctuation.)",
     examples: [
-        {args: ["A man a plan a canal Panama"], expect: true},
-        {args: ["hello"], expect: false},
-        {args: [""], expect: true}
+    {args: ["A man a plan a canal Panama"], expect: true},
+    {args: ["hello"], expect: false},
+    {args: [""], expect: true}
     ],
     hints: [
-        "First make the text easy to compare: no spaces, all the same case. 'replace' and 'lowercase' can do that.",
-        "Then the text is a palindrome if it is the same as itself turned round. 'reverse' works on text.",
-        "Or, without reverse: compare the first letter with the last, the second with the second to last, and so on, meeting in the middle."
+    "First make the text easy to compare: no spaces, all the same case. 'replace' and 'lowercase' can do that.",
+    "Then the text is a palindrome if it is the same as itself turned round. 'reverse' works on text.",
+    "Or, without reverse: compare the first letter with the last, the second with the second to last, and so on, meeting in the middle."
     ],
     hidden: [
-        {args: ["ab"], expect: false},
-        {args: ["No lemon no melon"], expect: true},
-        {args: ["x"], expect: true, note: "a single letter"},
-        {args: ["race car"], expect: true},
-        {args: ["Never odd or even"], expect: true},
-        {args: ["Was it a car or a cat I saw"], expect: true}
+    {args: ["ab"], expect: false},
+    {args: ["No lemon no melon"], expect: true},
+    {args: ["x"], expect: true, note: "a single letter"},
+    {args: ["race car"], expect: true},
+    {args: ["Never odd or even"], expect: true},
+    {args: ["Was it a car or a cat I saw"], expect: true}
     ],
     complexity: "O(n) time",
     explanation: "Tidy the text first (take out the spaces, make every letter small) so that only the letters matter. Then the text is a palindrome exactly when it equals its own reverse. The two-pointer way compares letters from both ends moving inwards and stops at the first mismatch; it does the same work without building a reversed copy."
-}
+    }
 # --- solution ---
 define __reference with text
     set clean to lowercase(replace(text, " ", ""))

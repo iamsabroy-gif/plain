@@ -7,25 +7,25 @@ set __problem to {
     params: "graph, start, goal",
     statement: "A graph is a map from each node to the list of nodes it has a one-way road to, like {A: [\"B\", \"C\"], B: [\"D\"], C: [\"D\"], D: []}. Give back the smallest number of roads you must follow to get from start to goal, or -1 if the goal can't be reached. Going from a node to itself takes 0 roads.",
     examples: [
-        {args: [{A: ["B", "C"], B: ["D"], C: ["D"], D: []}, "A", "D"], expect: 2},
-        {args: [{A: ["B"], B: []}, "A", "A"], expect: 0},
-        {args: [{A: ["B"], B: []}, "B", "A"], expect: -1}
+    {args: [{A: ["B", "C"], B: ["D"], C: ["D"], D: []}, "A", "D"], expect: 2},
+    {args: [{A: ["B"], B: []}, "A", "A"], expect: 0},
+    {args: [{A: ["B"], B: []}, "B", "A"], expect: -1}
     ],
     hints: [
-        "Explore the graph in rings: first the start, then everything one road away, then everything two roads away, and so on. The first ring that contains the goal gives the answer.",
-        "That order of visiting is exactly what a queue gives you. This is breadth-first search.",
-        "Put the start in a queue with distance 0 (keep distances in a map). Take the front node; for each neighbour not yet seen, give it distance + 1 and enqueue it. Stop when you take the goal."
+    "Explore the graph in rings: first the start, then everything one road away, then everything two roads away, and so on. The first ring that contains the goal gives the answer.",
+    "That order of visiting is exactly what a queue gives you. This is breadth-first search.",
+    "Put the start in a queue with distance 0 (keep distances in a map). Take the front node; for each neighbour not yet seen, give it distance + 1 and enqueue it. Stop when you take the goal."
     ],
     hidden: [
-        {args: [{A: ["B", "C"], B: ["C"], C: ["D"], D: ["A"]}, "A", "D"], expect: 2, note: "a loop and a shortcut"},
-        {args: [{A: ["B"], B: ["C"], C: [], D: ["A"]}, "A", "D"], expect: -1},
-        {args: [{1: [2, 3], 2: [4], 3: [4], 4: [5], 5: []}, 1, 5], expect: 3, note: "numbers as node names"},
-        {args: [{}, "A", "B"], expect: -1, note: "an empty graph"},
-        {args: [__skip_graph(3000), 1, 3000], expect: 1500, note: "a long graph where each node leads to the next two"}
+    {args: [{A: ["B", "C"], B: ["C"], C: ["D"], D: ["A"]}, "A", "D"], expect: 2, note: "a loop and a shortcut"},
+    {args: [{A: ["B"], B: ["C"], C: [], D: ["A"]}, "A", "D"], expect: -1},
+    {args: [{1: [2, 3], 2: [4], 3: [4], 4: [5], 5: []}, 1, 5], expect: 3, note: "numbers as node names"},
+    {args: [{}, "A", "B"], expect: -1, note: "an empty graph"},
+    {args: [__skip_graph(3000), 1, 3000], expect: 1500, note: "a long graph where each node leads to the next two"}
     ],
     complexity: "O(nodes + roads) time",
     explanation: "Breadth-first search visits nodes in order of their distance from the start: everything one road away, then everything two roads away, and so on, because a queue serves nodes in the order they were found. So the first time the goal is reached, it has been reached by the fewest possible roads. Storing each node's distance in a map doubles as the 'already seen' record that keeps loops harmless."
-}
+    }
 define __skip_graph with n
     set g to {}
     for i from 1 to n
