@@ -47,7 +47,7 @@ Linux line inside it.) To build it yourself you need a C++ compiler: `make`, the
 
 The browser playground (`web/`) runs Plain right in a web page: type a program, press
 Run, or press "Watch it run" to step through it. Once it is published (see
-[docs/INTERNALS.md](docs/INTERNALS.md#the-browser-playground)) the address will be
+[docs/DEVELOPER.md](docs/DEVELOPER.md#the-browser-playground)) the address will be
 `https://iamsabroy-gif.github.io/plain/`.
 
 ## Your first minute
@@ -60,8 +60,8 @@ plain visualize examples/sorting.plain     # watch a sort run, in a web page
 plain practice two-sum          # a problem with hidden tests and hints
 ```
 
-New to programming? [docs/CORE.md](docs/CORE.md) shows the fifteen words that are
-enough for the first seven lessons.
+A child? Start with [Plain for kids](docs/KIDS.md). New to programming? [docs/CORE.md](docs/CORE.md)
+shows the fifteen words that are enough for the first seven lessons.
 
 ## Commands
 
@@ -85,11 +85,12 @@ enough for the first seven lessons.
 
 | | |
 |---|---|
+| [docs/KIDS.md](docs/KIDS.md) | **Plain for kids**: a friendly first guide with challenges to try |
 | [docs/CORE.md](docs/CORE.md) | The beginner core, a lesson map, and names you can't use |
 | [docs/LANGUAGE.md](docs/LANGUAGE.md) | Values, instructions, expressions, numbers, built-in actions, errors, the standard style |
 | [docs/LEARNING.md](docs/LEARNING.md) | `visualize`, `count`, `growth`, `compare`, `practice` and the data-structure library |
 | [docs/ADVANCED.md](docs/ADVANCED.md) | Closures, classes, tasks, networking, packages |
-| [docs/INTERNALS.md](docs/INTERNALS.md) | How it works, tests, limits, releasing |
+| [docs/DEVELOPER.md](docs/DEVELOPER.md) | For contributors: how it works, how to add things, the trace format, tests, releasing, gotchas |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | What is done and what comes next |
 
 ## Good to know
@@ -100,4 +101,4 @@ enough for the first seven lessons.
 - Tracing costs nothing when it is off: the virtual machine has a normal copy of its
   loop and a watched copy, and ordinary runs use the first.
 - Windows has no networking or `plain install` yet; tasks run one at a time.
-  The full list is in [docs/INTERNALS.md](docs/INTERNALS.md#limits).
+  The full list is in [docs/DEVELOPER.md](docs/DEVELOPER.md#limits).
