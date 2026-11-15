@@ -2,8 +2,6 @@
 //
 // Build:  c++ -O2 -std=c++17 -o plain src/main.cpp      (or just: make)
 // Run:    plain program.plain
-#include <filesystem>
-
 #include "format.hpp"
 #include "pkg.hpp"
 
@@ -11,6 +9,9 @@
 #include <io.h>
 #include <windows.h>
 #define PLAIN_ISATTY(fd) _isatty(fd)
+#elif defined(PLAIN_WASM)
+#include <unistd.h>
+#define PLAIN_ISATTY(fd) 1  /* line by line, so the page shows output as it happens */
 #else
 #include <sys/stat.h>
 #include <unistd.h>
@@ -320,7 +321,7 @@ static int build(const char* argv0, const std::string& file, std::string out) {
     fwrite(exe.data(), 1, exe.size(), f);
     fwrite(payload.data(), 1, payload.size(), f);
     fclose(f);
-#ifndef _WIN32
+#ifdef PLAIN_POSIX
     chmod(out.c_str(), 0755);
 #endif
     printf("Built %s (%zu file%s inside). Run it with: %s%s\n", out.c_str(), files.size() - 1, files.size() == 2 ? "" : "s",
@@ -390,7 +391,7 @@ static void usage() {
 int main(int argc, char** argv) {
     static char outBuf[1 << 16];
     setvbuf(stdout, outBuf, PLAIN_ISATTY(1) ? _IOLBF : _IOFBF, sizeof outBuf);
-#ifndef _WIN32
+#ifdef PLAIN_POSIX
     signal(SIGPIPE, SIG_IGN);  // a closed network connection is an error to report, not a reason to die
 #endif
     gil().lock();  // the main program holds the turn; background tasks take it when it waits

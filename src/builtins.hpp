@@ -3,11 +3,15 @@
 #include <chrono>
 #include <climits>
 #include <ctime>
+#ifndef PLAIN_WASM
 #include <thread>
+#else
+#include <time.h>
+#endif
 
 #include "tasks.hpp"
 
-#ifndef _WIN32
+#ifdef PLAIN_POSIX
 #include <arpa/inet.h>
 #include <csignal>
 #include <fcntl.h>
@@ -170,7 +174,7 @@ BUILTIN(b_number) {
     }
     fail("I can't turn " + fmt(a[0], true) + " into a number.");
 }
-static std::string uppercaseCopy(std::string s) {
+[[maybe_unused]] static std::string uppercaseCopy(std::string s) {
     for (char& c : s) c = (char)toupper((unsigned char)c);
     return s;
 }
@@ -438,7 +442,14 @@ BUILTIN(b_wait) {
     fflush(stdout);
     double seconds = std::max(0.0, argNum("wait", a, 0));
     Unlocked u;  // other tasks run while this one sleeps
+#ifdef PLAIN_WASM
+    struct timespec ts;
+    ts.tv_sec = (time_t)seconds;
+    ts.tv_nsec = (long)((seconds - (double)(time_t)seconds) * 1e9);
+    nanosleep(&ts, nullptr);
+#else
     std::this_thread::sleep_for(std::chrono::duration<double>(seconds));
+#endif
     return Value();
 }
 BUILTIN(b_arguments) {
@@ -491,7 +502,7 @@ BUILTIN(b_sort_keys) {
 }
 
 // -------------------------------------------------------------- networking
-#ifndef _WIN32
+#ifdef PLAIN_POSIX
 // Run another program, feed it 'input' and collect what it prints.
 inline int runProcess(const std::vector<std::string>& argv, const std::string& input, std::string& out, std::string& err) {
     int in[2], ou[2], er[2];
@@ -1055,7 +1066,11 @@ BUILTIN(b_http_serve) {
     return Value();
 }
 #else
+#ifdef PLAIN_WASM
+BUILTIN(b_no_network) { fail("Networking is not available in the web playground. Install Plain on your computer to use it."); }
+#else
 BUILTIN(b_no_network) { fail("Networking is not available in the Windows build of Plain yet."); }
+#endif
 #define b_http_get b_no_network
 #define b_http_post b_no_network
 #define b_http_request b_no_network

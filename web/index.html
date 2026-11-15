@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plain - try it in your browser</title>
+<meta name="description" content="Write a program in Plain and run it right here. Nothing to install.">
+<style>
+:root {
+  --bg: #f6f5f1; --panel: #ffffff; --ink: #1c1c1a; --muted: #6a6a64; --line: #dad9d2;
+  --accent: #2f5bea; --accent-ink: #ffffff; --go: #1f9d63; --stop: #d6393f; --code-bg: #fbfbf9;
+  --err-bg: #fdecec; --err-ink: #8e1f24; --chip: #eceef5;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15161a; --panel: #1e2026; --ink: #ecebe6; --muted: #9c9b95; --line: #34363e;
+    --accent: #7c9bff; --accent-ink: #11131a; --go: #3fb97f; --stop: #ef6a6e; --code-bg: #1a1c21;
+    --err-bg: #3a2124; --err-ink: #ffb4b7; --chip: #2a2d36;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+body { min-height: 100vh; display: flex; flex-direction: column; }
+header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 12px 18px; background: var(--panel); border-bottom: 1px solid var(--line); }
+header h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+header .tag { color: var(--muted); font-size: 15px; flex: 1 1 200px; }
+header a { color: var(--accent); text-decoration: none; font-size: 14px; }
+header a:hover { text-decoration: underline; }
+main { flex: 1; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; padding: 16px 18px 28px; align-items: start; }
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.card > h2 { margin: 0; padding: 9px 14px; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 600; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); align-items: center; }
+button, select { font: inherit; color: var(--ink); background: var(--chip); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; cursor: pointer; }
+button:hover, select:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.run { background: var(--go); border-color: var(--go); color: #fff; font-weight: 700; font-size: 17px; padding: 9px 22px; }
+button.stop { background: var(--stop); border-color: var(--stop); color: #fff; font-weight: 700; }
+button[disabled] { opacity: .45; cursor: not-allowed; }
+.spacer { flex: 1; }
+.editor { display: grid; grid-template-columns: 46px minmax(0, 1fr); background: var(--code-bg); }
+.gutter { margin: 0; padding: 12px 8px 12px 0; text-align: right; color: var(--muted); font: 15px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; user-select: none; overflow: hidden; border-right: 1px solid var(--line); white-space: pre; }
+textarea#code { width: 100%; height: 56vh; min-height: 280px; resize: vertical; border: 0; padding: 12px 14px; background: transparent; color: var(--ink); font: 15px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; tab-size: 4; white-space: pre; overflow: auto; }
+#output { margin: 0; padding: 12px 14px; min-height: 120px; max-height: 44vh; overflow: auto; white-space: pre-wrap; word-break: break-word; font: 15px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+#output .err { display: block; background: var(--err-bg); color: var(--err-ink); border-radius: 8px; padding: 8px 10px; margin-top: 6px; }
+#output .hint { color: var(--muted); font-family: system-ui, sans-serif; }
+#status { font-size: 13px; color: var(--muted); }
+details { border-top: 1px solid var(--line); }
+summary { padding: 9px 14px; cursor: pointer; color: var(--muted); font-size: 14px; }
+details textarea { width: calc(100% - 28px); margin: 0 14px 12px; height: 70px; font: 14px/1.5 ui-monospace, Menlo, Consolas, monospace; background: var(--code-bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+#vizCard { grid-column: 1 / -1; }
+#vizFrame { width: 100%; height: 78vh; border: 0; background: var(--bg); display: block; }
+.note { color: var(--muted); font-size: 13px; padding: 8px 14px 12px; }
+footer { padding: 14px 18px 22px; color: var(--muted); font-size: 13px; text-align: center; }
+footer a { color: var(--accent); }
+#loading { padding: 40px 18px; text-align: center; color: var(--muted); }
+#unsupported { display: none; margin: 18px; padding: 14px 16px; border-radius: 12px; background: var(--err-bg); color: var(--err-ink); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Plain</h1>
+  <span class="tag">Write a program, press Run. Nothing to install.</span>
+  <a href="https://github.com/iamsabroy-gif/plain#install">Install on your computer</a>
+  <a href="https://github.com/iamsabroy-gif/plain/blob/main/docs/CORE.md">Learn the first words</a>
+</header>
+<div id="unsupported"></div>
+<main id="app">
+  <section class="card">
+    <h2><span>Your program</span><span id="status" role="status">Loading Plain...</span></h2>
+    <div class="toolbar">
+      <button id="run" class="run" disabled title="Run (Ctrl+Enter)">&#9654; Run</button>
+      <button id="stop" class="stop" hidden>&#9632; Stop</button>
+      <button id="watch" disabled title="Run slowly and watch every step">&#128064; Watch it run</button>
+      <button id="count" disabled title="Count how much work it does">&#128290; Count the work</button>
+      <span class="spacer"></span>
+      <label for="examples" class="note" style="padding:0">Examples</label>
+      <select id="examples" aria-label="Choose an example"></select>
+    </div>
+    <div class="editor">
+      <pre class="gutter" id="gutter" aria-hidden="true">1</pre>
+      <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your program"></textarea>
+    </div>
+    <details>
+      <summary>Typed answers for <code>ask</code> (one per line)</summary>
+      <textarea id="stdin" spellcheck="false" aria-label="Typed answers, one per line" placeholder="If your program uses  ask ... into name  put the answers here, one per line."></textarea>
+    </details>
+    <div class="toolbar" style="border-top:1px solid var(--line);border-bottom:0">
+      <button id="share">&#128279; Copy a link to this program</button>
+      <span id="shareNote" class="note" style="padding:0"></span>
+    </div>
+  </section>
+  <section class="card">
+    <h2><span>What it says</span><button id="clear" style="padding:2px 10px;font-size:12px">Clear</button></h2>
+    <pre id="output" aria-live="polite"><span class="hint">Press Run to see what your program says.</span></pre>
+    <div class="note">This runs inside your browser. Tasks, networking and files are only in the version you install.</div>
+  </section>
+  <section class="card" id="vizCard" hidden>
+    <h2><span>Watch it run</span><button id="closeViz" style="padding:2px 10px;font-size:12px">Close</button></h2>
+    <iframe id="vizFrame" title="Step through the program" sandbox="allow-scripts"></iframe>
+  </section>
+</main>
+<div id="loading" hidden></div>
+<footer>Plain is free and open source. <a href="https://github.com/iamsabroy-gif/plain">Source and install</a> &middot; <a href="https://github.com/iamsabroy-gif/plain/blob/main/docs/LANGUAGE.md">The language</a></footer>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const EXAMPLES = {
+  "Say hello": 'say "Hello, world!"\nset name to "Asha"\nsay "My name is", name\nsay 6 * 7\n',
+  "Count to five": 'for i from 1 to 5\n    say i, "times 2 is", i * 2\nend\n',
+  "A list": 'set fruits to ["mango", "banana", "lychee"]\nadd "guava" to fruits\n\nfor each fruit in fruits\n    say "I like", fruit\nend\nsay "There are", length of fruits, "fruits"\n',
+  "Decisions": 'set age to 9\nif age is less than 5 then\n    say "You are little!"\notherwise if age is less than 13 then\n    say "You are a kid!"\notherwise\n    say "You are grown up!"\nend\n',
+  "Make your own action": 'define greet with name\n    say "Hello,", name + "!"\nend\n\ngreet("Asha")\ngreet("Ravi")\n\ndefine double with n\n    give back n * 2\nend\nsay double(21)\n',
+  "Sort a list (watch it!)": 'define bubble_sort with xs\n    set n to length of xs\n    for pass from 1 to n - 1\n        for j from 1 to n - pass\n            if xs[j] is greater than xs[j + 1] then\n                set tmp to xs[j]\n                set xs[j] to xs[j + 1]\n                set xs[j + 1] to tmp\n            end\n        end\n    end\n    give back xs\nend\n\nset data to [5, 2, 9, 1, 7, 3]\nsay bubble_sort(data)\n',
+  "A function that calls itself": 'define factorial with n\n    if n is at most 1 then\n        give back 1\n    end\n    give back n * factorial(n - 1)\nend\n\nsay "5 factorial is", factorial(5)\n',
+  "A stack": 'use "stack"\n\nset pile to new Stack()\npile\'s push("plate 1")\npile\'s push("plate 2")\npile\'s push("plate 3")\nsay pile\'s pop()\nsay pile\'s pop()\nsay pile\n',
+  "Find a way through a graph": 'use "graph"\n\nset map_of_towns to new Graph()\nmap_of_towns\'s add_edge("Home", "Park")\nmap_of_towns\'s add_edge("Park", "Shop")\nmap_of_towns\'s add_edge("Home", "School")\nmap_of_towns\'s add_edge("School", "Shop")\nmap_of_towns\'s add_edge("Shop", "Library")\n\nsay map_of_towns\'s shortest_path("Home", "Library")\n',
+};
+const DEFAULT = "Say hello";
+
+const editor = $("code"), gutter = $("gutter"), out = $("output"), statusEl = $("status");
+let worker = null, busy = false, stopTimer = null, playerHtml = null;
+
+// ---------------------------------------------------------------- the editor
+function updateGutter() {
+  const lines = editor.value.split("\n").length;
+  let s = "";
+  for (let i = 1; i <= lines; i++) s += i + "\n";
+  gutter.textContent = s;
+  gutter.scrollTop = editor.scrollTop;
+}
+editor.addEventListener("input", () => { updateGutter(); remember(); });
+editor.addEventListener("scroll", () => { gutter.scrollTop = editor.scrollTop; });
+editor.addEventListener("keydown", (e) => {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    document.execCommand("insertText", false, "    ");
+  } else if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+    // keep the indent of the line above, and go one step further in after a line that opens a block
+    const start = editor.selectionStart, before = editor.value.slice(0, start);
+    const line = before.slice(before.lastIndexOf("\n") + 1);
+    let indent = line.match(/^ */)[0];
+    if (/^\s*(if|repeat|while|for|define|class|otherwise|try|on error)\b/i.test(line) || /\baction\b[^\n]*$/i.test(line) && !/\bgives\b/i.test(line) && /^\s*set\b/i.test(line)) indent += "    ";
+    e.preventDefault();
+    document.execCommand("insertText", false, "\n" + indent);
+  } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    e.preventDefault();
+    if (!busy) runProgram();
+  }
+});
+function remember() { try { localStorage.setItem("plain-code", editor.value); } catch (e) { /* private window: fine */ } }
+function setCode(text) { editor.value = text; updateGutter(); remember(); }
+
+// -------------------------------------------------------------- running it
+function say(text, cls) {
+  if (out.querySelector(".hint")) out.textContent = "";
+  if (cls) { const span = document.createElement("span"); span.className = cls; span.textContent = text; out.append(span); }
+  else out.append(document.createTextNode(text));
+  out.scrollTop = out.scrollHeight;
+}
+function setBusy(on, message) {
+  busy = on;
+  for (const id of ["run", "watch", "count"]) $(id).disabled = on;
+  $("stop").hidden = !on;
+  statusEl.textContent = message || "";
+}
+function startWorker() {
+  if (worker) worker.terminate();
+  worker = new Worker("worker.js");
+}
+// Run the interpreter with these arguments. Resolves with everything it wrote.
+function runPlain(args, { live } = {}) {
+  return new Promise((resolve, reject) => {
+    startWorker();
+    const result = { stdout: "", stderr: "", code: 0 };
+    const w = worker;
+    w.onmessage = (ev) => {
+      const m = ev.data;
+      if (m.type === "out") {
+        if (m.fd === 1) { result.stdout += m.text; if (live) say(m.text); }
+        else { result.stderr += m.text; if (live) say(m.text.replace(/^\n/, ""), "err"); }
+      } else if (m.type === "done") { clearTimeout(stopTimer); resolve(result); }
+      else if (m.type === "failed") { clearTimeout(stopTimer); reject(new Error(m.message)); }
+    };
+    w.onerror = (ev) => { clearTimeout(stopTimer); reject(new Error(ev.message || "The worker stopped.")); };
+    let stdin = $("stdin").value;
+    if (stdin && !stdin.endsWith("\n")) stdin += "\n";
+    w.postMessage({ args, stdin, wasmUrl: "plain.wasm" });
+    clearTimeout(stopTimer);
+    stopTimer = setTimeout(() => { stopRun("Stopped after 30 seconds, in case it was stuck in a loop that never ends."); reject(new Error("timeout")); }, 30000);
+  });
+}
+function stopRun(message) {
+  clearTimeout(stopTimer);
+  if (worker) { worker.terminate(); worker = null; }
+  if (busy) { setBusy(false, ""); if (message) say("\n" + message + "\n", "err"); }
+}
+async function guarded(label, task) {
+  if (busy) return;
+  setBusy(true, label);
+  try { await task(); setBusy(false, ""); }
+  catch (e) { if (e.message !== "timeout" && busy) { say("\n" + e.message + "\n", "err"); setBusy(false, ""); } }
+}
+function runProgram() {
+  out.textContent = "";
+  return guarded("Running...", async () => {
+    const r = await runPlain(["-e", editor.value], { live: true });
+    if (!r.stdout && !r.stderr) say("(Your program ran, and did not say anything. Try  say \"hi\")", "hint");
+  });
+}
+function countWork() {
+  out.textContent = "";
+  return guarded("Counting...", async () => { await runPlain(["count", "-e", editor.value], { live: true }); });
+}
+async function loadPlayer() {
+  if (!playerHtml) {
+    const r = await fetch("player.html");
+    if (!r.ok) throw new Error("I could not load the step-by-step viewer.");
+    playerHtml = await r.text();
+  }
+  return playerHtml;
+}
+function watchRun() {
+  out.textContent = "";
+  return guarded("Recording every step...", async () => {
+    const r = await runPlain(["visualize", "--json", "-e", editor.value]);
+    const json = r.stdout.trim();
+    if (!json.startsWith("{")) { say(r.stderr.replace(/^\n/, "") || "I could not record that program.", "err"); return; }
+    const page = (await loadPlayer()).replace("/*__PLAIN_DATA__*/null", () => json);
+    $("vizFrame").srcdoc = page;
+    $("vizCard").hidden = false;
+    $("vizCard").scrollIntoView({ behavior: "smooth", block: "start" });
+    if (r.stderr) say(r.stderr.replace(/^\n/, ""), "err");
+  });
+}
+
+// ------------------------------------------------------------------ the rest
+function shareLink() {
+  const bytes = new TextEncoder().encode(editor.value);
+  let bin = "";
+  bytes.forEach((b) => (bin += String.fromCharCode(b)));
+  const link = location.origin + location.pathname + "#c=" + btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const done = () => { $("shareNote").textContent = "Link copied."; setTimeout(() => ($("shareNote").textContent = ""), 3000); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done, () => { prompt("Copy this link:", link); });
+  else prompt("Copy this link:", link);
+  history.replaceState(null, "", link.slice(link.indexOf("#")));
+}
+function codeFromLink() {
+  const m = location.hash.match(/^#c=([A-Za-z0-9_-]+)$/);
+  if (!m) return null;
+  try {
+    const bin = atob(m[1].replace(/-/g, "+").replace(/_/g, "/"));
+    return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+  } catch (e) { return null; }
+}
+
+$("run").onclick = runProgram;
+$("watch").onclick = watchRun;
+$("count").onclick = countWork;
+$("stop").onclick = () => stopRun("Stopped.");
+$("share").onclick = shareLink;
+$("clear").onclick = () => { out.innerHTML = '<span class="hint">Press Run to see what your program says.</span>'; };
+$("closeViz").onclick = () => { $("vizCard").hidden = true; $("vizFrame").srcdoc = ""; };
+const picker = $("examples");
+picker.append(new Option("Pick one...", ""));
+Object.keys(EXAMPLES).forEach((name) => picker.append(new Option(name, name)));
+picker.onchange = () => { if (picker.value) { setCode(EXAMPLES[picker.value]); out.innerHTML = '<span class="hint">Press Run to see what your program says.</span>'; picker.value = ""; } };
+
+(function start() {
+  let first = codeFromLink();
+  if (first === null) { try { first = localStorage.getItem("plain-code"); } catch (e) { first = null; } }
+  setCode(first || EXAMPLES[DEFAULT]);
+  if (typeof WebAssembly !== "object" || typeof Worker !== "function") {
+    const u = $("unsupported");
+    u.style.display = "block";
+    u.textContent = "This browser can't run Plain here. Try a recent Chrome, Firefox, Edge or Safari, or install Plain on your computer.";
+    statusEl.textContent = "Not supported";
+    return;
+  }
+  // load the interpreter once in the background so the first Run is quick, and find out early if it works
+  const probe = new Worker("worker.js");
+  probe.onmessage = (ev) => {
+    if (ev.data.type === "done") {
+      statusEl.textContent = "Ready";
+      for (const id of ["run", "watch", "count"]) $(id).disabled = false;
+      probe.terminate();
+    } else if (ev.data.type === "failed") {
+      statusEl.textContent = "Could not start";
+      const u = $("unsupported");
+      u.style.display = "block";
+      u.textContent = "Plain could not start in this browser: " + ev.data.message + " Open this page from a web address (not from a file on your computer), or try a newer browser.";
+      probe.terminate();
+    }
+  };
+  probe.onerror = () => { statusEl.textContent = "Could not start"; };
+  probe.postMessage({ args: ["-e", ""], stdin: "", wasmUrl: "plain.wasm" });
+})();
+</script>
+</body>
+</html>

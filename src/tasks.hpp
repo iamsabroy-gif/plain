@@ -67,6 +67,9 @@ inline size_t collectGarbage() {
     return garbage.size();
 }
 
+inline Value gcCollect(VM&, Value*, int) { return Value::integer((int64_t)collectGarbage()); }
+
+#ifndef PLAIN_WASM
 // ------------------------------------------------------ waiting for events
 // Every change that another task may be waiting for (a task finishing, a message
 // arriving, a lock being let go) bumps this counter. A waiter remembers the value
@@ -256,7 +259,6 @@ inline Value lockTry(VM&, Value* a, int) {
     l->held = true;
     return Value::boolean(true);
 }
-inline Value gcCollect(VM&, Value*, int) { return Value::integer((int64_t)collectGarbage()); }
 
 inline void registerTaskBuiltins(Program& prog) {
     struct Entry { const char* name; int arity; NativeFn fn; };
@@ -269,5 +271,22 @@ inline void registerTaskBuiltins(Program& prog) {
     };
     for (const Entry& e : table) prog.define(e.name, Value::obj(new Native(e.name, e.arity, e.fn)));
 }
+
+#else
+// The web playground runs one program at a time: no tasks, channels or locks.
+inline Value noTasks(VM&, Value*, int) {
+    fail("Tasks, channels and locks are not available in the web playground. Install Plain on your computer to use them.");
+}
+inline void registerTaskBuiltins(Program& prog) {
+    struct Entry { const char* name; int arity; NativeFn fn; };
+    static const Entry table[] = {
+        {"start_task", -1, noTasks}, {"wait_for", 1, noTasks}, {"task_done", 1, noTasks}, {"channel", 0, noTasks},
+        {"send", 2, noTasks}, {"receive", -1, noTasks}, {"close_channel", 1, noTasks}, {"messages_waiting", 1, noTasks},
+        {"lock", 0, noTasks}, {"acquire", 1, noTasks}, {"release", 1, noTasks}, {"try_acquire", 1, noTasks},
+        {"collect_garbage", 0, gcCollect},
+    };
+    for (const Entry& e : table) prog.define(e.name, Value::obj(new Native(e.name, e.arity, e.fn)));
+}
+#endif
 
 }  // namespace plain

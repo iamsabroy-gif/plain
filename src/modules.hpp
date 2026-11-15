@@ -1,7 +1,9 @@
 // Plain - finding the file that 'use "name"' refers to (a file next to the
 // program, or an installed package).
 #pragma once
+#ifndef PLAIN_WASM
 #include <filesystem>
+#endif
 #include <unordered_map>
 
 #include "json.hpp"
@@ -41,8 +43,14 @@ inline std::string dirOf(const std::string& file) {
 }
 
 inline bool fileExists(const std::string& path) {
+#ifdef PLAIN_WASM
+    FILE* f = fopen(path.c_str(), "rb");
+    if (f) fclose(f);
+    return f != nullptr;
+#else
     std::error_code ec;
     return std::filesystem::is_regular_file(path, ec);
+#endif
 }
 
 inline std::string withExtension(const std::string& name) {

@@ -7,12 +7,22 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "bigint.hpp"
+
+// Where Plain runs. The web playground (WebAssembly) has no threads, sockets, processes or
+// package manager, like the Windows build has no sockets or git: PLAIN_POSIX is for full builds.
+#if defined(__wasi__) && !defined(PLAIN_WASM)
+#define PLAIN_WASM 1
+#endif
+#if !defined(_WIN32) && !defined(PLAIN_WASM)
+#define PLAIN_POSIX 1
+#endif
 
 namespace plain {
 

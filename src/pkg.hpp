@@ -7,14 +7,18 @@
 // and writes plain.lock so the next install gets exactly the same code.
 // In a program:  use "greeter"
 #pragma once
+#ifndef PLAIN_WASM
 #include <filesystem>
+#endif
 
 #include "builtins.hpp"
 
 namespace plain {
+#ifndef PLAIN_WASM
 namespace pkgfs = std::filesystem;
+#endif
 
-#ifndef _WIN32
+#ifdef PLAIN_POSIX
 
 struct Spec {
     bool local = false;
@@ -405,7 +409,7 @@ inline int packageCommand(const std::vector<std::string>& args) {
 inline int packageCommand(const std::vector<std::string>& args) {
     const std::string& c = args[0];
     if (c == "init" || c == "install" || c == "add" || c == "update" || c == "remove" || c == "uninstall" || c == "list" || c == "packages") {
-        fprintf(stderr, "The package manager is not available in the Windows build of Plain yet.\n");
+        fprintf(stderr, "The package manager is not available in this build of Plain (the Windows build and the web playground).\n");
         return 2;
     }
     return -1;

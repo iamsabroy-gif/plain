@@ -17,6 +17,9 @@ VM loop that costs nothing when it is not used.
 
 Candidates, largest effect first:
 
+0. Playground next: syntax colouring in the editor, a kid-sized lesson path with picture-led
+   exercises and clickable blocks, saving programs, and `plain format` in the page. Then:
+
 0. Learning tools next: more problems (dynamic programming, heaps, tries), a lesson
    runner that checks each lesson's exercises, side-by-side stepping of two
    solutions in one page, a `# watch:` that can pick how a value is drawn, and a

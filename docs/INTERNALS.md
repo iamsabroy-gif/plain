@@ -49,6 +49,31 @@ file after you have checked the change).
 - macOS and Windows builds are made from the same portable C++17 code, but the
   tests so far ran on Linux only.
 
+## The browser playground
+
+`web/` is a static site: `index.html` (editor, Run, Watch it run, Count the work, examples,
+share links), `worker.js` (runs the interpreter in a Web Worker, so a stuck program can be
+stopped, and supplies the little "operating system" the interpreter needs) and
+`plain.wasm` (the interpreter itself). "Watch it run" runs `plain visualize --json -e ...`
+in the worker and gives the trace to the same player that `plain visualize` writes.
+
+The interpreter is this same source built with `-DPLAIN_WASM` (set automatically for
+WebAssembly): no threads, sockets, processes or package manager, so tasks, networking and
+files are refused with a clear message. `sh tests/webmode_test.sh` builds that variant
+natively and checks it against the test cases.
+
+To build `plain.wasm` you need the [WASI SDK](https://github.com/WebAssembly/wasi-sdk/releases)
+(version 34 or newer, which includes the exception-enabled C++ libraries):
+
+```
+WASI_SDK=/path/to/wasi-sdk sh tools/build-wasm.sh
+node tests/wasm_test.js            # runs the same worker.js against plain.wasm in Node
+cd web && python3 -m http.server   # then open http://localhost:8000 (workers need http, not file:)
+```
+
+`.github/workflows/pages.yml` builds and publishes it to GitHub Pages whenever `main`
+changes. One-time setup for the repository owner: Settings, Pages, Source: "GitHub Actions".
+
 ## Releasing
 
 The one-line installers (`install.sh`, `install.ps1`) download ready-made programs from

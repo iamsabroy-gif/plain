@@ -1,11 +1,13 @@
 // Plain - stage 3: the virtual machine that runs the bytecode.
 #pragma once
 #include <atomic>
-#include <condition_variable>
 #include <iostream>
-#include <mutex>
 #include <random>
+#ifndef PLAIN_WASM
+#include <condition_variable>
+#include <mutex>
 #include <thread>
+#endif
 
 #include "compiler.hpp"
 
@@ -15,6 +17,14 @@ namespace plain {
 // Only one task runs Plain code at any moment; they take turns, switching
 // every few thousand instructions and whenever one of them waits (for input,
 // the network, a timer or another task). This keeps shared data safe.
+#ifdef PLAIN_WASM
+// No threads in the web playground: there is only ever one task, so taking turns is a no-op.
+struct Gil {
+    void lock() {}
+    void unlock() {}
+    void yield() {}
+};
+#else
 struct Gil {
     std::mutex m;
     std::condition_variable cv;
@@ -41,6 +51,7 @@ struct Gil {
         }
     }
 };
+#endif
 inline Gil& gil() {
     static Gil g;
     return g;

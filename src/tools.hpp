@@ -47,20 +47,28 @@ static std::string replaceFirst(std::string text, const std::string& what, const
 
 // plain visualize program.plain [-o page.html] [--max-steps N] [--into-library]
 static int visualizeCommand(const std::vector<std::string>& args) {
-    std::string file, out;
+    std::string file, out, inlineSrc;
+    bool haveInline = false, jsonOnly = false;
     size_t maxSteps = 6000;
     bool intoLib = false;
     uint64_t budget = 300000000;
     for (size_t i = 1; i < args.size(); ++i) {
-        if (args[i] == "-o" && i + 1 < args.size()) out = args[++i];
+        if (args[i] == "-e" && i + 1 < args.size()) { inlineSrc = args[++i] + "\n"; haveInline = true; }
+        else if (args[i] == "--json") jsonOnly = true;
+        else if (args[i] == "-o" && i + 1 < args.size()) out = args[++i];
         else if (args[i] == "--budget" && i + 1 < args.size()) budget = (uint64_t)std::max(1LL, atoll(args[++i].c_str()));
         else if (args[i] == "--max-steps" && i + 1 < args.size()) maxSteps = (size_t)std::max(1, atoi(args[++i].c_str()));
         else if (args[i] == "--into-library") intoLib = true;
         else file = args[i];
     }
-    if (file.empty()) { fprintf(stderr, "Tell me which program to draw, like: plain visualize program.plain\n"); return 2; }
     std::string src;
-    if (!readFile(file, src)) { fprintf(stderr, "I couldn't open the file '%s'.\n", file.c_str()); return 2; }
+    if (haveInline) {
+        file = "program.plain";
+        src = inlineSrc;
+    } else {
+        if (file.empty()) { fprintf(stderr, "Tell me which program to draw, like: plain visualize program.plain\n"); return 2; }
+        if (!readFile(file, src)) { fprintf(stderr, "I couldn't open the file '%s'.\n", file.c_str()); return 2; }
+    }
     if (out.empty()) {
         size_t slash = file.find_last_of("/\\"), dot = file.find_last_of('.');
         std::string base = file.substr(slash == std::string::npos ? 0 : slash + 1);
@@ -115,6 +123,19 @@ static int visualizeCommand(const std::vector<std::string>& args) {
         else safe += json[i];
     }
     if (safe.find("\xE2\x80\xA8") != std::string::npos) {}  // (U+2028 is fine inside a JSON string in modern browsers)
+    if (jsonOnly) {  // for the web playground: the trace itself, which its own copy of the player draws
+        fwrite(safe.data(), 1, safe.size(), stdout);
+        fflush(stdout);
+        if (!run->errorMsg.empty()) {
+            PlainError e;
+            e.msg = run->errorMsg;
+            e.line = run->errorLine;
+            e.file = run->errorFile;
+            report(e, file, src, &run->prog);
+            return 1;
+        }
+        return 0;
+    }
     std::string page = replaceFirst(tmpl, "/*__PLAIN_DATA__*/null", safe);
     FILE* f = fopen(out.c_str(), "wb");
     if (!f) { fprintf(stderr, "I couldn't write to '%s'.\n", out.c_str()); return 2; }
@@ -145,11 +166,14 @@ static std::string withCommas(uint64_t n) {
 
 // plain count program.plain: run it, then say how much work it did.
 static int countCommand(const std::vector<std::string>& args) {
-    std::string file;
-    for (size_t i = 1; i < args.size(); ++i) file = args[i];
+    std::string file, src;
+    bool haveInline = false;
+    for (size_t i = 1; i < args.size(); ++i) {
+        if (args[i] == "-e" && i + 1 < args.size()) { src = args[++i] + "\n"; haveInline = true; file = "program.plain"; }
+        else if (!haveInline) file = args[i];
+    }
     if (file.empty()) { fprintf(stderr, "Tell me which program to count, like: plain count program.plain\n"); return 2; }
-    std::string src;
-    if (!readFile(file, src)) { fprintf(stderr, "I couldn't open the file '%s'.\n", file.c_str()); return 2; }
+    if (!haveInline && !readFile(file, src)) { fprintf(stderr, "I couldn't open the file '%s'.\n", file.c_str()); return 2; }
     auto run = std::make_unique<WatchedRun>();
     setUp(run->prog);
     VM vm(run->prog);
