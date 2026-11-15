@@ -1,8 +1,8 @@
-note: a tour of what Plain 2.0 adds - big numbers, closures, classes and tasks
+# a tour of what Plain 2.0 adds - big numbers, closures, classes and tasks
 
 say "-- numbers"
 say 2 ^ 100
-say 0.1d + 0.2d, 0.1 + 0.2 == 0.3
+say 0.1d + 0.2d, 0.1 + 0.2 is 0.3
 say fixed(1234.5d * 1.18d, 2)
 
 say "-- closures"
@@ -24,7 +24,7 @@ class Account
         set me's balance to balance
     end
     define deposit with amount
-        if amount <= 0 then
+        if amount is at most 0 then
             fail with "Deposit must be positive"
         end
         increase me's balance by amount

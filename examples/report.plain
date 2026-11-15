@@ -1,4 +1,4 @@
-note: Uses another file, writes a report to disk and reads it back.
+# Uses another file, writes a report to disk and reads it back.
 use "mathtools"
 
 set marks to {Asha: 82, Ravi: 67, Meera: 91, Kabir: 74}

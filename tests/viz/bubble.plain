@@ -2,7 +2,7 @@ define bubble_sort with xs
     set n to length of xs
     for pass from 1 to n - 1
         for j from 1 to n - pass
-            if xs[j] > xs[j + 1] then
+            if xs[j] is greater than xs[j + 1] then
                 set tmp to xs[j]
                 set xs[j] to xs[j + 1]
                 set xs[j + 1] to tmp

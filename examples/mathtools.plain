@@ -1,4 +1,4 @@
-note: A small library. Other programs load it with:  use "mathtools"
+# A small library. Other programs load it with:  use "mathtools"
 
 define average with numbers
     if length of numbers is 0 then
@@ -12,7 +12,7 @@ define is_prime with n
         give back false
     end
     for d from 2 to floor(sqrt(n))
-        if n modulo d is 0 then
+        if n % d is 0 then
             give back false
         end
     end

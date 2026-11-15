@@ -9,7 +9,7 @@ set seen to {}
 set order to []
 set waiting to new Queue()
 waiting's enqueue("A")
-set seen["A"] to true
+set seen's A to true
 while not waiting's is_empty()
     set node to waiting's dequeue()
     add node to order

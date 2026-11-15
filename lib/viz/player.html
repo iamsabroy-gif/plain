@@ -41,7 +41,13 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .scrub .count { color: var(--muted); font-size: 13px; white-space: nowrap; }
 label.speed { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
 main { display: grid; grid-template-columns: minmax(280px, 42%) 1fr; gap: 14px; padding: 14px 16px 40px; align-items: start; }
-@media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+main > div { min-width: 0; }
+@media (max-width: 860px) {
+  main { grid-template-columns: 1fr; }
+  main > div { display: contents; }
+  #cProgram { order: 1; } #cVars { order: 2; } #stackCard { order: 3; } #treeCard { order: 4; } #cOutput { order: 5; } #countsCard { order: 6; }
+  #source { max-height: 38vh; }
+}
 section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
 section.card > h2 { margin: 0; padding: 8px 14px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
 section.card > .body { padding: 10px 14px; }
@@ -61,12 +67,12 @@ section.card > .body { padding: 10px 14px; }
 .group { margin-bottom: 12px; }
 .group > .gname { font-size: 12px; color: var(--muted); margin-bottom: 4px; display: flex; gap: 8px; align-items: baseline; }
 .group > .gname b { color: var(--ink); font-size: 13px; }
-.var { display: grid; grid-template-columns: max-content 1fr; gap: 4px 10px; align-items: start; padding: 4px 6px; border-radius: 8px; margin-bottom: 2px; }
+.var { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 10px; align-items: start; padding: 4px 6px; border-radius: 8px; margin-bottom: 2px; }
 .var.changed { background: var(--changed); }
 .var > .vn { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; padding-top: 3px; color: var(--accent); font-weight: 600; }
 .chip { display: inline-block; background: var(--chip); border-radius: 6px; padding: 1px 7px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; max-width: 28em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
 .chip.nothing { color: var(--muted); font-style: italic; }
-.chip.fn { color: var(--muted); }
+.chip.fn { color: var(--muted); white-space: normal; }
 .cells { display: flex; gap: 0; align-items: flex-end; flex-wrap: wrap; }
 .cell { display: flex; flex-direction: column; align-items: center; min-width: 38px; }
 .cell .box { border: 1px solid var(--line); background: var(--chip); min-width: 38px; height: 34px; padding: 0 6px; display: flex; align-items: center; justify-content: center; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
@@ -74,7 +80,7 @@ section.card > .body { padding: 10px 14px; }
 .cell .box.mv, .bar.mv { background: repeating-linear-gradient(45deg, var(--move), var(--move) 5px, rgba(255,255,255,.28) 5px, rgba(255,255,255,.28) 9px); color: #fff; border-color: var(--move); }
 .cell .idx { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .cell .mark { font-size: 11px; font-weight: 700; color: var(--accent); min-height: 15px; line-height: 15px; font-family: ui-monospace, Menlo, monospace; }
-.bars { display: flex; align-items: flex-end; gap: 3px; padding-top: 4px; min-height: 40px; flex-wrap: nowrap; overflow-x: auto; }
+.bars { max-width: 100%; display: flex; align-items: flex-end; gap: 3px; padding-top: 4px; min-height: 40px; flex-wrap: nowrap; overflow-x: auto; }
 .bcol { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 16px; flex: 0 0 auto; }
 .bar { width: 100%; min-width: 16px; background: var(--bar); border-radius: 3px 3px 0 0; }
 .bcol .val { font-size: 11px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
@@ -127,14 +133,14 @@ svg text { font-family: ui-monospace, Menlo, Consolas, monospace; }
 </header>
 <main>
   <div>
-    <section class="card">
+    <section class="card" id="cProgram">
       <h2><span>Program</span><span id="where" class="mono"></span></h2>
       <div class="tabs" id="tabs" hidden></div>
       <div class="hint">The highlighted line is the one that has just run. The variables show how things look right after it.</div>
       <div id="source" tabindex="0" aria-label="Source code"></div>
       <div id="banner"></div>
     </section>
-    <section class="card">
+    <section class="card" id="cOutput">
       <h2><span>Output</span></h2>
       <div class="body"><div id="output"></div></div>
     </section>
@@ -144,7 +150,7 @@ svg text { font-family: ui-monospace, Menlo, Consolas, monospace; }
     </section>
   </div>
   <div>
-    <section class="card">
+    <section class="card" id="cVars">
       <h2><span>Variables</span><label class="toggle" id="watchToggle" hidden><input type="checkbox" id="showAll"> show all</label></h2>
       <div class="body" id="vars"></div>
       <div class="legend" id="legend" hidden>
@@ -523,7 +529,10 @@ function renderCallTree(i) {
   const lay = layoutKids(virtual, (n) => n.kids, LIMIT + 1);
   lay.nodes = lay.nodes.filter((n) => n.v !== virtual);
   lay.edges = lay.edges.filter(([a]) => a.v !== virtual);
-  const dx = 78, dy = 50, r = 22, pad = 12;
+  const labelOf = (c) => c.n + "(" + c.a.map((id) => shorten(scalarText0(V(id)), 14)).join(", ") + ")";
+  let longest = 8;
+  lay.nodes.forEach((n) => { longest = Math.max(longest, Math.min(26, labelOf(n.v.c).length)); });
+  const dx = Math.max(78, Math.round(longest * 6.4 + 18)), dy = 50, r = 22, pad = 12;
   const W = Math.max(1, lay.width) * dx + pad * 2, H = lay.maxDepth * dy + pad * 2 + r * 2;
   const svg = s("svg", { width: W, height: H, viewBox: "0 0 " + W + " " + H, role: "img" });
   const px = (n) => pad + n.x * dx + dx / 2, py = (n) => pad + (n.depth - 1) * dy + r;
@@ -533,9 +542,9 @@ function renderCallTree(i) {
     const c = n.v.c;
     const done = c.e >= 0 && c.e <= i;
     const active = n.v.k === cur;
-    const lab = c.n + "(" + c.a.map((id) => shorten(scalarText0(V(id)), 6)).join(",") + ")";
+    const lab = labelOf(c);
     svg.append(s("rect", { x: px(n) - dx / 2 + 3, y: py(n) - r / 1.6, width: dx - 6, height: r * 1.25, rx: 8, fill: active ? "var(--accent)" : done ? "var(--chip)" : "var(--panel)", stroke: active ? "var(--accent)" : done ? "var(--done)" : "var(--muted)", "stroke-width": active ? 2.5 : 1.5 }));
-    svg.append(s("text", { x: px(n), y: py(n) - 1, "text-anchor": "middle", "font-size": 10.5, fill: active ? "#fff" : "var(--ink)" }, shorten(lab, 13)));
+    svg.append(s("text", { x: px(n), y: py(n) - 1, "text-anchor": "middle", "font-size": 10.5, fill: active ? "#fff" : "var(--ink)" }, shorten(lab, 26)));
     if (done) svg.append(s("text", { x: px(n), y: py(n) + 11, "text-anchor": "middle", "font-size": 10.5, fill: active ? "#fff" : "var(--done)", "font-weight": 700 }, "→ " + shorten(scalarText0(V(c.r)), 8)));
   });
   return { svg, shown: lay.nodes.length, total: visible.length };

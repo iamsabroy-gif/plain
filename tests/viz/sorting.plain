@@ -8,7 +8,7 @@ define bubble_sort with xs
     set n to length of xs
     for pass from 1 to n - 1
         for j from 1 to n - pass
-            if xs[j] > xs[j + 1] then
+            if xs[j] is greater than xs[j + 1] then
                 set tmp to xs[j]
                 set xs[j] to xs[j + 1]
                 set xs[j + 1] to tmp
@@ -22,7 +22,7 @@ define insertion_sort with xs
     for i from 2 to length of xs
         set key to xs[i]
         set j to i - 1
-        while j is at least 1 and xs[j] > key
+        while j is at least 1 and xs[j] is greater than key
             set xs[j + 1] to xs[j]
             decrease j by 1
         end

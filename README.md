@@ -44,8 +44,98 @@ on your PATH. To build without installing, run `make` and use `./build/plain`.
 | `plain build program.plain -o app` | Make a standalone program that runs without Plain installed |
 | `plain --explain program.plain` | Show the tokens and the bytecode, then run |
 | `plain -e "say 1 + 2"` | Run one line |
+| `plain format program.plain` | Rewrite a program in the standard style (see below) |
+| `plain visualize program.plain` | Make a web page that steps through the run |
+| `plain count program.plain` | Run it, then report comparisons, swaps and calls |
+| `plain growth program.plain action …` | Show how the work grows as the data grows |
+| `plain compare program.plain a b` | Run two actions on the same data, side by side |
+| `plain practice [problem]` | Classic problems with hidden tests and hints |
+| `plain lib [name]` | The built-in data structures, and how each is built |
+| `plain check --beginner program.plain` | List the advanced features a program uses |
 
-Try `plain examples/tour.plain`.
+Try `plain examples/tour.plain`. New to programming? Start with
+[docs/CORE.md](docs/CORE.md): fifteen words are enough for the first seven lessons.
+
+## Learning data structures and algorithms
+
+Plain is built so that a learner can see what their own code does, with no
+drawing code and no special syntax.
+
+```
+plain visualize examples/sorting.plain       # writes sorting.html: open it in a browser
+plain count     examples/sorting.plain       # comparisons, swaps, calls
+plain compare   examples/sorting.plain bubble_sort merge_sort
+plain growth    examples/sorting.plain bubble_sort merge_sort --html growth.html
+plain practice  two-sum
+```
+
+**Visualize.** `plain visualize` runs the program once, recording every line that
+runs, and writes **one standalone HTML file** (no server, nothing loaded from the
+internet). The page has play, pause, step and a slider, shows the line that has
+just run, and draws what the variables hold *from the values themselves*:
+
+| Your program has | The page shows |
+|---|---|
+| A list of numbers | Bars. Items being compared are yellow; items that moved or changed are red. A variable named `i`, `j`, `low`, `mid` … that points into the list is drawn under its item |
+| A list of anything else, a list of lists | Boxes, a grid |
+| An action that calls itself | The call stack, and the tree of calls with each answer as it returns |
+| Maps with `value` / `left` / `right` | A tree. With `value` / `next`, a linked chain. With `children`, a general tree |
+| A map of lists whose items are its own keys | A graph. Nodes held by variables are ringed and named; other maps and lists of nodes (`seen`, `order`) tint them |
+| `Stack`, `Queue`, `Heap` from the library | The live items only; a heap as a tree |
+
+To see only some variables, add a comment line `# watch: xs, total`: comments
+are not code, so the language does not change. Steps inside the built-in library
+are folded into the line that called them (`--into-library` shows them). Very long
+runs are cut at 6,000 steps (`--max-steps`).
+
+**Count.** `plain count` reports comparisons (every `<`, `is`, `is at most` … that
+ran), swaps (two list items trading places), list writes, calls and VM
+instructions, so "which sort is better?" is answered with numbers instead of
+seconds. The built-in `sort()` is a single step to Plain, so write the sort yourself
+to study it.
+
+**Growth and compare.** `plain growth file action …` runs each action (it must take
+one value) on n = 10, 100, 1000 and 10000 items (`--sizes`; `--input` is `list`,
+`sorted`, `reversed`, `number` or `text`; `--measure` is `instructions`,
+`comparisons`, `swaps`, `writes` or `calls`) and says what curve the work follows, for
+example "grows like O(n^2): 10x more data meant about 95x more work". A size that
+would take more than 200 million steps is skipped and estimated from the smaller
+sizes (hollow points in the chart). `--html chart.html` draws the curves, with a
+straight/log switch. `plain compare file a b` runs actions on identical data, checks
+that they give the same answer, and shows their work side by side.
+
+**Practice.** `plain practice` lists 30 problems (arrays, strings, recursion,
+sorting, searching, stacks, queues, trees, graphs). `plain practice two-sum` writes
+`two-sum.plain` with the problem as comments; edit it and run the same command to
+check it against examples and hidden tests. Hidden tests are reported by number
+(and, for edge cases, by what they check) but never shown. `--hint` gives hints one
+step at a time, `--solution` shows a reference solution with an explanation once you
+have solved it or used the hints (`--give-up` to skip that). The result also compares
+how much work your solution did with the reference's. Progress is kept in
+`.plain-practice` in the folder. Each problem is a Plain file in `lib/problems`; its
+reference solution is real code, and `plain practice --selftest` checks every
+reference against every test.
+
+### The data-structure library
+
+`use "dsa"` (or one part: `use "stack"`) gives stack, queue, deque, heap, linked
+list, tree and graph, and `plain lib stack` prints how each is built: every part is
+**written in Plain** in `lib/`, so a student can read it. `plain lib stack --copy`
+puts an editable copy next to your program, and your copy is used instead.
+
+| Part | Names |
+|---|---|
+| `stack` | `new Stack()`: `push`, `pop`, `peek`, `is_empty`, `size` |
+| `queue` | `new Queue()`: `enqueue`, `dequeue`, `front`, `is_empty`, `size` |
+| `deque` | `new Deque()`: `push_front`, `push_back`, `pop_front`, `pop_back`, `peek_front`, `peek_back` |
+| `unique` | `new Unique()` (a set; `set` is already a Plain word): `put`, `has`, `drop`, `items`, `combined_with`, `shared_with`, `without` |
+| `heap` | `new Heap()`: `put`, `smallest`, `peek`; `new MaxHeap()`: `put`, `biggest`; `new PriorityQueue()`: `put(value, priority)`, `take` |
+| `linkedlist` | `new LinkedList()`: `append`, `prepend`, `has`, `drop`, `reverse_in_place`, `to_list` |
+| `tree` | `new Tree()` (a search tree): `put`, `has`, `smallest`, `biggest`, `height`, `in_order`, `pre_order`, `post_order`, `level_order` |
+| `graph` | `new Graph()`, `new DirectedGraph()`: `add_edge`, `add_weighted_edge`, `neighbors`, `bfs`, `dfs`, `shortest_path`, `has_path`, `distances`, `topological_order` |
+
+Methods are called as `pile's push(3)`. The tree and linked-list nodes are plain
+maps, so `plain visualize` draws them.
 
 ## The language
 
@@ -66,6 +156,28 @@ start with `note:` and anything after `#` are comments.
 | Map | `{name: "Asha", age: 30}` |
 | Action | `action with x gives x * 2` |
 | Object | `new Account(100d)` |
+
+### The standard style
+
+There are often several ways to write the same thing. `plain format` rewrites a
+program into one of them, and the documentation and examples use it:
+
+| Meaning | Standard | Also accepted (and rewritten) |
+|---|---|---|
+| Compare | `is`, `is not`, `is less than`, `is greater than`, `is at most`, `is at least` | `== != < > <= >=`, `is equal to` |
+| Logic | `and`, `or`, `not` | |
+| Maths | `+ - * / % ^` | `plus`, `minus`, `multiplied by`, `divided by`, `modulo` |
+| Item of a list | `xs[i]` | `item i of xs` |
+| Entry of a map | `person's age` (fixed name), `scores[name]` (any other) | `person["age"]` |
+| Membership | `xs contains x` | `x is in xs` |
+| Show | `say` | `show`, `print` |
+| Call an action | `greet("Asha")` | `call greet with "Asha"` |
+| Comment | `# like this` | `note: like this` |
+
+Four-space indents, one space around operators. `plain format file.plain` tidies in
+place; `--check` only reports (exit status 1 if the file would change) and `--print`
+shows the result. Formatting never changes what a program does. Lines it cannot
+read are left as they are, with a warning.
 
 ### Instructions
 
@@ -111,6 +223,8 @@ start with `note:` and anything after `#` are comments.
   top-level variable created above, if one has that name; otherwise it creates
   a variable that exists only inside that action.
 - Actions can be called from anywhere in the file, even above their `define`.
+- A reserved word (`item`, `times`, `length`, `action`, `to` …) can't be a name,
+  and the error says what the word is for and suggests another name.
 
 ### Numbers
 
@@ -146,8 +260,11 @@ say next(), next()                         # 1 2
 ```
 
 An action can be stored, passed and returned. It keeps the variables of the
-action it was made in (one counter per `make_counter()` call). Loop counters are
-one variable per loop, not one per round. `map_each`, `keep_if`, `find_first`,
+action it was made in (one counter per `make_counter()` call). Every round of a
+`for` / `for each` loop gets its own copy of the loop's variable (and, inside an
+action, of the variables made in the loop's body), so closures made in different
+rounds keep different values. (Variables made with `set` in a loop body at the top
+level are shared by the whole program; put the loop in an action to get one per round.) `map_each`, `keep_if`, `find_first`,
 `combine(items, start, action)` and `sort_by(items, action)` take actions.
 A longer anonymous action can use a block: `action with a, b` … `give back …` … `end`.
 
@@ -245,7 +362,7 @@ file you maintain (`~/.plain/registry.json` or `PLAIN_REGISTRY`).
 | Maths | `sqrt abs floor ceiling round(x, digits) power min max sum random(low, high) sin cos tan exp log pi() whole fraction` |
 | Number kinds | `integer float decimal quotient fixed is_integer is_float is_decimal` |
 | Text | `text number uppercase lowercase trim split join replace find starts_with ends_with slice` |
-| Lists | `sort reverse range(from, to, step) first last insert(list, position, value) index_of slice copy` |
+| Lists | `sort reverse range(from, to, step) first last insert(list, position, value) pop(list) pop_at(list, position) index_of slice copy` |
 | Maps | `keys values has_key copy` |
 | Actions on lists | `map_each keep_if find_first combine sort_by` |
 | Objects | `is_a(object, Class)` |
@@ -256,10 +373,12 @@ file you maintain (`~/.plain/registry.json` or `PLAIN_REGISTRY`).
 
 ### Error messages
 
-Problems are reported as sentences, with a suggestion where possible:
+Problems are reported as sentences: what happened, on which line (shown with the
+line itself), and what to try:
 
 ```
 Oops! Line 3: I don't know anything called 'totl'. Did you mean 'total'?
+     3 | say totl
 ```
 
 ## How it works
@@ -275,19 +394,35 @@ Oops! Line 3: I don't know anything called 'totl'. Did you mean 'total'?
    reference counted, and `src/tasks.hpp` has the cycle collector that frees
    what reference counting cannot.
 
+4. **Watching** (`src/observe.hpp`): the main loop of the VM is compiled twice, as
+   `executeT<false>` (the normal run, with no trace of any watching code) and
+   `executeT<true>` (calls the hooks that count comparisons, swaps and calls and
+   record a step for each source line). `plain count`, `visualize`, `growth`,
+   `compare` and `practice` use the second copy, so they measure the same bytecode
+   that really runs, and a normal run pays nothing.
+
 Numbers are in `src/bigint.hpp` and `src/numeric.hpp`, the built-in actions in
 `src/builtins.hpp` (networking included), tasks in `src/tasks.hpp`, the package
-manager in `src/pkg.hpp`, and the command line in `src/main.cpp`.
+manager in `src/pkg.hpp`, the formatter in `src/format.hpp`, the learning commands in
+`src/tools.hpp` and `src/practice.hpp`, and the command line in `src/main.cpp`.
+The data-structure library, the practice problems and the two web pages live in
+`lib/`; `sh tools/embed.sh` packs them into `src/libfiles.hpp` (done by `make`).
 `plain --explain file.plain` prints the tokens and bytecode for any program.
 
 ## Tests
 
 `make test` runs every program in `tests/cases` and compares its output with
-the saved `.expected` file, then runs the package-manager test.
+the saved `.expected` file, then runs the package-manager, formatter, library,
+visualizer/counting and practice tests (`tests/bless.sh name` re-saves an expected
+file after you have checked the change).
 
 ## Limits
 
 - Tasks run one at a time (see above); there is no parallel speed-up.
+- `plain visualize` records at most 6,000 steps, shows at most 80 items of a list and
+  600 values per variable, and the player folds the built-in library into the line
+  that called it. Counts do not include the inside of `sort()` and other built-ins.
+- `Unique` and graph node names must be text, numbers or true/false (map keys).
 - Decimals do not mix with floats, and have no `sqrt`/`sin`; use `float(x)`.
 - `plain build` copies this executable plus your source: the result is standalone,
   but it contains the interpreter, not machine code made from your program.
