@@ -71,6 +71,16 @@ node tests/wasm_test.js            # runs the same worker.js against plain.wasm 
 cd web && python3 -m http.server   # then open http://localhost:8000 (workers need http, not file:)
 ```
 
+The build uses WebAssembly's newer exception encoding (`-wasm-use-legacy-eh=false`, which is
+what the SDK's own libraries use; a module can't mix the two). It needs Chrome or Edge 137+,
+Firefox 131+ or Safari 18.4+; older browsers get a message saying so. The file is about 1.1 MB
+(about 340 KB sent compressed).
+
+`node tests/web_e2e.js` opens the real page in Chromium (needs Playwright) and uses it: run,
+errors, `ask`, the library, Watch it run, Count, Stop on an endless loop, and phone width.
+Output is sent from the worker in batches and the page stops a program that says more than
+300,000 letters, so a runaway loop can't freeze the page.
+
 `.github/workflows/pages.yml` builds and publishes it to GitHub Pages whenever `main`
 changes. One-time setup for the repository owner: Settings, Pages, Source: "GitHub Actions".
 

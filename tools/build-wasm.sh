@@ -11,8 +11,8 @@ cd "$(dirname "$0")/.."
 [ -x "$WASI_SDK/bin/clang++" ] || { echo "$WASI_SDK/bin/clang++ not found."; exit 1; }
 sh tools/embed.sh
 "$WASI_SDK/bin/clang++" --target=wasm32-wasip1 --sysroot="$WASI_SDK/share/wasi-sysroot" \
-    -std=c++17 -O2 -fwasm-exceptions -DPLAIN_WASM \
-    -Wl,-z,stack-size=2097152 -Wl,--max-memory=1073741824 \
-    -o web/plain.wasm src/main.cpp
+    -std=c++17 -O2 -fwasm-exceptions -mllvm -wasm-use-legacy-eh=false -DPLAIN_WASM \
+    -Wl,--strip-all -Wl,-z,stack-size=2097152 -Wl,--max-memory=1073741824 \
+    -o web/plain.wasm src/main.cpp -lunwind
 cp lib/viz/player.html web/player.html
 ls -la web/plain.wasm

@@ -33,6 +33,19 @@ async function runPlain(args, stdin, wasmUrl) {
   const input = enc.encode(stdin || "");
   let inputAt = 0;
   let memory = null;
+  // Output is sent to the page in batches (not once per line), so a program that says a great deal
+  // can't flood the page and make it freeze.
+  const pending = { 1: "", 2: "" };
+  let lastFd = 1, lastSent = performance.now();
+  function flush() {
+    for (const fd of [1, 2]) if (pending[fd]) { postMessage({ type: "out", fd, text: pending[fd] }); pending[fd] = ""; }
+    lastSent = performance.now();
+  }
+  function emit(fd, text) {
+    if (fd !== lastFd) { flush(); lastFd = fd; }   // keep what went to the two streams in order
+    pending[fd] += text;
+    if (performance.now() - lastSent > 30) flush();
+  }
   const view = () => new DataView(memory.buffer);
   const bytes = () => new Uint8Array(memory.buffer);
 
@@ -75,7 +88,7 @@ async function runPlain(args, stdin, wasmUrl) {
         text += decoders[fd].decode(b.subarray(ptr, ptr + len), { stream: true });
         total += len;
       }
-      if (text) postMessage({ type: "out", fd, text });
+      if (text) emit(fd, text);
       v.setUint32(writtenPtr, total, true);
       return ERRNO.SUCCESS;
     },
@@ -125,6 +138,7 @@ async function runPlain(args, stdin, wasmUrl) {
     },
     // Used by wait(seconds). Only timers are supported: sleep, then say they fired.
     poll_oneoff(inPtr, outPtr, nsubs, neventsPtr) {
+      flush();   // show what has been said before waiting
       const v = view();
       let longest = 0;
       for (let i = 0; i < nsubs; i++) {
@@ -160,12 +174,13 @@ async function runPlain(args, stdin, wasmUrl) {
     instance.exports._start();
   } catch (e) {
     if (e instanceof ProcExit) code = e.code;
-    else throw e;
+    else { flush(); throw e; }
   }
   for (const fd of [1, 2]) {
     const rest = decoders[fd].decode();
-    if (rest) postMessage({ type: "out", fd, text: rest });
+    if (rest) emit(fd, rest);
   }
+  flush();
   return code;
 }
 

@@ -153,13 +153,26 @@ function remember() { try { localStorage.setItem("plain-code", editor.value); } 
 function setCode(text) { editor.value = text; updateGutter(); remember(); }
 
 // -------------------------------------------------------------- running it
+const MAX_OUTPUT = 300000;   // characters; a program that says more than this is almost certainly stuck
+let outChars = 0, tooMuch = false;
 function say(text, cls) {
+  if (tooMuch) return;
+  outChars += text.length;
+  if (outChars > MAX_OUTPUT) {
+    tooMuch = true;
+    stopRun("Stopped: this program said far too much (over " + MAX_OUTPUT.toLocaleString("en-US") + " letters). Is a loop saying something over and over without ending?");
+    return;
+  }
+  append(text, cls);
+}
+function append(text, cls) {
   if (out.querySelector(".hint")) out.textContent = "";
   if (cls) { const span = document.createElement("span"); span.className = cls; span.textContent = text; out.append(span); }
   else out.append(document.createTextNode(text));
   out.scrollTop = out.scrollHeight;
 }
 function setBusy(on, message) {
+  if (on) { outChars = 0; tooMuch = false; }
   busy = on;
   for (const id of ["run", "watch", "count"]) $(id).disabled = on;
   $("stop").hidden = !on;
@@ -194,13 +207,13 @@ function runPlain(args, { live } = {}) {
 function stopRun(message) {
   clearTimeout(stopTimer);
   if (worker) { worker.terminate(); worker = null; }
-  if (busy) { setBusy(false, ""); if (message) say("\n" + message + "\n", "err"); }
+  if (busy) { setBusy(false, ""); if (message) append("\n" + message + "\n", "err"); }
 }
 async function guarded(label, task) {
   if (busy) return;
   setBusy(true, label);
   try { await task(); setBusy(false, ""); }
-  catch (e) { if (e.message !== "timeout" && busy) { say("\n" + e.message + "\n", "err"); setBusy(false, ""); } }
+  catch (e) { if (e.message !== "timeout" && busy) { append("\n" + e.message + "\n", "err"); setBusy(false, ""); } }
 }
 function runProgram() {
   out.textContent = "";
