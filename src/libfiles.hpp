@@ -966,6 +966,1388 @@ class Unique
     end
 end
 )PLAINLIB"},
+{"problems/anagrams", R"PLAINLIB(set __problem to {
+    order: 7,
+    title: "Anagrams",
+    topic: "strings",
+    level: 2,
+    function: "are_anagrams",
+    params: "first, second",
+    statement: "Two texts are anagrams if one can be made by rearranging the letters of the other. Give back true or false. Ignore spaces and the difference between capital and small letters.",
+    examples: [
+        {args: ["listen", "silent"], expect: true},
+        {args: ["hello", "world"], expect: false},
+        {args: ["Dormitory", "dirty room"], expect: true}
+    ],
+    hints: [
+        "If the two texts are anagrams, they contain exactly the same letters, just in a different order. What would make the order stop mattering?",
+        "Sorting the letters of each text puts them in a standard order. Anagrams give identical sorted letters.",
+        "Tidy first (no spaces, one case). Then make a list of the letters, sort it, and compare the two sorted lists."
+    ],
+    hidden: [
+        {args: ["abc", "ab"], expect: false, note: "different lengths"},
+        {args: ["aabb", "bbaa"], expect: true},
+        {args: ["rat", "car"], expect: false},
+        {args: ["", ""], expect: true, note: "two empty texts"},
+        {args: ["Astronomer", "Moon starer"], expect: true},
+        {args: ["aab", "abb"], expect: false, note: "same letters but not the same number of each"}
+    ],
+    complexity: "O(n log n) time (because of the sort)",
+    explanation: "Anagrams are the same letters in a different order, so putting the letters of both texts in the same standard order (sorted) makes the anagrams identical and everything else different. Counting how often each letter appears in a map gives the same answer in O(n) time."
+}
+# --- solution ---
+define letters_of with text
+    set letters to []
+    for each ch in lowercase(replace(text, " ", ""))
+        add ch to letters
+    end
+    give back sort(letters)
+end
+
+define __reference with first, second
+    give back letters_of(first) is letters_of(second)
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/binary-search", R"PLAINLIB(set __problem to {
+    order: 19,
+    title: "Binary Search",
+    topic: "searching",
+    level: 2,
+    function: "binary_search",
+    params: "numbers, target",
+    statement: "The list is sorted from smallest to biggest. Give back the position (counting from 1) of the target, or 0 if it isn't there. A good solution doesn't look at every item.",
+    examples: [
+        {args: [[1, 3, 5, 7, 9], 7], expect: 4},
+        {args: [[1, 3, 5], 2], expect: 0},
+        {args: [[], 1], expect: 0}
+    ],
+    hints: [
+        "Because the list is sorted, one comparison with the middle item can rule out half the list.",
+        "Keep a low and a high position. Look at the middle: if it is too small, the target must be to its right; if too big, to its left.",
+        "Stop when low goes past high (not found). Each step halves what is left, so a million items need only about 20 steps."
+    ],
+    hidden: [
+        {args: [[2, 4, 6, 8], 2], expect: 1, note: "the first item"},
+        {args: [[2, 4, 6, 8], 8], expect: 4, note: "the last item"},
+        {args: [[5], 5], expect: 1},
+        {args: [range(1, 100000), 77777], expect: 77777, note: "100,000 items (looking at every one is slow)"},
+        {args: [range(1, 100000), 0], expect: 0, note: "100,000 items, target not there"}
+    ],
+    complexity: "O(log n) time, O(1) extra space",
+    explanation: "Look at the middle item of the part of the list still in play. If it is the target, done. If it is smaller than the target, everything at or before it is smaller too, so the target can only be in the right half; if it is bigger, only in the left half. Each look halves the search area, so n items take about log2(n) looks instead of n. It only works because the list is sorted."
+}
+# --- solution ---
+define __reference with numbers, target
+    set low to 1
+    set high to length of numbers
+    while low is at most high
+        set middle to quotient(low + high, 2)
+        if numbers[middle] is target then
+            give back middle
+        otherwise if numbers[middle] is less than target then
+            set low to middle + 1
+        otherwise
+            set high to middle - 1
+        end
+    end
+    give back 0
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/count-paths", R"PLAINLIB(set __problem to {
+    order: 13,
+    title: "Grid Paths",
+    topic: "recursion",
+    level: 3,
+    function: "count_paths",
+    params: "rows, columns",
+    statement: "A robot stands in the top-left corner of a grid with the given number of rows and columns and wants to reach the bottom-right corner. It can only move right or down. Give back how many different paths it can take.",
+    examples: [
+        {args: [2, 2], expect: 2},
+        {args: [3, 3], expect: 6},
+        {args: [1, 5], expect: 1}
+    ],
+    hidden: [
+        {args: [3, 7], expect: 28},
+        {args: [7, 3], expect: 28},
+        {args: [1, 1], expect: 1},
+        {args: [10, 10], expect: 48620},
+        {args: [15, 15], expect: 40116600, note: "too many paths to count one by one"}
+    ],
+    hints: [
+        "To reach a square you must have come from the square above it or from the square to its left. So paths(square) = paths(above) + paths(left).",
+        "Written as plain recursion this recomputes the same squares again and again, and is hopeless for a 15 x 15 grid (over a hundred million calls).",
+        "Fill the grid in order instead, one row at a time. The first row is all 1s (only one way along the edge). Each other square is the one above plus the one to its left. You only need to remember one row."
+    ],
+    complexity: "O(rows x columns) time, O(columns) extra space",
+    explanation: "The number of paths to a square is the number reaching the square above plus the number reaching the square on its left, and every square on the top row or left column can only be reached one way. Filling the table row by row works out each square once. A single list of numbers is enough, because updating a square needs only itself (the value from the row above) and its left neighbour (already updated in this row)."
+}
+# --- solution ---
+define __reference with rows, columns
+    set row to []
+    repeat columns times
+        add 1 to row
+    end
+    for r from 2 to rows
+        for c from 2 to columns
+            set row[c] to row[c] + row[c - 1]
+        end
+    end
+    give back row[columns]
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/daily-temperatures", R"PLAINLIB(set __problem to {
+    order: 24,
+    title: "Wait for Warmer",
+    topic: "stacks",
+    level: 3,
+    function: "days_to_warmer",
+    params: "temperatures",
+    statement: "For each day in the list of temperatures, give back how many days you must wait until a warmer day. If there is no warmer day ahead, that day's answer is 0.",
+    examples: [
+        {args: [[73, 74, 75, 71, 69, 72, 76, 73]], expect: [1, 1, 4, 2, 1, 1, 0, 0]},
+        {args: [[30, 40, 50, 60]], expect: [1, 1, 1, 0]},
+        {args: [[30, 60, 90]], expect: [1, 1, 0]}
+    ],
+    hints: [
+        "For each day you could look ahead until you find a warmer one. That works but re-scans a lot when temperatures keep falling.",
+        "Go through the days once, and remember the days that are still waiting for a warmer day. Which of the waiting days gets its answer first when a warm day arrives?",
+        "Keep a stack of waiting day positions. When today is warmer than the day on top, pop that day: its answer is today - that day. Repeat, then push today."
+    ],
+    hidden: [
+        {args: [[90, 80, 70]], expect: [0, 0, 0], note: "always getting colder"},
+        {args: [[50]], expect: [0]},
+        {args: [[70, 70, 70]], expect: [0, 0, 0], note: "equal is not warmer"},
+        {args: [[30, 20, 10, 40]], expect: [3, 2, 1, 0]},
+        {args: [range(2000, 1, -1)], expect: map_each(range(1, 2000), action with i gives 0), note: "2000 days of cooling (looking ahead from each day is slow)"}
+    ],
+    complexity: "O(n) time, O(n) extra space",
+    explanation: "Keep a stack of the days that haven't found a warmer day yet; their temperatures never rise as you go down the stack (a warmer day would already have popped them). When a new day is warmer than the day on top of the stack, that waiting day has found its answer (the gap between the two days) and is popped; this repeats while the top is cooler. Then today waits on the stack. Each day is pushed once and popped at most once, so the total work is linear."
+}
+# --- solution ---
+use "stack"
+
+define __reference with temperatures
+    set answers to []
+    repeat length of temperatures times
+        add 0 to answers
+    end
+    set waiting to new Stack()
+    for day from 1 to length of temperatures
+        while not waiting's is_empty() and temperatures[waiting's peek()] is less than temperatures[day]
+            set earlier to waiting's pop()
+            set answers[earlier] to day - earlier
+        end
+        waiting's push(day)
+    end
+    give back answers
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/evaluate-postfix", R"PLAINLIB(set __problem to {
+    order: 23,
+    title: "Postfix Calculator",
+    topic: "stacks",
+    level: 2,
+    function: "evaluate_postfix",
+    params: "tokens",
+    statement: "In postfix notation the operator comes after its two numbers: [\"2\", \"3\", \"+\"] means 2 + 3. Given a list of texts that are numbers or one of + - * /, give back the result as a number. / drops any fraction. Every list is valid, and no test divides a negative number.",
+    examples: [
+        {args: [["2", "1", "+", "3", "*"]], expect: 9},
+        {args: [["4", "13", "5", "/", "+"]], expect: 6},
+        {args: [["5"]], expect: 5}
+    ],
+    hints: [
+        "Numbers wait until an operator needs them. The operator uses the two numbers that came most recently.",
+        "Use a stack. A number token: push number(token). An operator token: pop two values, combine them, push the result.",
+        "Mind the order for - and /: the first value popped is the RIGHT-hand number, the second is the LEFT-hand one."
+    ],
+    hidden: [
+        {args: [["3", "4", "-"]], expect: -1, note: "the order of subtraction"},
+        {args: [["2", "3", "4", "*", "+"]], expect: 14},
+        {args: [["5", "1", "2", "+", "4", "*", "+", "3", "-"]], expect: 14},
+        {args: [["100", "10", "/", "2", "*"]], expect: 20},
+        {args: [["7", "2", "-"]], expect: 5}
+    ],
+    complexity: "O(n) time, O(n) extra space",
+    explanation: "Reading left to right, a number can't be used until its operator shows up, and an operator always works on the two most recent values: a stack again. Pushing numbers and, at each operator, popping the right operand then the left, combining them and pushing the answer leaves exactly one value on the stack at the end. No brackets or precedence rules are needed, which is why calculators and compilers like postfix form."
+}
+# --- solution ---
+use "stack"
+
+define __reference with tokens
+    set values to new Stack()
+    for each token in tokens
+        if token is "+" or token is "-" or token is "*" or token is "/" then
+            set right to values's pop()
+            set left to values's pop()
+            if token is "+" then
+                values's push(left + right)
+            otherwise if token is "-" then
+                values's push(left - right)
+            otherwise if token is "*" then
+                values's push(left * right)
+            otherwise
+                values's push(quotient(left, right))
+            end
+        otherwise
+            values's push(number(token))
+        end
+    end
+    give back values's pop()
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/fibonacci", R"PLAINLIB(set __problem to {
+    order: 11,
+    title: "Fibonacci",
+    topic: "recursion",
+    level: 2,
+    function: "fibonacci",
+    params: "n",
+    statement: "The Fibonacci numbers start 0, 1, 1, 2, 3, 5, 8 ... where each one is the sum of the two before it. Give back the n-th one, counting the first (0) as number 0. The tests go up to n = 50, so be ready to make it fast.",
+    examples: [
+        {args: [0], expect: 0},
+        {args: [1], expect: 1},
+        {args: [10], expect: 55}
+    ],
+    hidden: [
+        {args: [2], expect: 1},
+        {args: [20], expect: 6765},
+        {args: [30], expect: 832040, note: "slow if the same Fibonacci number is worked out over and over"},
+        {args: [50], expect: 12586269025, note: "far too big for the simplest recursion"}
+    ],
+    hints: [
+        "The definition is itself the recursion: fibonacci(n) = fibonacci(n - 1) + fibonacci(n - 2), with the first two numbers as the base cases.",
+        "Try plain visualize on fibonacci(5): the calls tree shows fibonacci(3) worked out twice, fibonacci(2) three times... For n = 50 that waste is astronomical.",
+        "Don't recompute: either remember answers you have already found (a map), or work upwards from 0 and 1 with a loop, keeping just the last two numbers."
+    ],
+    complexity: "O(n) time, O(1) extra space",
+    explanation: "The textbook recursion calls itself twice per step, so the number of calls itself grows like the Fibonacci numbers: about 2^n. Counting upwards avoids that: keep the last two numbers, and each step turns (a, b) into (b, a + b). After n steps a is the answer. The same speed-up works for the recursive version if every answer is stored in a map the first time it is found (memoization)."
+}
+# --- solution ---
+define __reference with n
+    set a to 0
+    set b to 1
+    repeat n times
+        set next_number to a + b
+        set a to b
+        set b to next_number
+    end
+    give back a
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/first-unique-char", R"PLAINLIB(set __problem to {
+    order: 8,
+    title: "First Letter on Its Own",
+    topic: "strings",
+    level: 2,
+    function: "first_unique",
+    params: "text",
+    statement: "Give back the position (counting from 1) of the first character in the text that appears only once in the whole text. If every character repeats, give back 0.",
+    examples: [
+        {args: ["leetcode"], expect: 1},
+        {args: ["loveleetcode"], expect: 3},
+        {args: ["aabb"], expect: 0}
+    ],
+    hints: [
+        "You can't know a character is unique until you have seen the whole text. So you need two passes.",
+        "First pass: count how many times each character appears. A map from character to count is perfect.",
+        "Second pass: go through the text again from the start and stop at the first character whose count is 1."
+    ],
+    hidden: [
+        {args: ["abcabcd"], expect: 7},
+        {args: ["z"], expect: 1},
+        {args: [""], expect: 0, note: "an empty text"},
+        {args: ["aabbccd"], expect: 7},
+        {args: ["swiss"], expect: 2}
+    ],
+    complexity: "O(n) time, O(1) extra space for a fixed alphabet",
+    explanation: "The first unique character can only be found once all characters have been counted, so there are two passes. The first fills a map of counts. The second walks the text in order and returns the position of the first character whose count is exactly 1; if none is found, the answer is 0."
+}
+# --- solution ---
+define __reference with text
+    set counts to {}
+    for each ch in text
+        if has_key(counts, ch) then
+            increase counts[ch] by 1
+        otherwise
+            set counts[ch] to 1
+        end
+    end
+    set position to 0
+    for each ch in text
+        increase position by 1
+        if counts[ch] is 1 then
+            give back position
+        end
+    end
+    give back 0
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/flatten-list", R"PLAINLIB(set __problem to {
+    order: 15,
+    title: "Flatten a List",
+    topic: "recursion",
+    level: 2,
+    function: "flatten",
+    params: "items",
+    statement: "A list may contain other lists, which may contain others. Give back one flat list with all the non-list items, in order.",
+    examples: [
+        {args: [[1, [2, [3, 4]], 5]], expect: [1, 2, 3, 4, 5]},
+        {args: [[]], expect: []},
+        {args: [[[1], [2]]], expect: [1, 2]}
+    ],
+    hints: [
+        "Go through the items one by one. An item is either a plain value or another list.",
+        "type_of(item) tells you which: it says \"list\" for a list.",
+        "A plain value goes straight into the answer. A list is the same problem again: flatten it, and add everything it gives back."
+    ],
+    hidden: [
+        {args: [[[[[1]]]]], expect: [1], note: "lists inside lists inside lists"},
+        {args: [[1, 2, 3]], expect: [1, 2, 3], note: "already flat"},
+        {args: [[[], [1, []], 2]], expect: [1, 2], note: "empty lists in the way"},
+        {args: [["a", ["b", ["c"]]]], expect: ["a", "b", "c"]},
+        {args: [[[1, 2], [3, [4, [5, [6]]]]]], expect: [1, 2, 3, 4, 5, 6]}
+    ],
+    complexity: "O(total items) time",
+    explanation: "A nested list is a tree: a list is a branch and every other value is a leaf. Walking through it, a leaf is added to the answer; a branch is flattened by the same action (that is the recursion) and its leaves are added. The recursion stops by itself when an item is not a list, and empty lists simply contribute nothing."
+}
+# --- solution ---
+define __reference with items
+    set result to []
+    for each item_value in items
+        if type_of(item_value) is "list" then
+            for each inner in __reference(item_value)
+                add inner to result
+            end
+        otherwise
+            add item_value to result
+        end
+    end
+    give back result
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/hanoi", R"PLAINLIB(set __problem to {
+    order: 14,
+    title: "Towers of Hanoi",
+    topic: "recursion",
+    level: 3,
+    function: "hanoi",
+    params: "n",
+    statement: "n disks of different sizes sit on peg \"A\", biggest at the bottom. Move them all to peg \"C\", one at a time, never putting a bigger disk on a smaller one; peg \"B\" is a spare. Give back the shortest list of moves, each move as [from, to], like [\"A\", \"C\"].",
+    examples: [
+        {args: [1], expect: [["A", "C"]]},
+        {args: [2], expect: [["A", "B"], ["A", "C"], ["B", "C"]]},
+        {args: [3], expect: [["A", "C"], ["A", "B"], ["C", "B"], ["A", "C"], ["B", "A"], ["B", "C"], ["A", "C"]]}
+    ],
+    hidden: [
+        {args: [0], expect: [], note: "no disks, no moves"},
+        {args: [4], expect: [["A", "B"], ["A", "C"], ["B", "C"], ["A", "B"], ["C", "A"], ["C", "B"], ["A", "B"], ["A", "C"], ["B", "C"], ["B", "A"], ["C", "A"], ["B", "C"], ["A", "B"], ["A", "C"], ["B", "C"]]},
+        {args: [6], expect: __reference(6), note: "63 moves"},
+        {args: [10], expect: __reference(10), note: "1023 moves (checked against the recursive solution)"}
+    ],
+    hints: [
+        "Assume you already know how to move n - 1 disks. What does moving n disks need?",
+        "Move the top n - 1 disks to the spare peg, move the big bottom disk to the target, then move the n - 1 disks from the spare onto it.",
+        "Write a helper with the pegs as values: move_disks(n, from, to, spare, moves). Base case: n is 0, do nothing."
+    ],
+    complexity: "2^n - 1 moves (this is the least possible)",
+    explanation: "To move n disks from one peg to another, first move the n - 1 smaller disks out of the way onto the spare peg, then move the biggest disk, then move the n - 1 disks on top of it. Each of those smaller jobs is the same problem with one disk fewer, so a helper that calls itself twice solves it. The number of moves doubles with each extra disk (2^n - 1 in all), which is why the problem is a classic example of work that grows exponentially."
+}
+# --- solution ---
+define move_disks with n, from_peg, to_peg, spare, moves
+    if n is 0 then
+        give back nothing
+    end
+    move_disks(n - 1, from_peg, spare, to_peg, moves)
+    add [from_peg, to_peg] to moves
+    move_disks(n - 1, spare, to_peg, from_peg, moves)
+end
+
+define __reference with n
+    set moves to []
+    move_disks(n, "A", "C", "B", moves)
+    give back moves
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/has-path", R"PLAINLIB(set __problem to {
+    order: 29,
+    title: "Is There a Way?",
+    topic: "graphs",
+    level: 2,
+    function: "has_path",
+    params: "graph, start, goal",
+    statement: "A graph is a map from each node to the list of nodes it has a one-way road to, like {A: [\"B\"], B: [\"C\"], C: []}. Give back true if you can get from start to goal by following the roads (a node can always reach itself), and false otherwise. The graph may contain loops, and a node that is not in the map has no roads.",
+    examples: [
+        {args: [{A: ["B"], B: ["C"], C: []}, "A", "C"], expect: true},
+        {args: [{A: ["B"], B: ["C"], C: []}, "C", "A"], expect: false},
+        {args: [{A: ["B"], B: []}, "A", "A"], expect: true}
+    ],
+    hints: [
+        "Explore from the start: visit its neighbours, then their neighbours, and so on. If you ever reach the goal, the answer is true.",
+        "A loop would make you go round forever, so remember which nodes you have already visited and never visit one twice.",
+        "Use a stack (depth-first) or a queue (breadth-first) of nodes still to explore, and a map as the 'visited' set. Both find a path if one exists."
+    ],
+    hidden: [
+        {args: [{A: ["B"], B: ["A"]}, "A", "Z"], expect: false, note: "a loop, and a goal that is not in the graph"},
+        {args: [{A: ["B", "C"], B: ["D"], C: ["D"], D: [], E: ["A"]}, "A", "D"], expect: true},
+        {args: [{A: ["B"], B: [], C: ["D"], D: []}, "A", "D"], expect: false, note: "two separate parts"},
+        {args: [{}, "A", "B"], expect: false, note: "an empty graph"},
+        {args: [__line_graph(3000), 1, 3000], expect: true, note: "a very long chain of roads"},
+        {args: [__line_graph(3000), 3000, 1], expect: false, note: "roads only go one way"}
+    ],
+    complexity: "O(nodes + roads) time",
+    explanation: "Exploring a graph means keeping a to-do list of nodes to visit and a record of the ones already seen. Take a node off the list, stop if it is the goal, and otherwise add every neighbour that hasn't been seen to the list. The record of seen nodes is what makes loops harmless and means each node and road is handled once. Using a stack for the to-do list gives depth-first search; a queue gives breadth-first search. Both answer 'is there a path?' correctly."
+}
+define __line_graph with n
+    set g to {}
+    for i from 1 to n - 1
+        set g[i] to [i + 1]
+    end
+    set g[n] to []
+    give back g
+end
+# --- solution ---
+use "stack"
+
+define __reference with graph, start, goal
+    set seen to {}
+    set to_visit to new Stack()
+    to_visit's push(start)
+    set seen[start] to true
+    while not to_visit's is_empty()
+        set node to to_visit's pop()
+        if node is goal then
+            give back true
+        end
+        if has_key(graph, node) then
+            for each next_node in graph[node]
+                if not has_key(seen, next_node) then
+                    set seen[next_node] to true
+                    to_visit's push(next_node)
+                end
+            end
+        end
+    end
+    give back false
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/hot-potato", R"PLAINLIB(set __problem to {
+    order: 25,
+    title: "Hot Potato",
+    topic: "queues",
+    level: 2,
+    function: "hot_potato",
+    params: "names, k",
+    statement: "People stand in a circle in the order of the list and pass a potato. Counting starts with the first person as 1; the person who gets count k is out, and counting starts again with the next person. Give back the name of the last person left.",
+    examples: [
+        {args: [["A", "B", "C", "D", "E"], 2], expect: "C"},
+        {args: [["A", "B", "C"], 1], expect: "C"},
+        {args: [["solo"], 5], expect: "solo"}
+    ],
+    hints: [
+        "A circle of people is a queue where the person at the front goes to the back after their turn.",
+        "To pass the potato once: dequeue the front person and enqueue them again at the back.",
+        "Pass the potato k - 1 times, then dequeue the person at the front for good (they are out). Repeat until one person is left."
+    ],
+    hidden: [
+        {args: [["A", "B"], 3], expect: "B"},
+        {args: [["A", "B", "C", "D"], 3], expect: "A"},
+        {args: [["a", "b", "c", "d", "e", "f", "g"], 3], expect: "d"},
+        {args: [["x", "y"], 1], expect: "y", note: "k is 1"},
+        {args: [map_each(range(1, 3000), action with i gives text(i)), 7], expect: __josephus(3000, 7), note: "3000 people"}
+    ],
+    complexity: "O(n x k) time",
+    explanation: "A queue models the circle: the person at the front is the one holding the potato, and passing it moves them to the back. Passing k - 1 times and then removing the front person eliminates exactly the k-th person counted. Repeating this until one name remains gives the winner. (There is also a clever formula for the answer, the Josephus recurrence, which needs no queue at all.)"
+}
+define __josephus with n, k
+    # the Josephus recurrence, worked out upwards: an independent check for the long test
+    set survivor to 0
+    for size from 2 to n
+        set survivor to (survivor + k) % size
+    end
+    give back text(survivor + 1)
+end
+# --- solution ---
+use "queue"
+
+define __reference with names, k
+    set circle to new Queue()
+    for each name in names
+        circle's enqueue(name)
+    end
+    while circle's size() is greater than 1
+        repeat k - 1 times
+            circle's enqueue(circle's dequeue())
+        end
+        circle's dequeue()
+    end
+    give back circle's dequeue()
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/insertion-sort", R"PLAINLIB(set __problem to {
+    order: 17,
+    title: "Sort in Place",
+    topic: "sorting",
+    level: 2,
+    function: "sort_in_place",
+    params: "numbers",
+    statement: "Sort the list you are given from smallest to biggest, changing that very list (don't build a new one; what you give back is ignored). Try an insertion sort: take each item in turn and slide it left into its place.",
+    mode: "changes",
+    examples: [
+        {args: [[3, 1, 2]], expect: [1, 2, 3]},
+        {args: [[1]], expect: [1]},
+        {args: [[]], expect: []}
+    ],
+    hints: [
+        "Imagine the left part of the list is already sorted. Take the next item (call it key) and find where it belongs in that sorted part.",
+        "Slide bigger items one place to the right to open a gap, while looking left from the key. Then drop the key into the gap.",
+        "for i from 2 to length: set key to numbers[i], set j to i - 1, while j is at least 1 and numbers[j] is greater than key: copy numbers[j] to numbers[j + 1] and step j back. Finally set numbers[j + 1] to key."
+    ],
+    hidden: [
+        {args: [[5, 4, 3, 2, 1]], expect: [1, 2, 3, 4, 5], note: "completely backwards"},
+        {args: [[2, 2, 1, 1]], expect: [1, 1, 2, 2], note: "repeated numbers"},
+        {args: [[1, 2, 3]], expect: [1, 2, 3], note: "already sorted"},
+        {args: [[-1, 5, -10, 0]], expect: [-10, -1, 0, 5]},
+        {args: [range(1500, 1, -1)], expect: range(1, 1500), note: "a long backwards list"}
+    ],
+    complexity: "O(n^2) time in the worst case, O(1) extra space",
+    explanation: "Insertion sort grows a sorted section from the left. For each new item (the key), larger items in the sorted section are shifted one place right until the right spot is found, and the key drops in. Everything happens inside the one list, so no extra list is needed. On a list that is already nearly sorted the shifting loop hardly runs, which makes it fast there; on a backwards list every item slides all the way, giving n^2 / 2 shifts."
+}
+# --- solution ---
+define __reference with numbers
+    for i from 2 to length of numbers
+        set key to numbers[i]
+        set j to i - 1
+        while j is at least 1 and numbers[j] is greater than key
+            set numbers[j + 1] to numbers[j]
+            decrease j by 1
+        end
+        set numbers[j + 1] to key
+    end
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/integer-sqrt", R"PLAINLIB(set __problem to {
+    order: 21,
+    title: "Square Root, Rounded Down",
+    topic: "searching",
+    level: 3,
+    function: "integer_sqrt",
+    params: "n",
+    statement: "Give back the square root of the whole number n (zero or more), rounded down to a whole number. Do not use sqrt() or the ^ power sign for fractions: use only whole-number maths.",
+    examples: [
+        {args: [16], expect: 4},
+        {args: [8], expect: 2},
+        {args: [0], expect: 0}
+    ],
+    hints: [
+        "The answer is the biggest whole number r with r * r at most n. You can test any guess r that way.",
+        "Counting r upwards from 0 works for small n, but one of the tests has n close to a trillion.",
+        "Guessing is a search! If r * r is too big the answer is lower; if not, it could be r or higher. Binary search between 0 and n."
+    ],
+    hidden: [
+        {args: [1], expect: 1},
+        {args: [15], expect: 3},
+        {args: [99], expect: 9},
+        {args: [1000000], expect: 1000},
+        {args: [2147395600], expect: 46340, note: "a perfect square"},
+        {args: [999999999999], expect: 999999, note: "far too big to count up to"}
+    ],
+    complexity: "O(log n) time",
+    explanation: "The test 'r * r is at most n' is true for small r and false for big r, so the answer is the boundary between the two. A boundary like that can be found by binary search: try the middle, and discard the half that can't contain the boundary. About log2(n) tries are enough, so even a number near a trillion needs only around 40."
+}
+# --- solution ---
+define __reference with n
+    set low to 0
+    set high to n
+    set answer to 0
+    while low is at most high
+        set middle to quotient(low + high, 2)
+        if middle * middle is at most n then
+            set answer to middle
+            set low to middle + 1
+        otherwise
+            set high to middle - 1
+        end
+    end
+    give back answer
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/is-palindrome", R"PLAINLIB(set __problem to {
+    order: 6,
+    title: "Palindrome",
+    topic: "strings",
+    level: 1,
+    function: "is_palindrome",
+    params: "text",
+    statement: "A palindrome reads the same forwards and backwards. Give back true if the text is one, ignoring spaces and the difference between capital and small letters. (The tests have no other punctuation.)",
+    examples: [
+        {args: ["A man a plan a canal Panama"], expect: true},
+        {args: ["hello"], expect: false},
+        {args: [""], expect: true}
+    ],
+    hints: [
+        "First make the text easy to compare: no spaces, all the same case. 'replace' and 'lowercase' can do that.",
+        "Then the text is a palindrome if it is the same as itself turned round. 'reverse' works on text.",
+        "Or, without reverse: compare the first letter with the last, the second with the second to last, and so on, meeting in the middle."
+    ],
+    hidden: [
+        {args: ["ab"], expect: false},
+        {args: ["No lemon no melon"], expect: true},
+        {args: ["x"], expect: true, note: "a single letter"},
+        {args: ["race car"], expect: true},
+        {args: ["Never odd or even"], expect: true},
+        {args: ["Was it a car or a cat I saw"], expect: true}
+    ],
+    complexity: "O(n) time",
+    explanation: "Tidy the text first (take out the spaces, make every letter small) so that only the letters matter. Then the text is a palindrome exactly when it equals its own reverse. The two-pointer way compares letters from both ends moving inwards and stops at the first mismatch; it does the same work without building a reversed copy."
+}
+# --- solution ---
+define __reference with text
+    set clean to lowercase(replace(text, " ", ""))
+    give back clean is reverse(clean)
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/is-valid-bst", R"PLAINLIB(set __problem to {
+    order: 28,
+    title: "Is It a Search Tree?",
+    topic: "trees",
+    level: 3,
+    function: "is_search_tree",
+    params: "tree",
+    statement: "A node is a map {value: ..., left: ..., right: ...} (a child is nothing when missing). The tree is a binary search tree if, for every node, ALL values in its left part are smaller than the node's value and ALL values in its right part are bigger. Equal values are not allowed. Give back true or false. An empty tree (nothing) counts as true.",
+    examples: [
+        {args: [__node(2, __leaf(1), __leaf(3))], expect: true},
+        {args: [__node(5, __leaf(1), __node(4, __leaf(3), __leaf(6)))], expect: false},
+        {args: [__leaf(1)], expect: true}
+    ],
+    hints: [
+        "Checking only that each node is bigger than its left child and smaller than its right child is not enough. Look at a grandchild.",
+        "Every node must lie inside a range of allowed values. The root can be anything; going left makes the node's value the new upper limit; going right makes it the new lower limit.",
+        "Write a helper check(node, low, high) where low and high may be nothing (no limit). A node is fine if low < value < high, and both children are fine with the updated limits."
+    ],
+    hidden: [
+        {args: [nothing], expect: true, note: "an empty tree"},
+        {args: [__node(10, __node(5, __leaf(1), __leaf(15)), __leaf(20))], expect: false, note: "15 is in the left part of 10 but is bigger than 10"},
+        {args: [__node(2, __leaf(2), __leaf(3))], expect: false, note: "equal values"},
+        {args: [__node(5, __node(4, __node(3, __node(2, __leaf(1), nothing), nothing), nothing), nothing)], expect: true},
+        {args: [__right_chain(800)], expect: true, note: "a long chain"},
+        {args: [__node(8, __node(3, __leaf(1), __node(6, __leaf(4), __leaf(7))), __node(10, nothing, __node(14, __leaf(13), nothing)))], expect: true}
+    ],
+    complexity: "O(n) time",
+    explanation: "A node is only valid if it fits between limits set by ALL of its ancestors, not just its parent. Passing the limits down the recursion does that: going left, the current value becomes the new upper limit; going right, it becomes the new lower limit. Each node is checked once against the two limits it inherited. (An in-order walk of a valid search tree gives strictly increasing values, which is another way to check.)"
+}
+define __leaf with v
+    give back {value: v, left: nothing, right: nothing}
+end
+define __node with v, l, r
+    give back {value: v, left: l, right: r}
+end
+define __right_chain with n
+    set tree to nothing
+    for i from n to 1 by -1
+        set tree to __node(i, nothing, tree)
+    end
+    give back tree
+end
+# --- solution ---
+define within_limits with node, low, high
+    if node is nothing then
+        give back true
+    end
+    if low is not nothing and node's value is at most low then
+        give back false
+    end
+    if high is not nothing and node's value is at least high then
+        give back false
+    end
+    give back within_limits(node's left, low, node's value) and within_limits(node's right, node's value, high)
+end
+
+define __reference with tree
+    give back within_limits(tree, nothing, nothing)
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/kth-largest", R"PLAINLIB(set __problem to {
+    order: 18,
+    title: "K-th Largest",
+    topic: "sorting",
+    level: 2,
+    function: "kth_largest",
+    params: "numbers, k",
+    statement: "Give back the k-th biggest number in the list (k = 1 is the biggest). Repeated numbers count separately: in [5, 5, 3] the 2nd biggest is 5.",
+    examples: [
+        {args: [[3, 2, 1, 5, 6, 4], 2], expect: 5},
+        {args: [[3, 2, 3, 1, 2, 4, 5, 5, 6], 4], expect: 4},
+        {args: [[1], 1], expect: 1}
+    ],
+    hints: [
+        "If the list were sorted, where would the k-th biggest be?",
+        "sort() puts the numbers smallest first; reverse() turns that round.",
+        "After sorting biggest first, the answer is item k. (A heap can do better for huge lists: keep only the k biggest.)"
+    ],
+    hidden: [
+        {args: [[7, 7, 7], 2], expect: 7, note: "repeated numbers"},
+        {args: [[-1, -2, -3], 3], expect: -3},
+        {args: [[5, 3], 2], expect: 3},
+        {args: [range(1, 5000), 10], expect: 4991, note: "a long list"}
+    ],
+    complexity: "O(n log n) time with a sort; O(n log k) with a heap",
+    explanation: "Sorting puts every number in rank order, so the k-th biggest is simply item k of the list sorted biggest-first (or item n - k + 1 of the list sorted smallest-first). If the list is huge and k is small, sorting everything wastes work: a heap that never holds more than k numbers keeps just the k biggest seen so far, and its smallest is the answer."
+}
+# --- solution ---
+define __reference with numbers, k
+    give back reverse(sort(numbers))[k]
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/longest-common-prefix", R"PLAINLIB(set __problem to {
+    order: 9,
+    title: "Common Start",
+    topic: "strings",
+    level: 1,
+    function: "common_prefix",
+    params: "words",
+    statement: "Given a list of texts, give back the longest start that all of them share. If they share nothing, or the list is empty, give back an empty text.",
+    examples: [
+        {args: [["flower", "flow", "flight"]], expect: "fl"},
+        {args: [["dog", "racecar", "car"]], expect: ""},
+        {args: [["same"]], expect: "same"}
+    ],
+    hints: [
+        "Whatever the common start is, it can't be longer than the shortest word, and it must be a start of the first word.",
+        "Begin by guessing the whole first word as the answer.",
+        "For each other word, shorten the guess (cut off its last letter) until the word starts with it. 'starts_with' does the check."
+    ],
+    hidden: [
+        {args: [["interview", "internet", "internal"]], expect: "inter"},
+        {args: [["a", "ab"]], expect: "a"},
+        {args: [[]], expect: "", note: "an empty list"},
+        {args: [["abc", "abc", "abc"]], expect: "abc", note: "all the same"},
+        {args: [["", "b"]], expect: "", note: "an empty word"}
+    ],
+    complexity: "O(total letters) time",
+    explanation: "Start with the first word as the candidate. For every other word, chop letters off the end of the candidate until the word begins with it (the empty text always matches). What is left after the last word is a start shared by all of them, and it is the longest because we only ever removed letters when forced to."
+}
+# --- solution ---
+define __reference with words
+    if length of words is 0 then
+        give back ""
+    end
+    set prefix to words[1]
+    for each word in words
+        while prefix is not "" and not starts_with(word, prefix)
+            set prefix to slice(prefix, 1, length of prefix - 1)
+        end
+    end
+    give back prefix
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/max-subarray", R"PLAINLIB(set __problem to {
+    order: 2,
+    title: "Biggest Run",
+    topic: "arrays",
+    level: 2,
+    function: "max_subarray",
+    params: "numbers",
+    statement: "Given a list of numbers (at least one), give back the biggest total you can get by adding up a run of neighbouring items. A run can be a single item.",
+    examples: [
+        {args: [[-2, 1, -3, 4, -1, 2, 1, -5, 4]], expect: 6},
+        {args: [[1]], expect: 1},
+        {args: [[5, 4, -1, 7, 8]], expect: 23}
+    ],
+    hidden: [
+        {args: [[-3, -1, -2]], expect: -1, note: "every number is negative"},
+        {args: [[2, -5, 3, -1, 3]], expect: 5},
+        {args: [[-1, 0, -1]], expect: 0},
+        {args: [[8, -19, 5, -4, 20]], expect: 21},
+        {args: [range(1, 2000)], expect: 2001000, note: "a long list (checking every run will be slow)"}
+    ],
+    hints: [
+        "Trying every start and every end works but is slow for long lists. Think about what you need to know at each item.",
+        "Keep 'the best run that ends right here'. At the next item, that run either continues (add the item to it) or it is better to start fresh at the item.",
+        "running = max(item, running + item). Keep a second variable 'best' with the biggest running you have ever seen."
+    ],
+    complexity: "O(n) time, O(1) extra space",
+    explanation: "Walk along the list keeping two numbers: the best total of a run that ends at the current item, and the best total seen anywhere so far. A run ending here is either the item on its own (if the run before it was negative, it only hurts) or the run ending at the previous item plus this item. Each item is visited once, so no pair of start and end ever has to be tried. This idea is known as Kadane's algorithm."
+}
+# --- solution ---
+define __reference with numbers
+    set best to numbers[1]
+    set running to numbers[1]
+    for i from 2 to length of numbers
+        set running to max(numbers[i], running + numbers[i])
+        set best to max(best, running)
+    end
+    give back best
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/merge-sorted", R"PLAINLIB(set __problem to {
+    order: 16,
+    title: "Merge Two Sorted Lists",
+    topic: "sorting",
+    level: 2,
+    function: "merge_sorted",
+    params: "first, second",
+    statement: "Both lists are already sorted from smallest to biggest. Give back one new sorted list with all the items of both. Don't just join them and sort: use the fact that they are sorted.",
+    examples: [
+        {args: [[1, 3, 5], [2, 4, 6]], expect: [1, 2, 3, 4, 5, 6]},
+        {args: [[], [1]], expect: [1]},
+        {args: [[1, 2], []], expect: [1, 2]}
+    ],
+    hints: [
+        "The smallest item overall must be the first item of one of the lists. Which one?",
+        "Keep a position in each list. Repeatedly take the smaller of the two items they point at, and move that position along.",
+        "When one list runs out, everything left in the other goes on the end. This is the 'merge' step of merge sort."
+    ],
+    hidden: [
+        {args: [[1, 1], [1, 2]], expect: [1, 1, 1, 2], note: "equal items"},
+        {args: [[5], [1, 2, 3]], expect: [1, 2, 3, 5]},
+        {args: [[-3, 0], [-2, 2]], expect: [-3, -2, 0, 2]},
+        {args: [range(1, 3000, 2), range(2, 3000, 2)], expect: range(1, 3000), note: "long lists"}
+    ],
+    complexity: "O(n + m) time",
+    explanation: "Because both lists are sorted, the smallest item not yet used is always the next item of one of them. So keep one position in each list and repeatedly copy the smaller item and step that position forward. When one list is used up, the rest of the other is already in order and is copied over. Every item is looked at once, which is why merge sort (which merges halves again and again) takes only n log n steps."
+}
+# --- solution ---
+define __reference with first, second
+    set result to []
+    set a to 1
+    set b to 1
+    while a is at most length of first and b is at most length of second
+        if first[a] is at most second[b] then
+            add first[a] to result
+            increase a by 1
+        otherwise
+            add second[b] to result
+            increase b by 1
+        end
+    end
+    while a is at most length of first
+        add first[a] to result
+        increase a by 1
+    end
+    while b is at most length of second
+        add second[b] to result
+        increase b by 1
+    end
+    give back result
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/move-zeros", R"PLAINLIB(set __problem to {
+    order: 5,
+    title: "Zeros to the End",
+    topic: "arrays",
+    level: 1,
+    function: "move_zeros",
+    params: "numbers",
+    statement: "Give back a new list with all the zeros moved to the end. The other numbers keep their order.",
+    examples: [
+        {args: [[0, 1, 0, 3, 12]], expect: [1, 3, 12, 0, 0]},
+        {args: [[0]], expect: [0]},
+        {args: [[1, 2]], expect: [1, 2]}
+    ],
+    hints: [
+        "Think of two piles: the non-zero numbers in order, and the zeros.",
+        "Loop over the list once. Put each non-zero number in one list and count the zeros.",
+        "At the end, add as many zeros as you counted to the end of the non-zero list."
+    ],
+    hidden: [
+        {args: [[0, 0, 1]], expect: [1, 0, 0]},
+        {args: [[4, 0, 5, 0, 0, 6]], expect: [4, 5, 6, 0, 0, 0]},
+        {args: [[]], expect: [], note: "an empty list"},
+        {args: [[0, 0, 0]], expect: [0, 0, 0], note: "only zeros"},
+        {args: [[-1, 0, -2]], expect: [-1, -2, 0], note: "negative numbers are not zeros"}
+    ],
+    complexity: "O(n) time",
+    explanation: "One pass is enough: every non-zero number is added to the result as it is met (so their order is kept), and zeros are only counted. After the loop, one zero for each one counted is added to the end."
+}
+# --- solution ---
+define __reference with numbers
+    set result to []
+    set zeros to 0
+    for each value in numbers
+        if value is 0 then
+            increase zeros by 1
+        otherwise
+            add value to result
+        end
+    end
+    repeat zeros times
+        add 0 to result
+    end
+    give back result
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/remove-duplicates", R"PLAINLIB(set __problem to {
+    order: 3,
+    title: "Remove Duplicates",
+    topic: "arrays",
+    level: 1,
+    function: "remove_duplicates",
+    params: "items",
+    statement: "Give back a new list with the repeated values taken out. Keep the first copy of each value, in the order they first appeared.",
+    examples: [
+        {args: [[1, 2, 2, 3, 1]], expect: [1, 2, 3]},
+        {args: [["a", "b", "a"]], expect: ["a", "b"]},
+        {args: [[]], expect: []}
+    ],
+    hidden: [
+        {args: [[5, 5, 5, 5]], expect: [5], note: "everything is the same"},
+        {args: [[3, 1, 2]], expect: [3, 1, 2], note: "nothing to remove"},
+        {args: [[1, 2, 3, 1, 2, 3, 4]], expect: [1, 2, 3, 4]},
+        {args: [map_each(range(1, 3000), action with i gives i % 100)], expect: range(1, 99) + [0], note: "a long list (checking every earlier item will be slow)"}
+    ],
+    hints: [
+        "For each item you need to ask 'have I kept this already?'. Scanning your answer list for it every time gets slow when the lists are long.",
+        "A map answers 'have I seen this?' instantly. Use the item as the name of an entry.",
+        "Walk along the list. If the item is not in the map yet, add it to the map and add it to the answer."
+    ],
+    complexity: "O(n) time, O(n) extra space",
+    explanation: "A map used as a 'seen' table makes the question 'have I met this value before?' take the same time however many values there are. Walk along the list once: a value that is not in the table yet is kept in the answer and recorded in the table; one that is already there is skipped. The answer comes out in first-appearance order automatically."
+}
+# --- solution ---
+define __reference with items
+    set seen to {}
+    set result to []
+    for each value in items
+        if not has_key(seen, value) then
+            set seen[value] to true
+            add value to result
+        end
+    end
+    give back result
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/reverse-words", R"PLAINLIB(set __problem to {
+    order: 10,
+    title: "Reverse the Words",
+    topic: "strings",
+    level: 1,
+    function: "reverse_words",
+    params: "sentence",
+    statement: "Give back the sentence with its words in the opposite order. Words are separated by single spaces.",
+    examples: [
+        {args: ["the sky is blue"], expect: "blue is sky the"},
+        {args: ["hello"], expect: "hello"},
+        {args: ["a b"], expect: "b a"}
+    ],
+    hints: [
+        "Break the sentence into a list of words first. 'split' can do that.",
+        "A list can be turned round with 'reverse'.",
+        "'join' glues a list of words back into one text, with whatever goes between them (a space)."
+    ],
+    hidden: [
+        {args: ["one two three four"], expect: "four three two one"},
+        {args: [""], expect: "", note: "an empty sentence"},
+        {args: ["x y z"], expect: "z y x"},
+        {args: ["go"], expect: "go"}
+    ],
+    complexity: "O(n) time",
+    explanation: "split(sentence, \" \") turns the sentence into a list of words, reverse(words) turns the list round, and join(..., \" \") puts the words back together with single spaces. Three built-in steps, each doing one clear job."
+}
+# --- solution ---
+define __reference with sentence
+    give back join(reverse(split(sentence, " ")), " ")
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/rotate-list", R"PLAINLIB(set __problem to {
+    order: 4,
+    title: "Rotate a List",
+    topic: "arrays",
+    level: 1,
+    function: "rotate_list",
+    params: "items, k",
+    statement: "Give back a new list where every item has moved k places to the right. Items that fall off the end come back round at the front. k can be bigger than the length of the list.",
+    examples: [
+        {args: [[1, 2, 3, 4, 5], 2], expect: [4, 5, 1, 2, 3]},
+        {args: [[1, 2], 3], expect: [2, 1]},
+        {args: [[], 5], expect: []}
+    ],
+    hints: [
+        "Try it on paper with [1, 2, 3, 4, 5] and k = 2. Which items end up at the front?",
+        "The last k items move to the front, and everything else follows them. Slicing gives you both parts.",
+        "Rotating by the length of the list changes nothing, so k % length is all that matters. (And watch out for an empty list: you can't divide by zero.)"
+    ],
+    hidden: [
+        {args: [[1, 2, 3], 0], expect: [1, 2, 3], note: "no rotation"},
+        {args: [[1, 2, 3], 3], expect: [1, 2, 3], note: "a whole turn"},
+        {args: [[1, 2, 3, 4], 6], expect: [3, 4, 1, 2], note: "k bigger than the list"},
+        {args: [["a", "b", "c"], 1], expect: ["c", "a", "b"]}
+    ],
+    complexity: "O(n) time",
+    explanation: "Moving k places right means the last k items become the first k. Taking the remainder k % length first removes whole turns. Then slice(items, length - k + 1, length) gives the tail and slice(items, 1, length - k) gives the rest; joining the tail in front of the rest is the answer. An empty list has to be handled first because the remainder would divide by zero."
+}
+# --- solution ---
+define __reference with items, k
+    set n to length of items
+    if n is 0 then
+        give back []
+    end
+    set shift to k % n
+    give back slice(items, n - shift + 1, n) + slice(items, 1, n - shift)
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/search-insert", R"PLAINLIB(set __problem to {
+    order: 20,
+    title: "Where Would It Go?",
+    topic: "searching",
+    level: 2,
+    function: "insert_position",
+    params: "numbers, target",
+    statement: "The list is sorted from smallest to biggest. Give back the position (counting from 1) where the target is, or where it would have to be put to keep the list sorted. If it is already there, give back its position.",
+    examples: [
+        {args: [[1, 3, 5, 6], 5], expect: 3},
+        {args: [[1, 3, 5, 6], 2], expect: 2},
+        {args: [[1, 3, 5, 6], 7], expect: 5}
+    ],
+    hints: [
+        "This is a binary search that can't fail: it always ends up pointing at the right place.",
+        "You are looking for the first position whose item is at least the target.",
+        "Keep low = 1 and high = length + 1. While low is less than high, look at the middle: if its item is less than the target, low = middle + 1, otherwise high = middle. The answer is low."
+    ],
+    hidden: [
+        {args: [[1, 3, 5, 6], 0], expect: 1, note: "smaller than everything"},
+        {args: [[], 4], expect: 1, note: "an empty list"},
+        {args: [[1], 1], expect: 1},
+        {args: [[1, 3], 3], expect: 2},
+        {args: [[2, 4, 6, 8], 5], expect: 3},
+        {args: [range(2, 100000, 2), 77777], expect: 38889, note: "a long list"}
+    ],
+    complexity: "O(log n) time",
+    explanation: "Keep a range of positions that could still be the answer, from 1 up to length + 1 (one past the end is allowed, because the target may belong at the end). Look at the middle item: if it is smaller than the target, the answer is to its right; otherwise it is at the middle or to its left. The range shrinks until one position is left. Using 'less than' (not 'at most') makes the answer the FIRST place the target could go, so an existing copy is found rather than skipped."
+}
+# --- solution ---
+define __reference with numbers, target
+    set low to 1
+    set high to length of numbers + 1
+    while low is less than high
+        set middle to quotient(low + high, 2)
+        if numbers[middle] is less than target then
+            set low to middle + 1
+        otherwise
+            set high to middle
+        end
+    end
+    give back low
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/shortest-steps", R"PLAINLIB(set __problem to {
+    order: 30,
+    title: "Fewest Roads",
+    topic: "graphs",
+    level: 3,
+    function: "fewest_steps",
+    params: "graph, start, goal",
+    statement: "A graph is a map from each node to the list of nodes it has a one-way road to, like {A: [\"B\", \"C\"], B: [\"D\"], C: [\"D\"], D: []}. Give back the smallest number of roads you must follow to get from start to goal, or -1 if the goal can't be reached. Going from a node to itself takes 0 roads.",
+    examples: [
+        {args: [{A: ["B", "C"], B: ["D"], C: ["D"], D: []}, "A", "D"], expect: 2},
+        {args: [{A: ["B"], B: []}, "A", "A"], expect: 0},
+        {args: [{A: ["B"], B: []}, "B", "A"], expect: -1}
+    ],
+    hints: [
+        "Explore the graph in rings: first the start, then everything one road away, then everything two roads away, and so on. The first ring that contains the goal gives the answer.",
+        "That order of visiting is exactly what a queue gives you. This is breadth-first search.",
+        "Put the start in a queue with distance 0 (keep distances in a map). Take the front node; for each neighbour not yet seen, give it distance + 1 and enqueue it. Stop when you take the goal."
+    ],
+    hidden: [
+        {args: [{A: ["B", "C"], B: ["C"], C: ["D"], D: ["A"]}, "A", "D"], expect: 2, note: "a loop and a shortcut"},
+        {args: [{A: ["B"], B: ["C"], C: [], D: ["A"]}, "A", "D"], expect: -1},
+        {args: [{1: [2, 3], 2: [4], 3: [4], 4: [5], 5: []}, 1, 5], expect: 3, note: "numbers as node names"},
+        {args: [{}, "A", "B"], expect: -1, note: "an empty graph"},
+        {args: [__skip_graph(3000), 1, 3000], expect: 1500, note: "a long graph where each node leads to the next two"}
+    ],
+    complexity: "O(nodes + roads) time",
+    explanation: "Breadth-first search visits nodes in order of their distance from the start: everything one road away, then everything two roads away, and so on, because a queue serves nodes in the order they were found. So the first time the goal is reached, it has been reached by the fewest possible roads. Storing each node's distance in a map doubles as the 'already seen' record that keeps loops harmless."
+}
+define __skip_graph with n
+    set g to {}
+    for i from 1 to n
+        if i + 2 is at most n then
+            set g[i] to [i + 1, i + 2]
+        otherwise if i + 1 is at most n then
+            set g[i] to [i + 1]
+        otherwise
+            set g[i] to []
+        end
+    end
+    give back g
+end
+# --- solution ---
+use "queue"
+
+define __reference with graph, start, goal
+    set distance to {}
+    set distance[start] to 0
+    set to_visit to new Queue()
+    to_visit's enqueue(start)
+    while not to_visit's is_empty()
+        set node to to_visit's dequeue()
+        if node is goal then
+            give back distance[node]
+        end
+        if has_key(graph, node) then
+            for each next_node in graph[node]
+                if not has_key(distance, next_node) then
+                    set distance[next_node] to distance[node] + 1
+                    to_visit's enqueue(next_node)
+                end
+            end
+        end
+    end
+    give back -1
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/sliding-window-max", R"PLAINLIB(set __problem to {
+    order: 26,
+    title: "Biggest in Each Window",
+    topic: "queues",
+    level: 3,
+    function: "window_maximums",
+    params: "numbers, k",
+    statement: "A window of k neighbouring items slides along the list one step at a time. Give back the biggest number in each window position. (k is at least 1 and at most the length of the list.)",
+    examples: [
+        {args: [[1, 3, -1, -3, 5, 3, 6, 7], 3], expect: [3, 3, 5, 5, 6, 7]},
+        {args: [[1], 1], expect: [1]},
+        {args: [[9, 8, 7], 2], expect: [9, 8]}
+    ],
+    hints: [
+        "The simple way is to find the biggest of the k numbers in every window. That is n x k steps, which is slow when both are big.",
+        "When a new number arrives, any earlier number in the window that is smaller than it can never be the maximum again. You can forget them.",
+        "Keep a deque of positions whose numbers are decreasing from front to back. The front is the current maximum. Drop the front when it leaves the window, and drop from the back everything smaller than the new number."
+    ],
+    hidden: [
+        {args: [[1, 2, 3, 4], 4], expect: [4], note: "the window is the whole list"},
+        {args: [[4, 3, 2, 1], 2], expect: [4, 3, 2]},
+        {args: [[5, 5, 5], 2], expect: [5, 5]},
+        {args: [[-1, -2, -3], 1], expect: [-1, -2, -3], note: "windows of one"},
+        {args: [range(1, 3000), 500], expect: range(500, 3000), note: "a long list with a wide window"}
+    ],
+    complexity: "O(n) time",
+    explanation: "A deque of positions is kept so that their numbers decrease from front to back. A new number first removes every smaller number from the back (they are older and smaller, so they could never be a window maximum again), then joins at the back. The front is always the biggest number in the window; if its position has slid out of the window, it is removed from the front. Every position enters and leaves the deque once, so the whole job is linear."
+}
+# --- solution ---
+use "deque"
+
+define __reference with numbers, k
+    set result to []
+    set candidates to new Deque()
+    for i from 1 to length of numbers
+        while not candidates's is_empty() and numbers[candidates's peek_back()] is at most numbers[i]
+            candidates's pop_back()
+        end
+        candidates's push_back(i)
+        if candidates's peek_front() is at most i - k then
+            candidates's pop_front()
+        end
+        if i is at least k then
+            add numbers[candidates's peek_front()] to result
+        end
+    end
+    give back result
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/sum-digits", R"PLAINLIB(set __problem to {
+    order: 12,
+    title: "Sum of the Digits",
+    topic: "recursion",
+    level: 1,
+    function: "sum_digits",
+    params: "n",
+    statement: "Give back the sum of the digits of a whole number that is zero or more, using recursion: 123 gives 1 + 2 + 3 = 6.",
+    examples: [
+        {args: [123], expect: 6},
+        {args: [0], expect: 0},
+        {args: [9999], expect: 36}
+    ],
+    hidden: [
+        {args: [5], expect: 5},
+        {args: [100], expect: 1},
+        {args: [987654321], expect: 45},
+        {args: [1000000007], expect: 8}
+    ],
+    hints: [
+        "A recursive answer needs a smaller version of the same problem. What is left of 123 when you take the last digit away?",
+        "n % 10 is the last digit, and quotient(n, 10) is everything before it.",
+        "Base case: a number below 10 is its own digit sum. Otherwise: last digit + sum_digits(the rest)."
+    ],
+    complexity: "O(number of digits) time",
+    explanation: "Every number is its last digit (n % 10) plus the rest of the number (quotient(n, 10)). The digit sum of the whole is the last digit plus the digit sum of the rest, and the rest is shorter, so the recursion ends at a single digit, which is its own sum."
+}
+# --- solution ---
+define __reference with n
+    if n is less than 10 then
+        give back n
+    end
+    give back n % 10 + __reference(quotient(n, 10))
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/tree-height", R"PLAINLIB(set __problem to {
+    order: 27,
+    title: "Height of a Tree",
+    topic: "trees",
+    level: 1,
+    function: "tree_height",
+    params: "tree",
+    statement: "A tree is made of nodes: a node is a map {value: ..., left: ..., right: ...} where left and right are other nodes, or nothing when there is no child. Give back the height: the number of nodes on the longest path from the top node down to a node with no children. An empty tree (nothing) has height 0.",
+    examples: [
+        {args: [nothing], expect: 0},
+        {args: [__leaf(1)], expect: 1},
+        {args: [__node(3, __leaf(9), __node(20, __leaf(15), __leaf(7)))], expect: 3}
+    ],
+    hints: [
+        "Trees are recursive: each child is itself a tree. So the height of a tree is built from the heights of its two children.",
+        "Base case: nothing has height 0.",
+        "Otherwise the height is 1 (for this node) plus the taller of the two children: 1 + max(tree_height(left), tree_height(right))."
+    ],
+    hidden: [
+        {args: [__node(1, nothing, __leaf(2))], expect: 2, note: "a child only on the right"},
+        {args: [__node(1, __node(2, __node(3, nothing, __leaf(4)), nothing), __leaf(5))], expect: 4},
+        {args: [__leaf(7)], expect: 1},
+        {args: [__left_chain(1000)], expect: 1000, note: "a very tall, thin tree"},
+        {args: [__node(1, __left_chain(3), __left_chain(6))], expect: 7}
+    ],
+    complexity: "O(n) time (every node is visited once)",
+    explanation: "A tree is either empty or a node with two smaller trees below it, so a recursive action fits perfectly. An empty tree has height 0. A node is one level taller than its taller child: 1 + max(left height, right height). The recursion visits every node exactly once."
+}
+define __leaf with v
+    give back {value: v, left: nothing, right: nothing}
+end
+define __node with v, l, r
+    give back {value: v, left: l, right: r}
+end
+define __left_chain with n
+    set tree to nothing
+    for i from 1 to n
+        set tree to __node(i, tree, nothing)
+    end
+    give back tree
+end
+# --- solution ---
+define __reference with tree
+    if tree is nothing then
+        give back 0
+    end
+    give back 1 + max(__reference(tree's left), __reference(tree's right))
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/two-sum", R"PLAINLIB(set __problem to {
+    order: 1,
+    title: "Two Sum",
+    topic: "arrays",
+    level: 1,
+    function: "two_sum",
+    params: "numbers, target",
+    statement: "Given a list of numbers and a target, give back the positions (counting from 1) of two different items that add up to the target, as a list [first, second] with first smaller than second. There is always exactly one answer.",
+    examples: [
+        {args: [[2, 7, 11, 15], 9], expect: [1, 2]},
+        {args: [[3, 2, 4], 6], expect: [2, 3]},
+        {args: [[3, 3], 6], expect: [1, 2]}
+    ],
+    hidden: [
+        {args: [[-1, -2, -3, -4, -5], -8], expect: [3, 5], note: "negative numbers"},
+        {args: [[0, 4, 3, 0], 0], expect: [1, 4], note: "zeros"},
+        {args: [[1, 5, 9, 14, 20, 31], 45], expect: [4, 6]},
+        {args: [range(1, 2000), 3999], expect: [1999, 2000], note: "a long list (checking every pair will be slow)"}
+    ],
+    hints: [
+        "The slow way is to try every pair of items: two loops, one inside the other. That works, but a list of 2000 items means about 2 million pairs.",
+        "For each item you already know what its partner must be: target minus the item. So the real question is 'have I seen that number before, and where?'",
+        "A map remembers things and finds them instantly. Walk along the list; before storing an item, check whether its partner is already in the map (number -> position)."
+    ],
+    complexity: "O(n) time, O(n) extra space",
+    explanation: "Going through the list once, each number needs a partner equal to target minus the number. Keep a map from every number seen so far to its position. For each new number, look its partner up in the map: if it is there, the answer is that stored position and the current one. Otherwise store the number and carry on. A map lookup takes the same time however big the map is, so the whole job is one pass instead of the n x n pairs of the brute-force way."
+}
+# --- solution ---
+define __reference with numbers, target
+    set seen to {}
+    for i from 1 to length of numbers
+        set partner to target - numbers[i]
+        if has_key(seen, partner) then
+            give back [seen[partner], i]
+        end
+        set seen[numbers[i]] to i
+    end
+    give back []
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/valid-brackets", R"PLAINLIB(set __problem to {
+    order: 22,
+    title: "Balanced Brackets",
+    topic: "stacks",
+    level: 2,
+    function: "valid_brackets",
+    params: "text",
+    statement: "The text contains only the characters ( ) [ ] { }. Give back true if every bracket is closed by the right kind of bracket in the right order, and false otherwise.",
+    examples: [
+        {args: ["()[]{}"], expect: true},
+        {args: ["(]"], expect: false},
+        {args: ["([{}])"], expect: true}
+    ],
+    hints: [
+        "When you meet a closing bracket, it must match the most recent opening bracket that hasn't been closed yet. 'Most recent' is the clue.",
+        "A stack gives you exactly that: push every opening bracket; when a closing bracket comes, pop and check that the two match.",
+        "Three ways to fail: a closing bracket with nothing on the stack, a closing bracket that doesn't match the popped one, or openers still on the stack at the end."
+    ],
+    hidden: [
+        {args: [""], expect: true, note: "no brackets at all"},
+        {args: ["("], expect: false, note: "never closed"},
+        {args: ["))"], expect: false, note: "closing with nothing open"},
+        {args: ["{[()()]}"], expect: true},
+        {args: ["([)]"], expect: false, note: "closed in the wrong order"},
+        {args: [join(map_each(range(1, 5000), action with i gives "("), "") + join(map_each(range(1, 5000), action with i gives ")"), "")], expect: true, note: "deeply nested"}
+    ],
+    complexity: "O(n) time, O(n) extra space",
+    explanation: "Brackets nest, so the bracket that must be closed next is always the one opened most recently: last in, first out, which is exactly a stack. Opening brackets are pushed. A closing bracket must find its partner on top of the stack: if the stack is empty or the top is the wrong kind, the text is invalid. If the text ends with anything left on the stack, something was never closed."
+}
+# --- solution ---
+use "stack"
+
+define __reference with text
+    set partner_of to {")": "(", "]": "[", "}": "{"}
+    set open_brackets to new Stack()
+    for each ch in text
+        if has_key(partner_of, ch) then
+            if open_brackets's is_empty() then
+                give back false
+            end
+            if open_brackets's pop() is not partner_of[ch] then
+                give back false
+            end
+        otherwise
+            open_brackets's push(ch)
+        end
+    end
+    give back open_brackets's is_empty()
+end
+# --- end solution ---
+)PLAINLIB"},
 {"viz/growth.html", R"PLAINLIB(<!doctype html>
 <html lang="en">
 <head>

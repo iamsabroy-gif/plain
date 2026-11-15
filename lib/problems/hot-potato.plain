@@ -1,0 +1,53 @@
+set __problem to {
+    order: 25,
+    title: "Hot Potato",
+    topic: "queues",
+    level: 2,
+    function: "hot_potato",
+    params: "names, k",
+    statement: "People stand in a circle in the order of the list and pass a potato. Counting starts with the first person as 1; the person who gets count k is out, and counting starts again with the next person. Give back the name of the last person left.",
+    examples: [
+        {args: [["A", "B", "C", "D", "E"], 2], expect: "C"},
+        {args: [["A", "B", "C"], 1], expect: "C"},
+        {args: [["solo"], 5], expect: "solo"}
+    ],
+    hints: [
+        "A circle of people is a queue where the person at the front goes to the back after their turn.",
+        "To pass the potato once: dequeue the front person and enqueue them again at the back.",
+        "Pass the potato k - 1 times, then dequeue the person at the front for good (they are out). Repeat until one person is left."
+    ],
+    hidden: [
+        {args: [["A", "B"], 3], expect: "B"},
+        {args: [["A", "B", "C", "D"], 3], expect: "A"},
+        {args: [["a", "b", "c", "d", "e", "f", "g"], 3], expect: "d"},
+        {args: [["x", "y"], 1], expect: "y", note: "k is 1"},
+        {args: [map_each(range(1, 3000), action with i gives text(i)), 7], expect: __josephus(3000, 7), note: "3000 people"}
+    ],
+    complexity: "O(n x k) time",
+    explanation: "A queue models the circle: the person at the front is the one holding the potato, and passing it moves them to the back. Passing k - 1 times and then removing the front person eliminates exactly the k-th person counted. Repeating this until one name remains gives the winner. (There is also a clever formula for the answer, the Josephus recurrence, which needs no queue at all.)"
+}
+define __josephus with n, k
+    # the Josephus recurrence, worked out upwards: an independent check for the long test
+    set survivor to 0
+    for size from 2 to n
+        set survivor to (survivor + k) % size
+    end
+    give back text(survivor + 1)
+end
+# --- solution ---
+use "queue"
+
+define __reference with names, k
+    set circle to new Queue()
+    for each name in names
+        circle's enqueue(name)
+    end
+    while circle's size() is greater than 1
+        repeat k - 1 times
+            circle's enqueue(circle's dequeue())
+        end
+        circle's dequeue()
+    end
+    give back circle's dequeue()
+end
+# --- end solution ---

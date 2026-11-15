@@ -1,0 +1,45 @@
+set __problem to {
+    order: 5,
+    title: "Zeros to the End",
+    topic: "arrays",
+    level: 1,
+    function: "move_zeros",
+    params: "numbers",
+    statement: "Give back a new list with all the zeros moved to the end. The other numbers keep their order.",
+    examples: [
+        {args: [[0, 1, 0, 3, 12]], expect: [1, 3, 12, 0, 0]},
+        {args: [[0]], expect: [0]},
+        {args: [[1, 2]], expect: [1, 2]}
+    ],
+    hints: [
+        "Think of two piles: the non-zero numbers in order, and the zeros.",
+        "Loop over the list once. Put each non-zero number in one list and count the zeros.",
+        "At the end, add as many zeros as you counted to the end of the non-zero list."
+    ],
+    hidden: [
+        {args: [[0, 0, 1]], expect: [1, 0, 0]},
+        {args: [[4, 0, 5, 0, 0, 6]], expect: [4, 5, 6, 0, 0, 0]},
+        {args: [[]], expect: [], note: "an empty list"},
+        {args: [[0, 0, 0]], expect: [0, 0, 0], note: "only zeros"},
+        {args: [[-1, 0, -2]], expect: [-1, -2, 0], note: "negative numbers are not zeros"}
+    ],
+    complexity: "O(n) time",
+    explanation: "One pass is enough: every non-zero number is added to the result as it is met (so their order is kept), and zeros are only counted. After the loop, one zero for each one counted is added to the end."
+}
+# --- solution ---
+define __reference with numbers
+    set result to []
+    set zeros to 0
+    for each value in numbers
+        if value is 0 then
+            increase zeros by 1
+        otherwise
+            add value to result
+        end
+    end
+    repeat zeros times
+        add 0 to result
+    end
+    give back result
+end
+# --- end solution ---

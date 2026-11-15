@@ -1,0 +1,32 @@
+set __problem to {
+    order: 10,
+    title: "Reverse the Words",
+    topic: "strings",
+    level: 1,
+    function: "reverse_words",
+    params: "sentence",
+    statement: "Give back the sentence with its words in the opposite order. Words are separated by single spaces.",
+    examples: [
+        {args: ["the sky is blue"], expect: "blue is sky the"},
+        {args: ["hello"], expect: "hello"},
+        {args: ["a b"], expect: "b a"}
+    ],
+    hints: [
+        "Break the sentence into a list of words first. 'split' can do that.",
+        "A list can be turned round with 'reverse'.",
+        "'join' glues a list of words back into one text, with whatever goes between them (a space)."
+    ],
+    hidden: [
+        {args: ["one two three four"], expect: "four three two one"},
+        {args: [""], expect: "", note: "an empty sentence"},
+        {args: ["x y z"], expect: "z y x"},
+        {args: ["go"], expect: "go"}
+    ],
+    complexity: "O(n) time",
+    explanation: "split(sentence, \" \") turns the sentence into a list of words, reverse(words) turns the list round, and join(..., \" \") puts the words back together with single spaces. Three built-in steps, each doing one clear job."
+}
+# --- solution ---
+define __reference with sentence
+    give back join(reverse(split(sentence, " ")), " ")
+end
+# --- end solution ---

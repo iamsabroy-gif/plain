@@ -1,0 +1,47 @@
+set __problem to {
+    order: 24,
+    title: "Wait for Warmer",
+    topic: "stacks",
+    level: 3,
+    function: "days_to_warmer",
+    params: "temperatures",
+    statement: "For each day in the list of temperatures, give back how many days you must wait until a warmer day. If there is no warmer day ahead, that day's answer is 0.",
+    examples: [
+        {args: [[73, 74, 75, 71, 69, 72, 76, 73]], expect: [1, 1, 4, 2, 1, 1, 0, 0]},
+        {args: [[30, 40, 50, 60]], expect: [1, 1, 1, 0]},
+        {args: [[30, 60, 90]], expect: [1, 1, 0]}
+    ],
+    hints: [
+        "For each day you could look ahead until you find a warmer one. That works but re-scans a lot when temperatures keep falling.",
+        "Go through the days once, and remember the days that are still waiting for a warmer day. Which of the waiting days gets its answer first when a warm day arrives?",
+        "Keep a stack of waiting day positions. When today is warmer than the day on top, pop that day: its answer is today - that day. Repeat, then push today."
+    ],
+    hidden: [
+        {args: [[90, 80, 70]], expect: [0, 0, 0], note: "always getting colder"},
+        {args: [[50]], expect: [0]},
+        {args: [[70, 70, 70]], expect: [0, 0, 0], note: "equal is not warmer"},
+        {args: [[30, 20, 10, 40]], expect: [3, 2, 1, 0]},
+        {args: [range(2000, 1, -1)], expect: map_each(range(1, 2000), action with i gives 0), note: "2000 days of cooling (looking ahead from each day is slow)"}
+    ],
+    complexity: "O(n) time, O(n) extra space",
+    explanation: "Keep a stack of the days that haven't found a warmer day yet; their temperatures never rise as you go down the stack (a warmer day would already have popped them). When a new day is warmer than the day on top of the stack, that waiting day has found its answer (the gap between the two days) and is popped; this repeats while the top is cooler. Then today waits on the stack. Each day is pushed once and popped at most once, so the total work is linear."
+}
+# --- solution ---
+use "stack"
+
+define __reference with temperatures
+    set answers to []
+    repeat length of temperatures times
+        add 0 to answers
+    end
+    set waiting to new Stack()
+    for day from 1 to length of temperatures
+        while not waiting's is_empty() and temperatures[waiting's peek()] is less than temperatures[day]
+            set earlier to waiting's pop()
+            set answers[earlier] to day - earlier
+        end
+        waiting's push(day)
+    end
+    give back answers
+end
+# --- end solution ---

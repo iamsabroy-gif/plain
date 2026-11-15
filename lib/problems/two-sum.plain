@@ -1,0 +1,40 @@
+set __problem to {
+    order: 1,
+    title: "Two Sum",
+    topic: "arrays",
+    level: 1,
+    function: "two_sum",
+    params: "numbers, target",
+    statement: "Given a list of numbers and a target, give back the positions (counting from 1) of two different items that add up to the target, as a list [first, second] with first smaller than second. There is always exactly one answer.",
+    examples: [
+        {args: [[2, 7, 11, 15], 9], expect: [1, 2]},
+        {args: [[3, 2, 4], 6], expect: [2, 3]},
+        {args: [[3, 3], 6], expect: [1, 2]}
+    ],
+    hidden: [
+        {args: [[-1, -2, -3, -4, -5], -8], expect: [3, 5], note: "negative numbers"},
+        {args: [[0, 4, 3, 0], 0], expect: [1, 4], note: "zeros"},
+        {args: [[1, 5, 9, 14, 20, 31], 45], expect: [4, 6]},
+        {args: [range(1, 2000), 3999], expect: [1999, 2000], note: "a long list (checking every pair will be slow)"}
+    ],
+    hints: [
+        "The slow way is to try every pair of items: two loops, one inside the other. That works, but a list of 2000 items means about 2 million pairs.",
+        "For each item you already know what its partner must be: target minus the item. So the real question is 'have I seen that number before, and where?'",
+        "A map remembers things and finds them instantly. Walk along the list; before storing an item, check whether its partner is already in the map (number -> position)."
+    ],
+    complexity: "O(n) time, O(n) extra space",
+    explanation: "Going through the list once, each number needs a partner equal to target minus the number. Keep a map from every number seen so far to its position. For each new number, look its partner up in the map: if it is there, the answer is that stored position and the current one. Otherwise store the number and carry on. A map lookup takes the same time however big the map is, so the whole job is one pass instead of the n x n pairs of the brute-force way."
+}
+# --- solution ---
+define __reference with numbers, target
+    set seen to {}
+    for i from 1 to length of numbers
+        set partner to target - numbers[i]
+        if has_key(seen, partner) then
+            give back [seen[partner], i]
+        end
+        set seen[numbers[i]] to i
+    end
+    give back []
+end
+# --- end solution ---

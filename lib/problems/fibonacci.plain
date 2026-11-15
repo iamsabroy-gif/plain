@@ -1,0 +1,39 @@
+set __problem to {
+    order: 11,
+    title: "Fibonacci",
+    topic: "recursion",
+    level: 2,
+    function: "fibonacci",
+    params: "n",
+    statement: "The Fibonacci numbers start 0, 1, 1, 2, 3, 5, 8 ... where each one is the sum of the two before it. Give back the n-th one, counting the first (0) as number 0. The tests go up to n = 50, so be ready to make it fast.",
+    examples: [
+        {args: [0], expect: 0},
+        {args: [1], expect: 1},
+        {args: [10], expect: 55}
+    ],
+    hidden: [
+        {args: [2], expect: 1},
+        {args: [20], expect: 6765},
+        {args: [30], expect: 832040, note: "slow if the same Fibonacci number is worked out over and over"},
+        {args: [50], expect: 12586269025, note: "far too big for the simplest recursion"}
+    ],
+    hints: [
+        "The definition is itself the recursion: fibonacci(n) = fibonacci(n - 1) + fibonacci(n - 2), with the first two numbers as the base cases.",
+        "Try plain visualize on fibonacci(5): the calls tree shows fibonacci(3) worked out twice, fibonacci(2) three times... For n = 50 that waste is astronomical.",
+        "Don't recompute: either remember answers you have already found (a map), or work upwards from 0 and 1 with a loop, keeping just the last two numbers."
+    ],
+    complexity: "O(n) time, O(1) extra space",
+    explanation: "The textbook recursion calls itself twice per step, so the number of calls itself grows like the Fibonacci numbers: about 2^n. Counting upwards avoids that: keep the last two numbers, and each step turns (a, b) into (b, a + b). After n steps a is the answer. The same speed-up works for the recursive version if every answer is stored in a map the first time it is found (memoization)."
+}
+# --- solution ---
+define __reference with n
+    set a to 0
+    set b to 1
+    repeat n times
+        set next_number to a + b
+        set a to b
+        set b to next_number
+    end
+    give back a
+end
+# --- end solution ---

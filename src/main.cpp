@@ -172,6 +172,7 @@ static int runProgram(const std::string& src, const std::string& file, const std
 
 static void setUp(Program& prog);
 #include "tools.hpp"
+#include "practice.hpp"
 
 // plain lib [name [--copy]]: list the built-in library, show how a part is built, or copy it to edit.
 static int libCommand(const std::vector<std::string>& args) {
@@ -374,6 +375,7 @@ static void usage() {
            "                                run an action at n = 10, 100, 1000, 10000 and show how the work grows (--html chart.html)\n"
            "  plain compare program.plain a b\n"
            "                                run two actions on the same data, side by side\n"
+           "  plain practice [problem]      classic problems with hidden tests, hints and reference solutions\n"
            "  plain lib [name]              list the built-in data structures, or show how one is built\n"
            "  plain init                    start a project (writes plain.json)\n"
            "  plain install [address]       add a package: folder, git address or user/repo[#version]\n"
@@ -429,6 +431,7 @@ int main(int argc, char** argv) {
         if (cmd == "lib") return libCommand(args);
         if (cmd == "visualize" || cmd == "visualise") return visualizeCommand(args);
         if (cmd == "count") return countCommand(args);
+        if (cmd == "practice") return practiceCommand(args);
         if (cmd == "growth") return growthCommand(args);
         if (cmd == "compare") return compareCommand(args);
         bool explain = false, check = false, beginner = false;

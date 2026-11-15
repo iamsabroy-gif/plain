@@ -21,6 +21,7 @@ test: build/plain
 	@sh tests/format_test.sh build/plain
 	@sh tests/lib_test.sh build/plain
 	@sh tests/viz_test.sh build/plain
+	@sh tests/practice_test.sh build/plain
 
 install: build/plain
 	install -d $(DESTDIR)$(PREFIX)/bin

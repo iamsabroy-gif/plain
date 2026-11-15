@@ -1,0 +1,50 @@
+set __problem to {
+    order: 22,
+    title: "Balanced Brackets",
+    topic: "stacks",
+    level: 2,
+    function: "valid_brackets",
+    params: "text",
+    statement: "The text contains only the characters ( ) [ ] { }. Give back true if every bracket is closed by the right kind of bracket in the right order, and false otherwise.",
+    examples: [
+        {args: ["()[]{}"], expect: true},
+        {args: ["(]"], expect: false},
+        {args: ["([{}])"], expect: true}
+    ],
+    hints: [
+        "When you meet a closing bracket, it must match the most recent opening bracket that hasn't been closed yet. 'Most recent' is the clue.",
+        "A stack gives you exactly that: push every opening bracket; when a closing bracket comes, pop and check that the two match.",
+        "Three ways to fail: a closing bracket with nothing on the stack, a closing bracket that doesn't match the popped one, or openers still on the stack at the end."
+    ],
+    hidden: [
+        {args: [""], expect: true, note: "no brackets at all"},
+        {args: ["("], expect: false, note: "never closed"},
+        {args: ["))"], expect: false, note: "closing with nothing open"},
+        {args: ["{[()()]}"], expect: true},
+        {args: ["([)]"], expect: false, note: "closed in the wrong order"},
+        {args: [join(map_each(range(1, 5000), action with i gives "("), "") + join(map_each(range(1, 5000), action with i gives ")"), "")], expect: true, note: "deeply nested"}
+    ],
+    complexity: "O(n) time, O(n) extra space",
+    explanation: "Brackets nest, so the bracket that must be closed next is always the one opened most recently: last in, first out, which is exactly a stack. Opening brackets are pushed. A closing bracket must find its partner on top of the stack: if the stack is empty or the top is the wrong kind, the text is invalid. If the text ends with anything left on the stack, something was never closed."
+}
+# --- solution ---
+use "stack"
+
+define __reference with text
+    set partner_of to {")": "(", "]": "[", "}": "{"}
+    set open_brackets to new Stack()
+    for each ch in text
+        if has_key(partner_of, ch) then
+            if open_brackets's is_empty() then
+                give back false
+            end
+            if open_brackets's pop() is not partner_of[ch] then
+                give back false
+            end
+        otherwise
+            open_brackets's push(ch)
+        end
+    end
+    give back open_brackets's is_empty()
+end
+# --- end solution ---

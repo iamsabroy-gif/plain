@@ -1,0 +1,39 @@
+set __problem to {
+    order: 2,
+    title: "Biggest Run",
+    topic: "arrays",
+    level: 2,
+    function: "max_subarray",
+    params: "numbers",
+    statement: "Given a list of numbers (at least one), give back the biggest total you can get by adding up a run of neighbouring items. A run can be a single item.",
+    examples: [
+        {args: [[-2, 1, -3, 4, -1, 2, 1, -5, 4]], expect: 6},
+        {args: [[1]], expect: 1},
+        {args: [[5, 4, -1, 7, 8]], expect: 23}
+    ],
+    hidden: [
+        {args: [[-3, -1, -2]], expect: -1, note: "every number is negative"},
+        {args: [[2, -5, 3, -1, 3]], expect: 5},
+        {args: [[-1, 0, -1]], expect: 0},
+        {args: [[8, -19, 5, -4, 20]], expect: 21},
+        {args: [range(1, 2000)], expect: 2001000, note: "a long list (checking every run will be slow)"}
+    ],
+    hints: [
+        "Trying every start and every end works but is slow for long lists. Think about what you need to know at each item.",
+        "Keep 'the best run that ends right here'. At the next item, that run either continues (add the item to it) or it is better to start fresh at the item.",
+        "running = max(item, running + item). Keep a second variable 'best' with the biggest running you have ever seen."
+    ],
+    complexity: "O(n) time, O(1) extra space",
+    explanation: "Walk along the list keeping two numbers: the best total of a run that ends at the current item, and the best total seen anywhere so far. A run ending here is either the item on its own (if the run before it was negative, it only hurts) or the run ending at the previous item plus this item. Each item is visited once, so no pair of start and end ever has to be tried. This idea is known as Kadane's algorithm."
+}
+# --- solution ---
+define __reference with numbers
+    set best to numbers[1]
+    set running to numbers[1]
+    for i from 2 to length of numbers
+        set running to max(numbers[i], running + numbers[i])
+        set best to max(best, running)
+    end
+    give back best
+end
+# --- end solution ---

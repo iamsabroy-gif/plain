@@ -1,0 +1,42 @@
+set __problem to {
+    order: 9,
+    title: "Common Start",
+    topic: "strings",
+    level: 1,
+    function: "common_prefix",
+    params: "words",
+    statement: "Given a list of texts, give back the longest start that all of them share. If they share nothing, or the list is empty, give back an empty text.",
+    examples: [
+        {args: [["flower", "flow", "flight"]], expect: "fl"},
+        {args: [["dog", "racecar", "car"]], expect: ""},
+        {args: [["same"]], expect: "same"}
+    ],
+    hints: [
+        "Whatever the common start is, it can't be longer than the shortest word, and it must be a start of the first word.",
+        "Begin by guessing the whole first word as the answer.",
+        "For each other word, shorten the guess (cut off its last letter) until the word starts with it. 'starts_with' does the check."
+    ],
+    hidden: [
+        {args: [["interview", "internet", "internal"]], expect: "inter"},
+        {args: [["a", "ab"]], expect: "a"},
+        {args: [[]], expect: "", note: "an empty list"},
+        {args: [["abc", "abc", "abc"]], expect: "abc", note: "all the same"},
+        {args: [["", "b"]], expect: "", note: "an empty word"}
+    ],
+    complexity: "O(total letters) time",
+    explanation: "Start with the first word as the candidate. For every other word, chop letters off the end of the candidate until the word begins with it (the empty text always matches). What is left after the last word is a start shared by all of them, and it is the longest because we only ever removed letters when forced to."
+}
+# --- solution ---
+define __reference with words
+    if length of words is 0 then
+        give back ""
+    end
+    set prefix to words[1]
+    for each word in words
+        while prefix is not "" and not starts_with(word, prefix)
+            set prefix to slice(prefix, 1, length of prefix - 1)
+        end
+    end
+    give back prefix
+end
+# --- end solution ---

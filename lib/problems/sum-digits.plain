@@ -1,0 +1,35 @@
+set __problem to {
+    order: 12,
+    title: "Sum of the Digits",
+    topic: "recursion",
+    level: 1,
+    function: "sum_digits",
+    params: "n",
+    statement: "Give back the sum of the digits of a whole number that is zero or more, using recursion: 123 gives 1 + 2 + 3 = 6.",
+    examples: [
+        {args: [123], expect: 6},
+        {args: [0], expect: 0},
+        {args: [9999], expect: 36}
+    ],
+    hidden: [
+        {args: [5], expect: 5},
+        {args: [100], expect: 1},
+        {args: [987654321], expect: 45},
+        {args: [1000000007], expect: 8}
+    ],
+    hints: [
+        "A recursive answer needs a smaller version of the same problem. What is left of 123 when you take the last digit away?",
+        "n % 10 is the last digit, and quotient(n, 10) is everything before it.",
+        "Base case: a number below 10 is its own digit sum. Otherwise: last digit + sum_digits(the rest)."
+    ],
+    complexity: "O(number of digits) time",
+    explanation: "Every number is its last digit (n % 10) plus the rest of the number (quotient(n, 10)). The digit sum of the whole is the last digit plus the digit sum of the rest, and the rest is shorter, so the recursion ends at a single digit, which is its own sum."
+}
+# --- solution ---
+define __reference with n
+    if n is less than 10 then
+        give back n
+    end
+    give back n % 10 + __reference(quotient(n, 10))
+end
+# --- end solution ---

@@ -1,0 +1,52 @@
+set __problem to {
+    order: 16,
+    title: "Merge Two Sorted Lists",
+    topic: "sorting",
+    level: 2,
+    function: "merge_sorted",
+    params: "first, second",
+    statement: "Both lists are already sorted from smallest to biggest. Give back one new sorted list with all the items of both. Don't just join them and sort: use the fact that they are sorted.",
+    examples: [
+        {args: [[1, 3, 5], [2, 4, 6]], expect: [1, 2, 3, 4, 5, 6]},
+        {args: [[], [1]], expect: [1]},
+        {args: [[1, 2], []], expect: [1, 2]}
+    ],
+    hints: [
+        "The smallest item overall must be the first item of one of the lists. Which one?",
+        "Keep a position in each list. Repeatedly take the smaller of the two items they point at, and move that position along.",
+        "When one list runs out, everything left in the other goes on the end. This is the 'merge' step of merge sort."
+    ],
+    hidden: [
+        {args: [[1, 1], [1, 2]], expect: [1, 1, 1, 2], note: "equal items"},
+        {args: [[5], [1, 2, 3]], expect: [1, 2, 3, 5]},
+        {args: [[-3, 0], [-2, 2]], expect: [-3, -2, 0, 2]},
+        {args: [range(1, 3000, 2), range(2, 3000, 2)], expect: range(1, 3000), note: "long lists"}
+    ],
+    complexity: "O(n + m) time",
+    explanation: "Because both lists are sorted, the smallest item not yet used is always the next item of one of them. So keep one position in each list and repeatedly copy the smaller item and step that position forward. When one list is used up, the rest of the other is already in order and is copied over. Every item is looked at once, which is why merge sort (which merges halves again and again) takes only n log n steps."
+}
+# --- solution ---
+define __reference with first, second
+    set result to []
+    set a to 1
+    set b to 1
+    while a is at most length of first and b is at most length of second
+        if first[a] is at most second[b] then
+            add first[a] to result
+            increase a by 1
+        otherwise
+            add second[b] to result
+            increase b by 1
+        end
+    end
+    while a is at most length of first
+        add first[a] to result
+        increase a by 1
+    end
+    while b is at most length of second
+        add second[b] to result
+        increase b by 1
+    end
+    give back result
+end
+# --- end solution ---

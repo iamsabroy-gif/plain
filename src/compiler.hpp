@@ -1241,6 +1241,7 @@ private:
                     if (!sym("}")) {
                         do {
                             if (sym("}")) break;
+                            if (peek().k == Token::Kw && sym(":", 1)) err(reservedHelp(peek().text));
                             if (peek().k == Token::Word && sym(":", 1)) emitStr(next().text);
                             else expression();
                             expectSym(":", "between a name and its value in a map");

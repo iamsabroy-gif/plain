@@ -1,0 +1,42 @@
+set __problem to {
+    order: 17,
+    title: "Sort in Place",
+    topic: "sorting",
+    level: 2,
+    function: "sort_in_place",
+    params: "numbers",
+    statement: "Sort the list you are given from smallest to biggest, changing that very list (don't build a new one; what you give back is ignored). Try an insertion sort: take each item in turn and slide it left into its place.",
+    mode: "changes",
+    examples: [
+        {args: [[3, 1, 2]], expect: [1, 2, 3]},
+        {args: [[1]], expect: [1]},
+        {args: [[]], expect: []}
+    ],
+    hints: [
+        "Imagine the left part of the list is already sorted. Take the next item (call it key) and find where it belongs in that sorted part.",
+        "Slide bigger items one place to the right to open a gap, while looking left from the key. Then drop the key into the gap.",
+        "for i from 2 to length: set key to numbers[i], set j to i - 1, while j is at least 1 and numbers[j] is greater than key: copy numbers[j] to numbers[j + 1] and step j back. Finally set numbers[j + 1] to key."
+    ],
+    hidden: [
+        {args: [[5, 4, 3, 2, 1]], expect: [1, 2, 3, 4, 5], note: "completely backwards"},
+        {args: [[2, 2, 1, 1]], expect: [1, 1, 2, 2], note: "repeated numbers"},
+        {args: [[1, 2, 3]], expect: [1, 2, 3], note: "already sorted"},
+        {args: [[-1, 5, -10, 0]], expect: [-10, -1, 0, 5]},
+        {args: [range(1500, 1, -1)], expect: range(1, 1500), note: "a long backwards list"}
+    ],
+    complexity: "O(n^2) time in the worst case, O(1) extra space",
+    explanation: "Insertion sort grows a sorted section from the left. For each new item (the key), larger items in the sorted section are shifted one place right until the right spot is found, and the key drops in. Everything happens inside the one list, so no extra list is needed. On a list that is already nearly sorted the shifting loop hardly runs, which makes it fast there; on a backwards list every item slides all the way, giving n^2 / 2 shifts."
+}
+# --- solution ---
+define __reference with numbers
+    for i from 2 to length of numbers
+        set key to numbers[i]
+        set j to i - 1
+        while j is at least 1 and numbers[j] is greater than key
+            set numbers[j + 1] to numbers[j]
+            decrease j by 1
+        end
+        set numbers[j + 1] to key
+    end
+end
+# --- end solution ---

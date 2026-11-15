@@ -1,0 +1,62 @@
+set __problem to {
+    order: 29,
+    title: "Is There a Way?",
+    topic: "graphs",
+    level: 2,
+    function: "has_path",
+    params: "graph, start, goal",
+    statement: "A graph is a map from each node to the list of nodes it has a one-way road to, like {A: [\"B\"], B: [\"C\"], C: []}. Give back true if you can get from start to goal by following the roads (a node can always reach itself), and false otherwise. The graph may contain loops, and a node that is not in the map has no roads.",
+    examples: [
+        {args: [{A: ["B"], B: ["C"], C: []}, "A", "C"], expect: true},
+        {args: [{A: ["B"], B: ["C"], C: []}, "C", "A"], expect: false},
+        {args: [{A: ["B"], B: []}, "A", "A"], expect: true}
+    ],
+    hints: [
+        "Explore from the start: visit its neighbours, then their neighbours, and so on. If you ever reach the goal, the answer is true.",
+        "A loop would make you go round forever, so remember which nodes you have already visited and never visit one twice.",
+        "Use a stack (depth-first) or a queue (breadth-first) of nodes still to explore, and a map as the 'visited' set. Both find a path if one exists."
+    ],
+    hidden: [
+        {args: [{A: ["B"], B: ["A"]}, "A", "Z"], expect: false, note: "a loop, and a goal that is not in the graph"},
+        {args: [{A: ["B", "C"], B: ["D"], C: ["D"], D: [], E: ["A"]}, "A", "D"], expect: true},
+        {args: [{A: ["B"], B: [], C: ["D"], D: []}, "A", "D"], expect: false, note: "two separate parts"},
+        {args: [{}, "A", "B"], expect: false, note: "an empty graph"},
+        {args: [__line_graph(3000), 1, 3000], expect: true, note: "a very long chain of roads"},
+        {args: [__line_graph(3000), 3000, 1], expect: false, note: "roads only go one way"}
+    ],
+    complexity: "O(nodes + roads) time",
+    explanation: "Exploring a graph means keeping a to-do list of nodes to visit and a record of the ones already seen. Take a node off the list, stop if it is the goal, and otherwise add every neighbour that hasn't been seen to the list. The record of seen nodes is what makes loops harmless and means each node and road is handled once. Using a stack for the to-do list gives depth-first search; a queue gives breadth-first search. Both answer 'is there a path?' correctly."
+}
+define __line_graph with n
+    set g to {}
+    for i from 1 to n - 1
+        set g[i] to [i + 1]
+    end
+    set g[n] to []
+    give back g
+end
+# --- solution ---
+use "stack"
+
+define __reference with graph, start, goal
+    set seen to {}
+    set to_visit to new Stack()
+    to_visit's push(start)
+    set seen[start] to true
+    while not to_visit's is_empty()
+        set node to to_visit's pop()
+        if node is goal then
+            give back true
+        end
+        if has_key(graph, node) then
+            for each next_node in graph[node]
+                if not has_key(seen, next_node) then
+                    set seen[next_node] to true
+                    to_visit's push(next_node)
+                end
+            end
+        end
+    end
+    give back false
+end
+# --- end solution ---

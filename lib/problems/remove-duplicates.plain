@@ -1,0 +1,40 @@
+set __problem to {
+    order: 3,
+    title: "Remove Duplicates",
+    topic: "arrays",
+    level: 1,
+    function: "remove_duplicates",
+    params: "items",
+    statement: "Give back a new list with the repeated values taken out. Keep the first copy of each value, in the order they first appeared.",
+    examples: [
+        {args: [[1, 2, 2, 3, 1]], expect: [1, 2, 3]},
+        {args: [["a", "b", "a"]], expect: ["a", "b"]},
+        {args: [[]], expect: []}
+    ],
+    hidden: [
+        {args: [[5, 5, 5, 5]], expect: [5], note: "everything is the same"},
+        {args: [[3, 1, 2]], expect: [3, 1, 2], note: "nothing to remove"},
+        {args: [[1, 2, 3, 1, 2, 3, 4]], expect: [1, 2, 3, 4]},
+        {args: [map_each(range(1, 3000), action with i gives i % 100)], expect: range(1, 99) + [0], note: "a long list (checking every earlier item will be slow)"}
+    ],
+    hints: [
+        "For each item you need to ask 'have I kept this already?'. Scanning your answer list for it every time gets slow when the lists are long.",
+        "A map answers 'have I seen this?' instantly. Use the item as the name of an entry.",
+        "Walk along the list. If the item is not in the map yet, add it to the map and add it to the answer."
+    ],
+    complexity: "O(n) time, O(n) extra space",
+    explanation: "A map used as a 'seen' table makes the question 'have I met this value before?' take the same time however many values there are. Walk along the list once: a value that is not in the table yet is kept in the answer and recorded in the table; one that is already there is skipped. The answer comes out in first-appearance order automatically."
+}
+# --- solution ---
+define __reference with items
+    set seen to {}
+    set result to []
+    for each value in items
+        if not has_key(seen, value) then
+            set seen[value] to true
+            add value to result
+        end
+    end
+    give back result
+end
+# --- end solution ---
