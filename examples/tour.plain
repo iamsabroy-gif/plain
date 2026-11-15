@@ -1,0 +1,103 @@
+note: A tour of Plain. Run it with:  plain examples/tour.plain
+
+say "--- Values and maths ---"
+set price to 250
+set quantity to 3
+set total to price * quantity
+say "Total:", total
+say "Half of it:", total divided by 2, "and the remainder by 7:", total modulo 7
+say "2 to the power 10 is", 2 ^ 10
+
+say ""
+say "--- Decisions ---"
+if total is greater than 500 then
+    say "That is a big order."
+otherwise if total is at least 100 then
+    say "That is a medium order."
+otherwise
+    say "That is a small order."
+end
+
+say ""
+say "--- Lists ---"
+set fruits to ["mango", "banana", "lychee"]
+add "guava" to fruits
+remove "banana" from fruits
+say "There are", length of fruits, "fruits and the first is", item 1 of fruits
+for each fruit in sort(fruits)
+    say " -", fruit
+end
+
+say ""
+say "--- Maps (named values) ---"
+set customer to {name: "Asha", city: "Kolkata", orders: 4}
+increase customer's orders by 1
+set customer's vip to customer's orders is at least 5
+say customer's name, "from", customer's city, "has", customer's orders, "orders"
+say "As JSON:", to_json(customer)
+
+say ""
+say "--- Loops ---"
+repeat 3 times
+    say "Hip hip hooray!"
+end
+set countdown to 3
+while countdown is greater than 0
+    say countdown
+    decrease countdown by 1
+end
+for n from 2 to 10 by 2
+    if n is 6 then
+        skip
+    end
+    say "Even number:", n
+end
+
+say ""
+say "--- Actions (functions) ---"
+define factorial with n
+    if n is at most 1 then
+        give back 1
+    end
+    give back n * factorial(n - 1)
+end
+define greet with person and greeting
+    say greeting + ", " + person + "!"
+end
+say "5 factorial is", factorial(5)
+greet("Ravi", "Good morning")
+call greet with "Meera", "Welcome"
+
+say ""
+say "--- Handling problems ---"
+try
+    say 10 / 0
+on error problem
+    say "That went wrong:", problem
+end
+try
+    fail with "Insufficient balance"
+on error problem
+    say "The payment was declined:", problem
+end
+
+say ""
+say "--- Text ---"
+set sentence to "plain reads like english"
+say uppercase(sentence)
+say split(sentence, " ")
+say replace(sentence, "english", "English"), "has", length of sentence, "characters"
+
+say ""
+say "--- FizzBuzz ---"
+for i from 1 to 15
+    if i modulo 15 is 0 then
+        say "FizzBuzz"
+    otherwise if i modulo 3 is 0 then
+        say "Fizz"
+    otherwise if i modulo 5 is 0 then
+        say "Buzz"
+    otherwise
+        say i
+    end
+end

@@ -1,0 +1,3 @@
+set total to 1
+say "before"
+say totl

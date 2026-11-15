@@ -1,0 +1,28 @@
+set start to clock()
+set total to 0
+for i from 1 to 2000000
+    set total to total + i * 2 % 7
+end
+say "loop total:", total
+
+define fib with n
+    if n is less than 2 then
+        give back n
+    end
+    give back fib(n - 1) + fib(n - 2)
+end
+say "fib(27):", fib(27)
+
+define work with count
+    set xs to []
+    for i from 1 to count
+        add i * 2 to xs
+    end
+    set s to 0
+    for each x in xs
+        increase s by x
+    end
+    give back s
+end
+say "list work:", work(1000000)
+say "seconds:", round(clock() - start, 3)

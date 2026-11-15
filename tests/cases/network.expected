@@ -1,0 +1,6 @@
+200 Hello, World Wide!
+201 {"got":"{\"a\":[1,2]}","method":"POST"} yes
+404 nothing here
+201 {"got": "raw text", "method": "PUT"}
+A web address must start with http:// or https://, but I got "ftp://x".
+echo: ping

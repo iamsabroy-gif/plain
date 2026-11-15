@@ -1,0 +1,23 @@
+note: Uses another file, writes a report to disk and reads it back.
+use "mathtools"
+
+set marks to {Asha: 82, Ravi: 67, Meera: 91, Kabir: 74}
+set lines to []
+for each student in keys(marks)
+    add student + ": " + marks[student] to lines
+end
+add "Average: " + round(average(values(marks)), 1) to lines
+
+write_file("report.txt", join(lines, "\n") + "\n")
+say "Wrote report.txt:"
+for each line in read_lines("report.txt")
+    say "  " + line
+end
+
+set primes to []
+for n from 1 to 30
+    if is_prime(n) then
+        add n to primes
+    end
+end
+say "Primes up to 30:", primes

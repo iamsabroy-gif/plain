@@ -1,0 +1,42 @@
+set server to tcp_listen(0)
+set port to tcp_port(server)
+define handle with req
+    if req's path == "/hello" then
+        give back "Hello, " + req's query's name + "!"
+    end
+    if req's path == "/echo" then
+        give back {"status": 201, "body": {"got": req's body, "method": req's method}, "headers": {"X-Test": "yes"}}
+    end
+    give back {"status": 404, "body": "nothing here"}
+end
+set srv to start_task(action
+    http_serve(server, handle, 4)
+end)
+set base to "http://127.0.0.1:" + text(port)
+set r to http_get(base + "/hello?name=World%20Wide")
+say r's status, r's body
+set r to http_post(base + "/echo", {"a": [1, 2]})
+say r's status, r's body, r's headers["x-test"]
+set r to http_get(base + "/missing")
+say r's status, r's body
+set r to http_request("PUT", base + "/echo", "raw text")
+say r's status, from_json(r's body)
+wait_for(srv)
+try
+    http_get("ftp://x")
+on error e
+    say e
+end
+set s2 to tcp_listen(0)
+set p2 to tcp_port(s2)
+set echo to start_task(action
+    set c to tcp_accept(s2)
+    set line to tcp_receive_line(c)
+    tcp_send(c, "echo: " + line + "\n")
+    tcp_close(c)
+end)
+set c to tcp_connect("127.0.0.1", p2)
+tcp_send(c, "ping\n")
+say tcp_receive_line(c)
+tcp_close(c)
+wait_for(echo)

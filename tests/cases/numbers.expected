@@ -1,0 +1,18 @@
+1267650600228229401496703205376
+9223372036854775808
+0.3
+0.3
+0.3333333333333333333333333333
+2.5 2 1 2
+integer float decimal integer
+3 -4
+2.50 3.142 7.00
+2.57 3 -3 3 2
+43 3 3.30
+true true
+1.00
+107.00
+I can't mix a decimal and a float in one calculation - it would quietly lose exactness. Use decimal(x) or float(x) to choose which one you want.
+15511210043330985984000000
+13138.505958483
+3.5 5 4

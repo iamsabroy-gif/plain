@@ -1,0 +1,20 @@
+note: A small library. Other programs load it with:  use "mathtools"
+
+define average with numbers
+    if length of numbers is 0 then
+        fail with "I can't take the average of an empty list."
+    end
+    give back sum(numbers) / length of numbers
+end
+
+define is_prime with n
+    if n is less than 2 then
+        give back false
+    end
+    for d from 2 to floor(sqrt(n))
+        if n modulo d is 0 then
+            give back false
+        end
+    end
+    give back true
+end

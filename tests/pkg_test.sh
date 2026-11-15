@@ -1,0 +1,38 @@
+#!/bin/sh
+# Tests the package manager with a local folder and a local git repository.
+# Usage: sh tests/pkg_test.sh [path-to-plain]
+DIR=$(cd "$(dirname "$0")" && pwd)
+PLAIN=${1:-"$DIR/../build/plain"}
+case "$PLAIN" in /*) ;; *) PLAIN="$(pwd)/$PLAIN" ;; esac
+W=$(mktemp -d)
+trap 'rm -rf "$W"' EXIT
+fail() { echo "FAILED (packages): $1"; exit 1; }
+mkdir -p "$W/tools" "$W/greeter" "$W/app"
+echo '{"name": "tools", "version": "0.3.0"}' > "$W/tools/plain.json"
+printf 'define shout with s\n    give back uppercase(s) + "!"\nend\n' > "$W/tools/main.plain"
+if command -v git >/dev/null 2>&1; then
+    (cd "$W/tools" && git init -q && git add . && git -c user.email=t@t -c user.name=t commit -qm one) || fail "git setup"
+    TOOLS="file://$W/tools"
+else
+    TOOLS="$W/tools"
+fi
+printf '{"name": "greeter", "version": "1.2.0", "main": "hello.plain", "dependencies": {"tools": "%s"}}\n' "$TOOLS" > "$W/greeter/plain.json"
+printf 'use "tools"\ndefine greet with who\n    give back shout("hello, " + who)\nend\n' > "$W/greeter/hello.plain"
+printf 'use "greeter"\nsay greet("plain")\n' > "$W/app/main.plain"
+cd "$W/app" || exit 1
+"$PLAIN" init demo > /dev/null || fail "init"
+"$PLAIN" install ../greeter > /dev/null || fail "install"
+[ -d plain_modules/tools ] || fail "dependency of a package was not installed"
+grep -q '"greeter"' plain.json || fail "plain.json was not updated"
+grep -q '"greeter"' plain.lock || fail "plain.lock was not written"
+[ "$("$PLAIN" main.plain)" = "HELLO, PLAIN!" ] || fail "program using packages"
+rm -rf plain_modules
+"$PLAIN" install > /dev/null || fail "install from plain.json"
+[ "$("$PLAIN" main.plain)" = "HELLO, PLAIN!" ] || fail "program after reinstall"
+"$PLAIN" build main.plain -o built > /dev/null || fail "build"
+mkdir ../elsewhere && cp built ../elsewhere/ && [ "$(cd ../elsewhere && ./built)" = "HELLO, PLAIN!" ] || fail "built program with packages"
+"$PLAIN" remove greeter > /dev/null || fail "remove"
+[ ! -d plain_modules/greeter ] || fail "remove left the package"
+"$PLAIN" install "ext::sh -c touch $W/pwned" > /dev/null 2>&1 && fail "dangerous address accepted"
+[ ! -e "$W/pwned" ] || fail "dangerous address ran a command"
+echo "packages: ok"

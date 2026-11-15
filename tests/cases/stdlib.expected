@@ -1,0 +1,12 @@
+4 3 2 3 3 1.23 256
+1 3 6 43 42!
+hi| 3 true true
+a+b+c ["a", "b", "c"] [2, 3] 7 z
+[9, 3, 1, 2] 4 0 ["apple", "pear"] [2, 1, 3, 9] true
+["a", "b"] [1, [true, nothing]] true false true
+{"b": [true, nothing]} map integer text nothing action
+{"name": "A \"q\"", "list": [1, 2.5, false]}
+["one", "two", "three"] true
+false 1 [5, 3, 1]
+line1
+line2	tabbed "quoted"

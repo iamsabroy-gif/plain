@@ -1,0 +1,30 @@
+say 2 ^ 100
+say 9223372036854775807 + 1
+say 0.1d + 0.2d
+say 0.1 + 0.2
+say 1d / 3d
+say 10 / 4, 10 / 5, 7 % 3, -7 % 3
+say type_of(1), type_of(1.5), type_of(1.5d), type_of(2 ^ 100)
+say quotient(17, 5), quotient(-17, 5)
+say fixed(2.5d, 2), fixed(3.14159, 3), fixed(7, 2)
+say round(2.567d, 2), round(2.5), floor(-2.5), ceiling(2.1), floor(2.9d)
+say integer("42") + 1, float(3), decimal("1.10") * 3
+say 1d == 1, 1.0 == 1
+set total to 0d
+for i from 1 to 10
+    increase total by 0.10d
+end
+say total
+say 100 * 1.07d
+try
+    say 1d + 1.5
+on error msg
+    say msg
+end
+set f to 1
+for i from 1 to 25
+    set f to f * i
+end
+say f
+say f / (2 ^ 70)
+say abs(-3.5d), abs(-5), sqrt(16)

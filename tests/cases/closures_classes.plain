@@ -1,0 +1,102 @@
+define make_counter
+    set count to 0
+    define bump
+        increase count by 1
+        give back count
+    end
+    give back bump
+end
+set c1 to make_counter()
+set c2 to make_counter()
+say c1(), c1(), c1(), c2()
+
+set double to action with x gives x * 2
+say double(21)
+say map_each([1, 2, 3], action with x gives x * x)
+say keep_if(range(1, 10), action with n gives n % 2 == 0)
+say combine([1, 2, 3, 4], 0, action with a, b gives a + b)
+
+define adder with n
+    give back action with x gives x + n
+end
+set add5 to adder(5)
+say add5(10)
+
+set fs to []
+for i from 1 to 3
+    add action with x gives x + i to fs
+end
+say fs[1](0), fs[3](0)
+
+set apply_twice to action with f, x
+    give back f(f(x))
+end
+say apply_twice(double, 3)
+
+class Animal
+    init with name
+        set me's name to name
+        set me's sound to "..."
+    end
+    define speak
+        say me's name + " says " + me's sound
+    end
+    define describe
+        give back "an animal called " + me's name
+    end
+end
+class Dog extends Animal
+    init with name, tricks
+        parent's init(name)
+        set me's sound to "Woof"
+        set me's tricks to tricks
+    end
+    define describe
+        give back parent's describe() + " who knows " + text(length of me's tricks) + " tricks"
+    end
+    define add_trick with t
+        add t to me's tricks
+        give back me
+    end
+end
+set d to new Dog("Rex", ["sit"])
+d's speak()
+say d's describe()
+d's add_trick("roll")
+say d's tricks
+say d's name
+say is_a(d, Animal), is_a(d, Dog), is_a(new Animal("x"), Dog)
+say type_of(d)
+set a to new Animal("Cat")
+say a
+set m to d's speak
+m()
+
+class Account
+    init with balance
+        set me's balance to balance
+    end
+    define deposit with amount
+        if amount <= 0 then
+            fail with "Deposit must be positive"
+        end
+        increase me's balance by amount
+    end
+    define to_text
+        give back "Account(" + text(me's balance) + ")"
+    end
+end
+set acc to new Account(100d)
+acc's deposit(25.50d)
+say acc
+try
+    acc's deposit(-5)
+on error e
+    say "caught: " + e
+end
+say acc's balance
+try
+    d's fly()
+on error e
+    say e
+end

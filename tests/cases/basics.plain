@@ -1,0 +1,71 @@
+note: basics
+set fruits to ["mango", "banana", "lychee"]
+add "guava" to fruits
+for each fruit in fruits
+    say "I like", fruit
+end
+define factorial with n
+    if n is at most 1 then
+        give back 1
+    end
+    give back n * factorial(n - 1)
+end
+say "5 factorial is", factorial(5)
+define area with w and h
+    give back w * h
+end
+define hello
+    say "hi"
+end
+set xs to [1, 2.5, "a", true, nothing, []]
+set item 1 of xs to -3
+ask "Name?" into who
+repeat 2 times
+    hello()
+end
+while length of xs is at least 6 and not (who is "x")
+    stop
+end
+for each c in "ab"
+    if c is not "a" then
+        say c, area(2, 3), item 2 of xs, xs contains "a", 5 <= 6, 7 != 8
+    otherwise if c is in "zzz" then
+        skip
+    end
+end
+increase who by 1
+remove "a" from xs
+say xs, who
+set person to {name: "Asha", "age": 30, tags: ["x"]}
+set person's age to person's age + 1
+add "y" to person's tags
+say person, person's name, length of person
+for i from 10 to 1 by -3
+    say i
+end
+set total to 0
+define bump
+    increase total by 5
+    set scratch to 99
+end
+bump()
+call bump
+say total
+try
+    say item 9 of xs
+on error problem
+    say "Caught:", problem
+end
+try
+    fail with "custom " + 1
+on error
+    say "silently handled"
+end
+say 2 ^ 10, 7 modulo 3, -7 % 3, 10 divided by 4, 2 plus 3 multiplied by 4
+say to_json(person), from_json("{\"a\": [1, 2, {\"b\": null}], \"c\": \"\\u0995\"}")
+say sort([3, 1, 2]), reverse("abc"), join(split("a,b,c", ","), "-"), uppercase("hi"), round(3.14159, 2)
+say length of "বাংলা", item 2 of "বাংলা", slice("hello", 2, 4), range(1, 5), sum(range(1, 100))
+set grid to [[1, 2], [3, 4]]
+set grid[2][1] to 30
+say grid, grid[2][1], max(4, 9, 2), min([4, 9, 2]), type_of(grid)
+say scratch

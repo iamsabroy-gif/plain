@@ -1,0 +1,9 @@
+note: the test runner passes the fixtures folder as the first argument
+set folder to item 1 of arguments()
+say read_lines(folder + "/three_lines.txt")
+say length of read_file(folder + "/three_lines.txt")
+try
+    say read_file(folder + "/missing.txt")
+on error e
+    say "no such file"
+end

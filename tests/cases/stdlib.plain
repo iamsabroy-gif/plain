@@ -1,0 +1,19 @@
+say sqrt(16), abs(-3), floor(2.7), ceiling(2.1), round(2.5), round(1.2345, 2), power(2, 8)
+say min(3, 1, 2), max([3, 1, 2]), sum([1, 2, 3]), number("42") + 1, text(42) + "!"
+say trim("  hi  ") + "|", find("hello", "ll"), starts_with("hello", "he"), ends_with("hello", "lo")
+say replace("a-b-c", "-", "+"), split("abc", ""), slice([1, 2, 3, 4], 2, 3), first([7, 8]), last("xyz")
+set xs to [3, 1, 2]
+insert(xs, 1, 9)
+say xs, index_of(xs, 2), index_of(xs, 99), sort(["pear", "apple"]), reverse(xs), copy(xs) is xs
+set m to {a: 1}
+set m["b"] to [true, nothing]
+say keys(m), values(m), has_key(m, "a"), has_key(m, "z"), m contains "b"
+remove "a" from m
+say m, type_of(m), type_of(1), type_of("s"), type_of(nothing), type_of(sqrt)
+say from_json(to_json({name: "A \"q\"", list: [1, 2.5, false]}))
+write_file("plain_test_tmp.txt", "one\ntwo\n")
+append_file("plain_test_tmp.txt", "three\n")
+say read_lines("plain_test_tmp.txt"), file_exists("plain_test_tmp.txt")
+delete_file("plain_test_tmp.txt")
+say file_exists("plain_test_tmp.txt"), length of arguments(), range(5, 1, -2)
+say "line1\nline2\ttabbed \"quoted\""

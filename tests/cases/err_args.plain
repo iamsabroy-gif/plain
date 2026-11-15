@@ -1,0 +1,4 @@
+define add_up with a and b
+    give back a + b
+end
+say add_up(1)

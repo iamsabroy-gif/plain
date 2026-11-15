@@ -1,0 +1,81 @@
+note: loops, stop/skip and try working together
+set log to []
+for i from 1 to 6
+    try
+        if i is 2 then
+            skip
+        end
+        if i is 5 then
+            stop
+        end
+        if i is 3 then
+            fail with "three"
+        end
+        add i to log
+    on error e
+        add "caught " + e to log
+    end
+end
+say log
+
+define find_first with xs and wanted
+    for each x in xs
+        try
+            if x is wanted then
+                give back "found " + x
+            end
+        on error e
+            say "never"
+        end
+    end
+    give back "missing"
+end
+say find_first([1, 2, 3], 2), find_first([1], 9)
+try
+    say item 1 of []
+on error e
+    say "outer:", e
+end
+
+define risky with n
+    if n is 0 then
+        fail with "hit zero"
+    end
+    give back risky(n - 1)
+end
+try
+    risky(50)
+on error e
+    say "deep:", e
+end
+
+set n to 0
+repeat 5 times
+    increase n by 1
+    if n is 3 then
+        stop
+    end
+end
+say n
+set words to []
+for each k in {a: 1, b: 2}
+    add k to words
+end
+say words, "x" is in ["x"], "z" is not in "abc", not true or true, 1 is less than 2 and 2 is at most 2
+set counter to 10
+define shadow
+    set counter to counter + 1
+    set mine to 5
+    for counter2 from 1 to 2
+        increase mine by counter2
+    end
+    give back mine
+end
+say shadow(), counter
+say fact(10)
+define fact with n
+    if n < 2 then
+        give back 1
+    end
+    give back n * fact(n - 1)
+end

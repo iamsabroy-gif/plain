@@ -1,0 +1,2 @@
+set p to {name: "A"}
+say p's nmae

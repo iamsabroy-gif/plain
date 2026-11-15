@@ -1,0 +1,67 @@
+set results to channel()
+define worker with id, count
+    set total to 0
+    for i from 1 to count
+        increase total by i
+    end
+    send(results, [id, total])
+end
+set tasks to []
+for k from 1 to 4
+    add start_task(worker, k, k * 1000) to tasks
+end
+for each t in tasks
+    wait_for(t)
+end
+close_channel(results)
+set seen to 0
+set sum to 0
+set msg to receive(results)
+while msg is not nothing
+    increase seen by 1
+    increase sum by item 2 of msg
+    set msg to receive(results)
+end
+say seen, sum
+
+set counter to 0
+set guard to lock()
+define bump with rounds
+    for i from 1 to rounds
+        acquire(guard)
+        set v to counter
+        set counter to v + 1
+        release(guard)
+    end
+end
+set ts to [start_task(bump, 5000), start_task(bump, 5000), start_task(bump, 5000)]
+for each t in ts
+    wait_for(t)
+end
+say counter
+
+set bad to start_task(action
+    fail with "boom"
+end)
+try
+    wait_for(bad)
+on error e
+    say e
+end
+say wait_for(start_task(action with a, b gives a * b, 6, 7))
+
+set a to []
+add a to a
+set made to 0
+for i from 1 to 200000
+    set x to []
+    add x to x
+end
+say collect_garbage() >= 0
+say length of a
+set cycles to 0
+for i from 1 to 1000
+    set p to {}
+    set p's me to p
+end
+say collect_garbage() >= 900
