@@ -30,6 +30,21 @@ printf 'try\n    while true\n        set x to 1\n    end\non error problem\n    
 "$PLAIN" visualize "$WORK/loop.plain" --budget 200000 -o "$WORK/loop.html" > "$WORK/loop.msg" 2>&1 && { echo "FAILED: a runaway loop should stop with an error"; fail=1; }
 check "$WORK/loop.html" '"out":\[\]' "loop: 'try' must not catch the stop"
 check "$WORK/loop.msg" "I stopped it" "loop: the stop is explained"
+# growth and compare
+"$PLAIN" growth "$DIR/viz/sorting.plain" bubble_sort merge_sort --sizes 10,100,1000 --html "$WORK/g.html" > "$WORK/growth.out" 2>&1 || fail=1
+check "$WORK/growth.out" 'grows like O(n^2)' "growth: bubble sort is quadratic"
+check "$WORK/growth.out" 'grows like O(n log n)' "growth: merge sort is n log n"
+check "$WORK/g.html" '"fit"' "growth: chart has the fitted curve"
+"$PLAIN" growth "$DIR/viz/sorting.plain" insertion_sort --input sorted --sizes 100,1000,10000 > "$WORK/growth2.out" 2>&1
+check "$WORK/growth2.out" 'grows like O(n):' "growth: insertion sort on sorted data is linear"
+"$PLAIN" compare "$DIR/viz/sorting.plain" bubble_sort insertion_sort merge_sort --size 200 > "$WORK/compare.out" 2>&1 || { echo "FAILED: compare"; fail=1; }
+check "$WORK/compare.out" 'Same answer from all of them: yes' "compare: answers agree"
+check "$WORK/compare.out" 'merge_sort did .*x less work' "compare: winner named"
+printf 'define wrong with xs\n    give back xs\nend\ndefine right with xs\n    give back sort(xs)\nend\n' > "$WORK/w.plain"
+"$PLAIN" compare "$WORK/w.plain" wrong right --size 20 > "$WORK/cmp2.out" 2>&1 && { echo "FAILED: compare should fail when answers differ"; fail=1; }
+check "$WORK/cmp2.out" 'they disagree' "compare: disagreement reported"
+"$PLAIN" growth "$DIR/viz/sorting.plain" nosuch > "$WORK/g3.out" 2>&1 && fail=1
+check "$WORK/g3.out" 'Actions I can test: .*bubble_sort' "growth: lists the testable actions"
 rm -rf "$WORK"
 [ $fail -eq 0 ] && echo "visualize/count: ok"
 [ $fail -eq 0 ]

@@ -1,0 +1,66 @@
+# Three ways to sort a list. Try them against each other:
+#
+#   plain compare examples/sorting.plain bubble_sort merge_sort
+#   plain growth  examples/sorting.plain bubble_sort merge_sort --html growth.html
+#   plain visualize examples/sorting.plain          (watch bubble sort work)
+
+define bubble_sort with xs
+    set n to length of xs
+    for pass from 1 to n - 1
+        for j from 1 to n - pass
+            if xs[j] > xs[j + 1] then
+                set tmp to xs[j]
+                set xs[j] to xs[j + 1]
+                set xs[j + 1] to tmp
+            end
+        end
+    end
+    give back xs
+end
+
+define insertion_sort with xs
+    for i from 2 to length of xs
+        set key to xs[i]
+        set j to i - 1
+        while j is at least 1 and xs[j] > key
+            set xs[j + 1] to xs[j]
+            decrease j by 1
+        end
+        set xs[j + 1] to key
+    end
+    give back xs
+end
+
+define merge_sort with xs
+    if length of xs is at most 1 then
+        give back xs
+    end
+    set middle to quotient(length of xs, 2)
+    set left to merge_sort(slice(xs, 1, middle))
+    set right to merge_sort(slice(xs, middle + 1, length of xs))
+    set merged to []
+    set a to 1
+    set b to 1
+    while a is at most length of left and b is at most length of right
+        if left[a] is at most right[b] then
+            add left[a] to merged
+            increase a by 1
+        otherwise
+            add right[b] to merged
+            increase b by 1
+        end
+    end
+    while a is at most length of left
+        add left[a] to merged
+        increase a by 1
+    end
+    while b is at most length of right
+        add right[b] to merged
+        increase b by 1
+    end
+    give back merged
+end
+
+# watch: data
+set data to [5, 2, 9, 1, 7, 3]
+say bubble_sort(data)

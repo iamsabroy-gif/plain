@@ -966,6 +966,126 @@ class Unique
     end
 end
 )PLAINLIB"},
+{"viz/growth.html", R"PLAINLIB(<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plain - how the work grows</title>
+<style>
+:root { --bg:#f7f7f5; --panel:#fff; --ink:#1d1d1b; --muted:#6b6b66; --line:#dcdcd6; --accent:#2f5bea; --c0:#2f5bea; --c1:#e5484d; --c2:#30a46c; --c3:#b8860b; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#15161a; --panel:#1e2026; --ink:#e8e8e4; --muted:#9a9a94; --line:#34363e; --accent:#7c9bff; --c0:#7c9bff; --c1:#ef6a6e; --c2:#3fb97f; --c3:#e0a516; } }
+:root[data-theme="dark"] { --bg:#15161a; --panel:#1e2026; --ink:#e8e8e4; --muted:#9a9a94; --line:#34363e; --accent:#7c9bff; --c0:#7c9bff; --c1:#ef6a6e; --c2:#3fb97f; --c3:#e0a516; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+main { max-width: 980px; margin: 0 auto; padding: 18px 16px 48px; }
+h1 { font-size: 20px; margin: 0 0 4px; } .sub { color: var(--muted); margin: 0 0 14px; }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding: 14px; margin-bottom: 14px; overflow-x:auto; }
+.row { display:flex; gap:10px 18px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
+button { font:inherit; background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:4px 12px; cursor:pointer; }
+button.on { border-color: var(--accent); background: var(--accent); color:#fff; }
+button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.legend span { display:inline-flex; align-items:center; gap:6px; margin-right:16px; }
+.legend i { width:14px; height:4px; border-radius:2px; display:inline-block; }
+table { border-collapse:collapse; width:100%; font-size:14px; }
+th, td { text-align:right; padding:5px 10px; border-bottom:1px solid var(--line); font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align:left; }
+td.est { color: var(--muted); font-style: italic; }
+.verdict { font-size: 16px; } .verdict b { font-family: ui-monospace, Menlo, monospace; }
+svg text { font-family: system-ui, sans-serif; fill: var(--muted); font-size: 12px; }
+.note { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title"></h1>
+  <p class="sub" id="sub"></p>
+  <div class="card">
+    <div class="row">
+      <span>Scale:</span>
+      <button id="lin" class="on">Straight (see the curve bend)</button>
+      <button id="log">Log (both axes)</button>
+      <span class="legend" id="legend"></span>
+    </div>
+    <svg id="chart" viewBox="0 0 860 380" width="100%" role="img" aria-label="How the amount of work grows with the size of the input"></svg>
+    <p class="note">Hollow points are estimates: that size would have taken too long to run, so the number is carried forward from the curve of the smaller sizes.</p>
+  </div>
+  <div class="card" id="verdicts"></div>
+  <div class="card"><table id="table"></table></div>
+</main>
+<script>
+const DATA = /*__PLAIN_DATA__*/null;
+(function () {
+"use strict";
+const $ = (id) => document.getElementById(id);
+const COL = ["var(--c0)", "var(--c1)", "var(--c2)", "var(--c3)"];
+const fmt = (n) => Math.round(n).toLocaleString("en-US");
+const short = (n) => n >= 1e9 ? (n / 1e9).toPrecision(3) + "G" : n >= 1e6 ? (n / 1e6).toPrecision(3) + "M" : n >= 1e3 ? (n / 1e3).toPrecision(3) + "k" : String(Math.round(n));
+let logScale = false;
+$("title").textContent = "How the work grows";
+$("sub").textContent = DATA.file + " - measuring " + DATA.metric + " on " + DATA.input + " input of size " + DATA.sizes.map(fmt).join(", ");
+DATA.series.forEach((s, i) => { const sp = document.createElement("span"); sp.innerHTML = '<i style="background:' + COL[i % 4] + '"></i>'; sp.append(s.name); $("legend").append(sp); });
+
+function draw() {
+  const svg = $("chart"); svg.textContent = "";
+  const W = 860, H = 380, L = 78, R = 24, T = 18, B = 46;
+  const ns = DATA.sizes, pts = DATA.series.flatMap((s) => s.points);
+  const xs = (n) => logScale ? Math.log10(n) : n, ys = (v) => logScale ? Math.log10(Math.max(v, 1)) : v;
+  const x0 = logScale ? Math.log10(ns[0]) : 0, x1 = xs(ns[ns.length - 1]);
+  const y0 = logScale ? 0 : 0, yMax = Math.max(...pts.map((p) => ys(p.v)));
+  const y1 = logScale ? Math.ceil(yMax) : yMax * 1.05;
+  const X = (n) => L + ((xs(n) - x0) / (x1 - x0 || 1)) * (W - L - R), Y = (v) => H - B - ((ys(v) - y0) / (y1 - y0 || 1)) * (H - B - T);
+  const el = (t, a, txt) => { const e = document.createElementNS("http://www.w3.org/2000/svg", t); for (const k in a) e.setAttribute(k, a[k]); if (txt !== undefined) e.textContent = txt; svg.append(e); return e; };
+  // y ticks
+  const yt = [];
+  if (logScale) for (let k = 0; k <= y1; k++) yt.push(Math.pow(10, k)); else for (let k = 0; k <= 4; k++) yt.push((y1 / 1.05) * k / 4);
+  yt.forEach((v) => { el("line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: "var(--line)" }); el("text", { x: L - 8, y: Y(v) + 4, "text-anchor": "end" }, short(v)); });
+  let lastX = -100;
+  ns.forEach((n) => { el("line", { x1: X(n), x2: X(n), y1: T, y2: H - B, stroke: "var(--line)", "stroke-dasharray": "3 4" }); if (X(n) - lastX > 46) { el("text", { x: X(n), y: H - B + 18, "text-anchor": "middle" }, fmt(n)); lastX = X(n); } });
+  el("text", { x: (L + W - R) / 2, y: H - 6, "text-anchor": "middle" }, "size of the input (n)");
+  el("text", { x: 14, y: (T + H - B) / 2, "text-anchor": "middle", transform: "rotate(-90 14 " + (T + H - B) / 2 + ")" }, DATA.metric);
+  const G = { "O(1)": () => 1, "O(log n)": (n) => Math.log2(n) + 1, "O(n)": (n) => n, "O(n log n)": (n) => n * (Math.log2(n) + 1), "O(n^2)": (n) => n * n, "O(n^3)": (n) => n * n * n };
+  DATA.series.forEach((s, i) => {
+    if (s.fit && G[s.fit.name]) {  // the smooth curve the measurements follow
+      const f = G[s.fit.name], nA = ns[0], nB = ns[ns.length - 1];
+      let dd = "";
+      for (let k = 0; k <= 160; k++) {
+        const n = logScale ? nA * Math.pow(nB / nA, k / 160) : nA + (nB - nA) * k / 160;
+        dd += (k ? "L" : "M") + X(n) + "," + Y(s.fit.a * f(n));
+      }
+      el("path", { d: dd, fill: "none", stroke: COL[i % 4], "stroke-width": 1.5, "stroke-dasharray": "5 4", opacity: 0.55 });
+    }
+    const d = s.points.map((p, k) => (k ? "L" : "M") + X(p.n) + "," + Y(p.v)).join(" ");
+    el("path", { d, fill: "none", stroke: COL[i % 4], "stroke-width": 2.5, "stroke-linejoin": "round" });
+    s.points.forEach((p) => el("circle", { cx: X(p.n), cy: Y(p.v), r: 5, fill: p.est ? "var(--panel)" : COL[i % 4], stroke: COL[i % 4], "stroke-width": 2 }));
+  });
+}
+$("lin").onclick = () => { logScale = false; $("lin").className = "on"; $("log").className = ""; draw(); };
+$("log").onclick = () => { logScale = true; $("log").className = "on"; $("lin").className = ""; draw(); };
+draw();
+
+DATA.series.forEach((s, i) => {
+  const p = document.createElement("p"); p.className = "verdict";
+  p.innerHTML = '<span style="color:' + COL[i % 4] + '">&#9632;</span> <b>' + s.name + "</b>: " + s.verdict;
+  $("verdicts").append(p);
+});
+const t = $("table");
+const head = "<tr><th>size n</th>" + DATA.series.map((s) => "<th>" + s.name + "</th><th>x bigger</th>").join("") + "</tr>";
+let rows = "";
+DATA.sizes.forEach((n, k) => {
+  rows += "<tr><td>" + fmt(n) + "</td>";
+  DATA.series.forEach((s) => {
+    const p = s.points[k], prev = k ? s.points[k - 1] : null;
+    rows += '<td class="' + (p.est ? "est" : "") + '">' + (p.est ? "~" : "") + fmt(p.v) + "</td><td>" + (prev && prev.v > 0 ? (p.v / prev.v).toFixed(p.v / prev.v < 10 ? 1 : 0) + "x" : "") + "</td>";
+  });
+  rows += "</tr>";
+});
+t.innerHTML = head + rows;
+})();
+</script>
+</body>
+</html>
+)PLAINLIB"},
 {"viz/player.html", R"PLAINLIB(<!doctype html>
 <html lang="en">
 <head>

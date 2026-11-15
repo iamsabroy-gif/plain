@@ -370,6 +370,10 @@ static void usage() {
            "  plain -e \"say 1 + 2\"          run one line of code\n"
            "  plain visualize program.plain make a web page that steps through the run (-o page.html)\n"
            "  plain count program.plain     run it, then report comparisons, swaps and calls\n"
+           "  plain growth program.plain action [action...]\n"
+           "                                run an action at n = 10, 100, 1000, 10000 and show how the work grows (--html chart.html)\n"
+           "  plain compare program.plain a b\n"
+           "                                run two actions on the same data, side by side\n"
            "  plain lib [name]              list the built-in data structures, or show how one is built\n"
            "  plain init                    start a project (writes plain.json)\n"
            "  plain install [address]       add a package: folder, git address or user/repo[#version]\n"
@@ -425,6 +429,8 @@ int main(int argc, char** argv) {
         if (cmd == "lib") return libCommand(args);
         if (cmd == "visualize" || cmd == "visualise") return visualizeCommand(args);
         if (cmd == "count") return countCommand(args);
+        if (cmd == "growth") return growthCommand(args);
+        if (cmd == "compare") return compareCommand(args);
         bool explain = false, check = false, beginner = false;
         size_t at = 0;
         if (cmd == "--explain") { explain = true; at = 1; }
