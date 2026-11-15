@@ -1,0 +1,26 @@
+set fs to []
+for i from 1 to 3
+    add action with x gives x + i to fs
+end
+say fs[1](0), fs[2](0), fs[3](0)
+for each w in ["a", "b"]
+    add action gives w to fs
+end
+say fs[4](), fs[5]()
+define go
+    set out to []
+    set n to 0
+    while n < 3
+        increase n by 1
+        set m to n * 10
+        add action gives m to out
+    end
+    for i from 1 to 2
+        define later
+            give back i
+        end
+        add later to out
+    end
+    give back map_each(out, action with f gives f())
+end
+say go()

@@ -24,7 +24,7 @@ namespace plain {
     X(FORTEST, "FOR_TEST") X(ITERPREP, "EACH_START") X(ITERNEXT, "EACH_NEXT") X(REPPREP, "REPEAT_START")   \
     X(REPTEST, "REPEAT_NEXT") X(TRY, "TRY") X(ENDTRY, "END_TRY") X(FAIL, "FAIL") X(ECHO, "ECHO")           \
     X(FORL, "FOR_NEXT_LOCAL") X(FORG, "FOR_NEXT_GLOBAL") X(CLASS, "NEW_CLASS") X(INHERIT, "INHERIT")       \
-    X(DEFMETHOD, "DEFINE_ACTION") X(GETSUPER, "GET_PARENT_ACTION")
+    X(DEFMETHOD, "DEFINE_ACTION") X(GETSUPER, "GET_PARENT_ACTION") X(FRESH, "FRESH_VARIABLES")
 
 enum Op : uint8_t {
 #define X(name, text) OP_##name,
@@ -41,7 +41,7 @@ inline const char* opName(int op) {
     return names[op];
 }
 
-inline bool isWide(int op) { return op == OP_ITERNEXT || op == OP_REPTEST || op == OP_FORL || op == OP_FORG; }
+inline bool isWide(int op) { return op == OP_ITERNEXT || op == OP_REPTEST || op == OP_FORL || op == OP_FORG || op == OP_FRESH; }
 
 // Everything that outlives a single compile: global variables, actions and
 // the source files that were loaded.
@@ -188,11 +188,46 @@ private:
     void expectSym(const char* s, const char* context) {
         if (!acceptSym(s)) err(std::string("I expected '") + s + "' " + context + ", but found " + show(peek()) + ".");
     }
+    // What a reserved word is for, and what to call a variable instead.
+    static std::string reservedHelp(const std::string& w) {
+        static const std::unordered_map<std::string, std::pair<const char*, const char*>> info = {
+            {"item", {"'item 2 of list'", "'entry' or 'thing'"}}, {"times", {"'repeat 3 times'", "'count' or 'rounds'"}},
+            {"length", {"'length of list'", "'size' or 'total'"}}, {"set", {"'set x to 5'", "'group' or 'values'"}},
+            {"to", {"'set x to 5'", "'target' or 'destination'"}}, {"from", {"'for i from 1 to 5'", "'source' or 'start'"}},
+            {"by", {"'increase x by 1'", "'step' or 'amount'"}}, {"of", {"'item 2 of list'", "'owner'"}},
+            {"in", {"'for each x in list'", "'inside'"}}, {"into", {"'ask \"Name?\" into name'", "'inside'"}},
+            {"end", {"closing a block", "'last' or 'finish'"}}, {"back", {"'give back x'", "'behind' or 'previous'"}},
+            {"give", {"'give back x'", "'gift'"}}, {"each", {"'for each x in list'", "'every'"}},
+            {"add", {"'add x to list'", "'addition' or 'total'"}}, {"remove", {"'remove x from list'", "'removed'"}},
+            {"at", {"'is at least'", "'place'"}}, {"most", {"'is at most'", "'biggest'"}}, {"least", {"'is at least'", "'smallest'"}},
+            {"less", {"'is less than'", "'fewer'"}}, {"greater", {"'is greater than'", "'bigger'"}}, {"than", {"'is less than'", "'other'"}},
+            {"equal", {"'is equal to'", "'same'"}}, {"contains", {"'list contains x'", "'has_it'"}},
+            {"new", {"'new Dog()'", "'fresh'"}}, {"me", {"'me' inside a class", "'myself' or 'this_one'"}},
+            {"parent", {"'parent' inside a class", "'parent_node' or 'above'"}}, {"action", {"'action with x gives ...'", "'task' or 'step'"}},
+            {"stop", {"leaving a loop", "'halt'"}}, {"skip", {"going to the next round", "'jump'"}},
+            {"say", {"showing a value", "'message'"}}, {"show", {"showing a value", "'display'"}}, {"print", {"showing a value", "'output'"}},
+            {"ask", {"asking the user", "'question'"}}, {"if", {"'if x then'", "'condition'"}}, {"then", {"'if x then'", "'next_step'"}},
+            {"otherwise", {"'otherwise' in an if", "'else_case'"}}, {"repeat", {"'repeat 3 times'", "'again'"}},
+            {"while", {"'while x'", "'during'"}}, {"for", {"'for each' and 'for i from'", "'purpose'"}},
+            {"define", {"making an action", "'definition'"}}, {"with", {"'define f with x'", "'using'"}},
+            {"class", {"making a class", "'kind' or 'category'"}}, {"extends", {"'class A extends B'", "'grows'"}},
+            {"gives", {"'action with x gives ...'", "'result'"}}, {"true", {"the value true", "'yes_value'"}},
+            {"false", {"the value false", "'no_value'"}}, {"nothing", {"the empty value", "'empty'"}},
+            {"is", {"comparing values", "'same'"}}, {"not", {"'not x'", "'negated'"}}, {"and", {"'a and b'", "'both'"}},
+            {"or", {"'a or b'", "'either'"}}, {"plus", {"'a plus b'", "'bonus'"}}, {"minus", {"'a minus b'", "'penalty'"}},
+            {"multiplied", {"'a multiplied by b'", "'product'"}}, {"divided", {"'a divided by b'", "'share'"}},
+            {"modulo", {"'a modulo b'", "'remainder'"}}, {"increase", {"'increase x by 1'", "'growth'"}},
+            {"decrease", {"'decrease x by 1'", "'shrink'"}},
+        };
+        auto it = info.find(w);
+        if (it == info.end()) return "'" + w + "' is a word Plain uses itself, so it can't be used as a name. Try a different name, like 'my_" + w + "'.";
+        return "'" + w + "' is a reserved word: Plain uses it in " + it->second.first + ", so it can't also be a name. Pick another name, such as " +
+               it->second.second + " (or 'my_" + w + "').";
+    }
     std::string expectName(const char* context) {
         const Token& t = peek();
         if (t.k == Token::Word) return next().text;
-        if (t.k == Token::Kw)
-            err("'" + t.text + "' is a word Plain uses itself, so it can't be used as a name. Try a different name.");
+        if (t.k == Token::Kw) err(reservedHelp(t.text));
         err(std::string("I expected a name ") + context + ", but found " + show(t) + ".");
     }
     void endOfStatement() {
@@ -266,22 +301,18 @@ private:
     int resolveUpvalue(FS* f, const std::string& name) {
         FS* p = f->enclosing;
         if (!p) return -1;
-        if (!p->isMain) {
-            auto it = p->locals.find(name);
-            if (it != p->locals.end()) return addUpvalue(f, true, it->second);
-        }
+        auto it = p->locals.find(name);
+        if (it != p->locals.end()) return addUpvalue(f, true, it->second);
         int idx = resolveUpvalue(p, name);
         if (idx >= 0) return addUpvalue(f, false, idx);
         return -1;
     }
 
     void loadName(const std::string& name, bool forCall = false) {
-        if (!fs->isMain) {
-            auto it = fs->locals.find(name);
-            if (it != fs->locals.end()) { emit(OP_GETL, it->second); return; }
-            int u = resolveUpvalue(fs, name);
-            if (u >= 0) { emit(OP_GETU, u); return; }
-        }
+        auto it = fs->locals.find(name);  // (the top level only has these for loop counters used by closures)
+        if (it != fs->locals.end()) { emit(OP_GETL, it->second); return; }
+        int u = resolveUpvalue(fs, name);
+        if (u >= 0) { emit(OP_GETU, u); return; }
         emit(forCall ? OP_GETFN : OP_GETG, prog.slot(name));
     }
     // Where a 'set' writes: at the top level, a global. Inside an action: its own
@@ -289,6 +320,12 @@ private:
     // already created - and otherwise a new variable of this action.
     void storeName(const std::string& name, bool forceLocal = false) {
         if (fs->isMain) {
+            auto own = fs->locals.find(name);
+            if (own != fs->locals.end()) { emit(OP_SETL, own->second); return; }
+            if (!forceLocal) {
+                int u = resolveUpvalue(fs, name);
+                if (u >= 0) { emit(OP_SETU, u); return; }
+            }
             int s = prog.slot(name);
             prog.gdeclared[(size_t)s] = 1;
             emit(OP_SETG, s);
@@ -558,6 +595,48 @@ private:
         for (int e : ends) patch(e);
     }
 
+    // Does the body of the loop that starts here make an action (so a closure may keep
+    // the loop's variables)? Reads ahead to the matching 'end'. Over-estimating is harmless.
+    bool bodyHasClosure() const {
+        int open = 1;
+        for (size_t i = pos; i < toks.size() && toks[i].k != Token::End; ++i) {
+            const Token& t = toks[i];
+            bool starts = i == 0 || toks[i - 1].k == Token::NL;
+            if (t.k == Token::Kw && t.text == "end") {
+                if (--open == 0) return false;
+            } else if (t.k == Token::Kw && t.text == "action") {
+                return true;
+            } else if (t.k == Token::Kw && t.text == "define") {
+                return true;
+            } else if (starts && t.k == Token::Kw &&
+                       (t.text == "if" || t.text == "repeat" || t.text == "while" || t.text == "for" || t.text == "class")) {
+                ++open;
+            } else if (starts && t.k == Token::Word && t.text == "try" && toks[i + 1].k == Token::NL) {
+                ++open;
+            }
+        }
+        return false;
+    }
+    // Each round of a loop gets its own copy of the variables made in the body.
+    int emitFresh(int from) { return emitWide(OP_FRESH, from); }
+    void patchFresh(int at) { fs->fn->code[(size_t)at + 1] = (uint32_t)fs->fn->nlocals; }
+
+    // A loop variable that closures may capture: its own slot, visible only inside the loop.
+    struct LoopVar { std::string name; int slot = -1; bool had = false; int oldSlot = -1; };
+    LoopVar scopeLoopVar(const std::string& name) {
+        LoopVar v;
+        v.name = name;
+        auto it = fs->locals.find(name);
+        if (it != fs->locals.end()) { v.had = true; v.oldSlot = it->second; }
+        v.slot = newLocal(name);
+        return v;
+    }
+    void endLoopVar(const LoopVar& v) {
+        if (v.slot < 0) return;
+        if (v.had) fs->locals[v.name] = v.oldSlot;
+        else fs->locals.erase(v.name);
+    }
+
     void closeLoop(Loop& loop) {
         for (int b : loop.breaks) patch(b);
     }
@@ -574,12 +653,15 @@ private:
         expression();
         expectKw("times", "after the number in 'repeat'");
         endOfStatement();
+        bool fresh = !fs->isMain && bodyHasClosure();
         int h = newLocal("");
         emit(OP_REPPREP, h);
         int top = here();
         int test = emitWide(OP_REPTEST, h);
         openLoop(top);
+        int fr = fresh ? emitFresh(fs->fn->nlocals) : -1;
         block(line, "repeat");
+        if (fr >= 0) patchFresh(fr);
         emit(OP_JUMP, top);
         patchWide(test);
         closeLoop(fs->loops.back());
@@ -592,9 +674,12 @@ private:
         int top = here();
         expression();
         endOfStatement();
+        bool fresh = !fs->isMain && bodyHasClosure();
         int jf = emit(OP_JIF);
         openLoop(top);
+        int fr = fresh ? emitFresh(fs->fn->nlocals) : -1;
         block(line, "while");
+        if (fr >= 0) patchFresh(fr);
         emit(OP_JUMP, top);
         patch(jf);
         closeLoop(fs->loops.back());
@@ -609,14 +694,24 @@ private:
             expectKw("in", "in 'for each ... in ...'");
             expression();
             endOfStatement();
+            bool fresh = bodyHasClosure();
             int h = newLocal("");
             newLocal("");
             emit(OP_ITERPREP, h);
             int top = here();
             int test = emitWide(OP_ITERNEXT, h);
-            storeName(name, true);
+            int fr = -1;
+            LoopVar lv;
+            if (fresh) {
+                lv = scopeLoopVar(name);  // a variable of its own, new in every round
+                fr = emitFresh(lv.slot);
+                emit(OP_SETL, lv.slot);
+            } else {
+                storeName(name, true);
+            }
             openLoop(top);
             block(line, "for each");
+            if (fr >= 0) { patchFresh(fr); endLoopVar(lv); }
             emit(OP_JUMP, top);
             patchWide(test);
             closeLoop(fs->loops.back());
@@ -627,7 +722,24 @@ private:
         std::string name = expectName("for the counter");
         expectKw("from", "in 'for ... from ... to ...'");
         expression();
-        storeName(name, true);
+        size_t afterHeader = pos;  // (the body is found after the header line, below)
+        (void)afterHeader;
+        LoopVar lv;
+        bool scoped = false;
+        {
+            // Look ahead past this header line to see whether the body makes actions.
+            size_t savedPos = pos;
+            while (toks[pos].k != Token::NL && toks[pos].k != Token::End) ++pos;
+            if (toks[pos].k == Token::NL) ++pos;
+            scoped = bodyHasClosure();
+            pos = savedPos;
+        }
+        if (scoped) {
+            lv = scopeLoopVar(name);
+            emit(OP_SETL, lv.slot);
+        } else {
+            storeName(name, true);
+        }
         expectKw("to", "in 'for ... from ... to ...'");
         expression();
         int h = newLocal("");
@@ -638,7 +750,7 @@ private:
         emit(OP_SETL, h2);
         endOfStatement();
         // Where does the counter live? (after storeName it is either a local or a global)
-        bool local = !fs->isMain;
+        bool local = fs->locals.count(name) > 0;
         int slot = local ? fs->locals[name] : prog.slot(name);
         loadName(name);
         emit(OP_GETL, h);
@@ -648,15 +760,18 @@ private:
         openLoop(-1);
         block(line, "for");
         Loop& loop = fs->loops.back();
-        for (int c : loop.conts) patch(c);
-        // Fused "add the step, test, jump back" instruction.
         curLine = line;
+        if (scoped) emitWide(OP_FRESH, slot), fs->fn->code[(size_t)here() - 1] = (uint32_t)fs->fn->nlocals;
+        if (scoped) { int fa = here() - 2; for (int c : loop.conts) fs->fn->code[(size_t)c] = (fs->fn->code[(size_t)c] & 0xFF) | ((uint32_t)fa << 8); }
+        else for (int c : loop.conts) patch(c);
+        // Fused "add the step, test, jump back" instruction.
         int nextAt = emitWide(local ? OP_FORL : OP_FORG, slot);
         if (h > 255) err("This action has too many loops.");
         fs->fn->code[(size_t)nextAt + 1] = ((uint32_t)top << 8) | (uint32_t)(h & 0xFF);
         patch(test);
         closeLoop(loop);
         fs->loops.pop_back();
+        if (scoped) endLoopVar(lv);
         expectEnd(line, "for");
     }
 
@@ -744,7 +859,12 @@ private:
             int s = prog.slot(name);
             prog.gdeclared[(size_t)s] = 1;
             Value fv = compileFunction(name, line, false, "", false, true);
-            prog.gvals[(size_t)s] = Value::obj(new Closure(static_cast<Func*>(fv.o)));
+            if (!static_cast<Func*>(fv.o)->upvals.empty()) {  // it uses a loop's variable: make it when the line runs
+                emitClosure(fv);
+                emit(OP_SETG, s);
+            } else {
+                prog.gvals[(size_t)s] = Value::obj(new Closure(static_cast<Func*>(fv.o)));
+            }
         } else {
             // Inside another action: a variable of that action, created when this line runs.
             int slot;

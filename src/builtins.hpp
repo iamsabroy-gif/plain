@@ -319,6 +319,23 @@ BUILTIN(b_insert) {
     l->items.insert(l->items.begin() + (long)at - 1, a[2]);
     return Value();
 }
+BUILTIN(b_pop) {
+    needArgs("pop", n, 1, 1);
+    List* l = argList("pop", a, 0);
+    if (l->items.empty()) fail("I can't pop from an empty list. Check 'length of' first.");
+    Value out = std::move(l->items.back());
+    l->items.pop_back();
+    return out;
+}
+BUILTIN(b_pop_at) {
+    List* l = argList("pop_at", a, 0);
+    int64_t at = argInt("pop_at", a, 1);
+    if (at < 1 || at > (int64_t)l->items.size())
+        fail("I can't take item " + std::to_string(at) + " out - the list has " + std::to_string(l->items.size()) + " item(s). Items are counted from 1.");
+    Value out = std::move(l->items[(size_t)at - 1]);
+    l->items.erase(l->items.begin() + (long)at - 1);
+    return out;
+}
 BUILTIN(b_index_of) {
     auto& items = argList("index_of", a, 0)->items;
     for (size_t i = 0; i < items.size(); ++i)
@@ -1105,7 +1122,7 @@ inline void registerBuiltins(Program& prog) {
         {"replace", 3, b_replace}, {"find", 2, b_find}, {"starts_with", 2, b_starts_with},
         {"ends_with", 2, b_ends_with}, {"slice", 3, b_slice},
         {"sort", 1, b_sort}, {"reverse", 1, b_reverse}, {"range", -1, b_range}, {"first", 1, b_first},
-        {"last", 1, b_last}, {"insert", 3, b_insert}, {"index_of", 2, b_index_of}, {"copy", 1, b_copy},
+        {"last", 1, b_last}, {"insert", 3, b_insert}, {"pop", 1, b_pop}, {"pop_at", 2, b_pop_at}, {"index_of", 2, b_index_of}, {"copy", 1, b_copy},
         {"keys", 1, b_keys}, {"values", 1, b_values}, {"has_key", 2, b_has_key}, {"type_of", 1, b_type_of},
         {"read_file", 1, b_read_file}, {"read_lines", 1, b_read_lines}, {"write_file", 2, b_write_file},
         {"append_file", 2, b_append_file}, {"file_exists", 1, b_file_exists}, {"delete_file", 1, b_delete_file},

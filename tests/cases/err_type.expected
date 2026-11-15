@@ -1,2 +1,3 @@
 
-Oops! Line 2: I can only subtract numbers, but I got a list and a number ([1, 2] and 1).
+Oops! Line 2: I can only subtract numbers, but I got a list and a number ([1, 2] and 1). If one is text that holds a number, use number(x) first.
+     2 | say x - 1

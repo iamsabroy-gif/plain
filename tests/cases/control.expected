@@ -1,6 +1,6 @@
 [1, "caught three", 4]
 found 2 missing
-outer: The list has 0 items, so there is no item 1.
+outer: The list has 0 items, so there is no item 1. It is empty - add something first, or check 'length of' before taking an item.
 deep: hit zero
 3
 ["a", "b"] true true true true

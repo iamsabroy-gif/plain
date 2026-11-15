@@ -177,7 +177,7 @@ struct KeyEq { bool operator()(const Value& a, const Value& b) const { return eq
 
 inline void checkKey(const Value& k) {
     if (isNumber(k) || isStr(k) || k.tag == Value::Bool) return;
-    fail("Only text and numbers can be used as names for entries in a map.");
+    fail("Only text, numbers and true/false can be used as names for entries in a map. Try using text, like to_json(x) or text(x), as the name.");
 }
 
 // A map keeps its entries in the order they were added.

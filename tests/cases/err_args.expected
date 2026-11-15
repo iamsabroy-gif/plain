@@ -1,2 +1,3 @@
 
-Oops! Line 4: 'add_up' needs 2 value(s), but you gave it 1.
+Oops! Line 4: 'add_up' needs 2 value(s) (a, b), but you gave it 1. Call it like: add_up(a, b)
+     4 | say add_up(1)

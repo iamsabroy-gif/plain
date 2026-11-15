@@ -24,12 +24,36 @@ using namespace plain;
 static const char* VERSION = "2.0.0";
 static const char MAGIC[8] = {'P', 'L', 'A', 'I', 'N', 'A', 'P', 'P'};
 
-static void report(const PlainError& e, const std::string& mainFile) {
+// The text of one line of a source file, so an error can show where it happened.
+static std::string sourceLine(const std::string& text, int line) {
+    size_t at = 0;
+    for (int l = 1; l < line; ++l) {
+        at = text.find('\n', at);
+        if (at == std::string::npos) return "";
+        ++at;
+    }
+    size_t end = text.find('\n', at);
+    std::string s = text.substr(at, end == std::string::npos ? std::string::npos : end - at);
+    while (!s.empty() && (s.back() == '\r' || s.back() == ' ')) s.pop_back();
+    size_t first = s.find_first_not_of(" \t");
+    return first == std::string::npos ? "" : s.substr(first);
+}
+
+static void report(const PlainError& e, const std::string& mainFile, const std::string& mainSrc = "",
+                   const Program* prog = nullptr) {
     fflush(stdout);
     std::string where;
     if (e.line && !e.file.empty() && e.file != mainFile) where = "In " + e.file + ", line " + std::to_string(e.line) + ": ";
     else if (e.line) where = "Line " + std::to_string(e.line) + ": ";
     fprintf(stderr, "\nOops! %s%s\n", where.c_str(), e.msg.c_str());
+    if (!e.line) return;
+    std::string text;
+    if (e.file.empty() || e.file == mainFile) text = mainSrc;
+    else if (prog)
+        for (const auto& s : prog->sources)
+            if (s.first == e.file) text = s.second;
+    std::string shown = sourceLine(text, e.line);
+    if (!shown.empty()) fprintf(stderr, "  %4d | %s\n", e.line, shown.c_str());
 }
 
 static std::string selfPath(const char* argv0) {
@@ -140,7 +164,7 @@ static int runProgram(const std::string& src, const std::string& file, const std
         fflush(stdout);
         return 0;
     } catch (const PlainError& e) {
-        report(e, file);
+        report(e, file, src, &prog);
         return 1;
     }
 }
@@ -154,7 +178,7 @@ static int build(const char* argv0, const std::string& file, std::string out) {
         Compiler compiler(prog, src, file);
         compiler.compileMain();  // checks the program and finds every file it uses
     } catch (const PlainError& e) {
-        report(e, file);
+        report(e, file, src, &prog);
         return 1;
     }
     std::string self = selfPath(argv0);

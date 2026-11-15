@@ -59,7 +59,7 @@ struct Unlocked {
 // ----------------------------------------------------- value operations
 [[noreturn]] inline void arithFail(const char* verb, const Value& x, const Value& y) {
     fail(std::string("I can only ") + verb + " numbers, but I got " + kindName(x) + " and " + kindName(y) + " (" +
-         fmt(x, true) + " and " + fmt(y, true) + ").");
+         fmt(x, true) + " and " + fmt(y, true) + "). If one is text that holds a number, use number(x) first.");
 }
 inline Value subValues(const Value& x, const Value& y) {
     if (!isNumber(x) || !isNumber(y)) arithFail("subtract", x, y);
@@ -94,7 +94,8 @@ inline Value addValues(const Value& x, const Value& y) {
         l->items.insert(l->items.end(), asList(y)->items.begin(), asList(y)->items.end());
         return out;
     }
-    fail(std::string("I can't add ") + kindName(x) + " and " + kindName(y) + " (" + fmt(x, true) + " and " + fmt(y, true) + ").");
+    fail(std::string("I can't add ") + kindName(x) + " and " + kindName(y) + " (" + fmt(x, true) + " and " + fmt(y, true) +
+         "). Add numbers to numbers, text to text, or use text(x) to turn a value into text first.");
 }
 
 // -1, 0, 1 - or 2 when two numbers cannot be ordered (not-a-number).
@@ -107,7 +108,8 @@ inline int compareValues(const Value& x, const Value& y) {
         int c = asStr(x).compare(asStr(y));
         return c < 0 ? -1 : (c > 0 ? 1 : 0);
     }
-    fail(std::string("I can't compare ") + kindName(x) + " with " + kindName(y) + " (" + fmt(x, true) + " and " + fmt(y, true) + ").");
+    fail(std::string("I can't compare ") + kindName(x) + " with " + kindName(y) + " (" + fmt(x, true) + " and " + fmt(y, true) +
+         "). Compare numbers with numbers, or text with text. Use number(x) or text(x) to convert.");
 }
 
 inline bool containsValue(const Value& box, const Value& x) {
@@ -126,7 +128,10 @@ inline size_t listIndex(const Value& k, size_t size, const char* what) {
     if (!wholeValue(k, i)) fail(std::string("An item number must be a whole number, but I got ") + describe(k) + ".");
     if (i < 1 || (uint64_t)i > size)
         fail(std::string("The ") + what + " has " + std::to_string(size) + (size == 1 ? " item" : " items") +
-             ", so there is no item " + std::to_string(i) + ".");
+             ", so there is no item " + std::to_string(i) + ". " +
+             (size == 0 ? std::string("It is empty - add something first, or check 'length of' before taking an item.")
+                        : i < 1 ? std::string("Items are counted from 1, so the first item is item 1.")
+                                : "Use a number from 1 to " + std::to_string(size) + ", or check 'length of' first."));
     return (size_t)i - 1;
 }
 
@@ -157,7 +162,8 @@ inline Value getIndex(const Value& box, const Value& k) {
         for (const auto& e : asMap(box)->entries)
             if (isStr(e.first)) names.push_back(asStr(e.first));
         std::string c = isStr(k) ? closest(asStr(k), names) : "";
-        fail("This map has no entry called " + fmt(k, true) + "." + (c.empty() ? "" : " Did you mean \"" + c + "\"?"));
+        fail("This map has no entry called " + fmt(k, true) + "." +
+             (c.empty() ? " Check the spelling, or test first with has_key(map, name)." : " Did you mean \"" + c + "\"?"));
     }
     if (isInstance(box)) {
         Instance* in = asInstance(box);
@@ -196,6 +202,16 @@ inline int64_t lengthOf(const Value& v) {
     if (isStr(v)) return (int64_t)u8len(asStr(v));
     if (isMap(v)) return (int64_t)asMap(v)->entries.size();
     fail(std::string("'length of' needs a list, text or a map, but I got ") + describe(v) + ".");
+}
+
+// "area needs 2 values (w, h), but you gave it 1."
+inline std::string arityMessage(const Func* f, int given) {
+    int want = f->nparams - (int)f->isMethod, got = given - (int)f->isMethod;
+    std::string names;
+    for (int i = (int)f->isMethod; i < f->nparams && i < (int)f->localNames.size(); ++i) names += (names.empty() ? "" : ", ") + f->localNames[(size_t)i];
+    return "'" + (f->name.empty() ? std::string("this action") : f->name) + "' needs " + std::to_string(want) + " value(s)" +
+           (names.empty() ? "" : " (" + names + ")") + ", but you gave it " + std::to_string(got) + ". Call it like: " +
+           (f->name.empty() ? std::string("action") : f->name) + "(" + names + ")";
 }
 
 // ------------------------------------------------------------------- VM
@@ -253,7 +269,8 @@ struct VM {
         std::string c = closest(name, names);
         if (action)
             fail("I don't know an action called '" + name + "'." + (c.empty() ? " Create it with 'define'." : " Did you mean '" + c + "'?"));
-        fail("I don't know anything called '" + name + "'." + (c.empty() ? "" : " Did you mean '" + c + "'?"));
+        fail("I don't know anything called '" + name + "'." +
+             (c.empty() ? " Create it first with: set " + name + " to ..." : " Did you mean '" + c + "'?"));
     }
 
     Value capture(Value* loc) {
@@ -286,6 +303,19 @@ struct VM {
         Value* sp = stack;
         *sp++ = program;
         return execute(sp, 0, 0);
+    }
+
+    // A new round of a loop starts: variables of the last round that closures kept get their own copy,
+    // so the next round makes new ones.
+    void closeRange(Value* lo, Value* hi) {
+        for (size_t i = openUps.size(); i-- > 0;) {
+            Upval* up = static_cast<Upval*>(openUps[i].o);
+            if (up->slot < lo) break;
+            if (up->slot >= hi) continue;
+            up->closed = *up->slot;
+            up->slot = &up->closed;
+            openUps.erase(openUps.begin() + (long)i);
+        }
     }
 
     // Call any action with some values and wait for its answer. Safe to use from
@@ -327,10 +357,9 @@ inline size_t collectGarbage();
     {                                                                                                              \
         Func* f_ = (F);                                                                                            \
         if ((int)(ARGC) != f_->nparams)                                                                            \
-            fail("'" + f_->name + "' needs " + std::to_string(f_->nparams - (int)f_->isMethod) +                   \
-                 " value(s), but you gave it " + std::to_string((int)(ARGC) - (int)f_->isMethod) + ".");           \
+            fail(arityMessage(f_, (int)(ARGC)));                                                                       \
         if (frames.size() >= MAX_FRAMES || sp + f_->nlocals + 4096 >= stackEnd)                                    \
-            fail("'" + f_->name + "' keeps calling itself and never finishes.");                                   \
+            fail("'" + f_->name + "' keeps calling itself and never finishes. Make sure it has a case that stops, like: if n is at most 1 then give back 1"); \
         if (!frames.empty()) frames.back().ip = ip;                                                                \
         base = (ARGBASE);                                                                                          \
         for (int i_ = (int)(ARGC); i_ < f_->nlocals; ++i_) *sp++ = Value();                                        \
@@ -649,6 +678,11 @@ inline Value VM::execute(Value* sp, uint32_t nargs, size_t stopDepth) {
                         break;
                     }
 
+                    case OP_FRESH: {
+                        uint32_t to = *ip++;
+                        if (!openUps.empty()) closeRange(base + a, base + to);
+                        break;
+                    }
                     case OP_CLASS: *sp++ = Value::obj(new Class(asStr(consts[a]))); break;
                     case OP_INHERIT: {
                         if (!isClass(sp[-1])) fail(std::string("A class can only extend another class, but I got ") + describe(sp[-1]) + ".");
@@ -734,7 +768,7 @@ inline Value VM::execute(Value* sp, uint32_t nargs, size_t stopDepth) {
                             auto& items = asList(box)->items;
                             size_t i = 0;
                             while (i < items.size() && !equals(items[i], x)) ++i;
-                            if (i == items.size()) fail(fmt(x, true) + " isn't in the list, so I can't remove it.");
+                            if (i == items.size()) fail(fmt(x, true) + " isn't in the list, so I can't remove it. Check first with: if list contains " + fmt(x, true) + " then ...");
                             items.erase(items.begin() + (long)i);
                         } else if (isMap(box)) {
                             if (!asMap(box)->remove(x)) fail("This map has no entry called " + fmt(x, true) + ", so I can't remove it.");

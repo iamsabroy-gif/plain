@@ -13,6 +13,7 @@ struct Token {
     int numKind = 0;  // for Num: 0 whole, 1 float, 2 decimal
     int line = 0;
     int depth = 0;    // for NL: how many brackets are open here
+    size_t pos = 0, end = 0;  // where the token sits in the source text
 };
 
 inline const std::unordered_set<std::string>& keywords() {
@@ -36,6 +37,7 @@ inline std::vector<Token> tokenize(const std::string& src) {
     int line = 1, depth = 0;
     size_t i = 0, n = src.size();
     bool lineStart = true;
+    size_t curStart = 0, counted = 0;
     auto push = [&](Token::K k, std::string text, int numKind = 0) {
         Token t;
         t.k = k;
@@ -43,12 +45,15 @@ inline std::vector<Token> tokenize(const std::string& src) {
         t.numKind = numKind;
         t.line = line;
         t.depth = depth;
+        t.pos = curStart;
         toks.push_back(std::move(t));
     };
     auto skipLine = [&]() {
         while (i < n && src[i] != '\n') ++i;
     };
     while (i < n) {
+        if (toks.size() > counted) { toks.back().end = i; counted = toks.size(); }
+        curStart = i;
         char c = src[i];
         if (c == '\n') {
             if (!toks.empty() && toks.back().k != Token::NL) push(Token::NL, "");
@@ -155,6 +160,7 @@ inline std::vector<Token> tokenize(const std::string& src) {
         }
         fail(std::string("I don't understand the character '") + c + "'.", line);
     }
+    if (toks.size() > counted) toks.back().end = i;
     if (!toks.empty() && toks.back().k != Token::NL) push(Token::NL, "");
     push(Token::End, "");
     return toks;

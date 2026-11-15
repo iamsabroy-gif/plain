@@ -13,7 +13,7 @@ b 6 2.5 true true true
 4
 1
 10
-Caught: The list has 5 items, so there is no item 9.
+Caught: The list has 5 items, so there is no item 9. Use a number from 1 to 5, or check 'length of' first.
 silently handled
 1024 1 2 2.5 14
 {"name":"Asha","age":31,"tags":["x","y"]} {"a": [1, 2, {"b": nothing}], "c": "ক"}
@@ -21,4 +21,5 @@ silently handled
 5 া ell [1, 2, 3, 4, 5] 5050
 [[1, 2], [30, 4]] 30 9 2 list
 
-Oops! Line 71: I don't know anything called 'scratch'.
+Oops! Line 71: I don't know anything called 'scratch'. Create it first with: set scratch to ...
+    71 | say scratch

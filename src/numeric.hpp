@@ -140,7 +140,7 @@ inline Value numMul(const Value& a, const Value& b) {
 }
 // Exact when it divides evenly, otherwise a float (or a decimal, for decimals).
 inline Value numDiv(const Value& a, const Value& b) {
-    if (isZeroNum(b)) fail("I can't divide by zero.");
+    if (isZeroNum(b)) fail("I can't divide by zero. Try checking the divisor first, like: if b is not 0 then ...");
     if (a.tag == Value::Float || b.tag == Value::Float) { checkMix(a, b); return Value::real(toDouble(a) / toDouble(b)); }
     if (isDec(a) || isDec(b)) return fromDec(decDiv(toDec(a), toDec(b)));
     if (a.tag == Value::Int && b.tag == Value::Int) {
@@ -156,7 +156,7 @@ inline Value numDiv(const Value& a, const Value& b) {
 }
 // Remainder with the sign of the divisor.
 inline Value numMod(const Value& a, const Value& b) {
-    if (isZeroNum(b)) fail("I can't divide by zero.");
+    if (isZeroNum(b)) fail("I can't divide by zero. Try checking the divisor first, like: if b is not 0 then ...");
     if (a.tag == Value::Int && b.tag == Value::Int) {
         if (b.i == -1) return Value::integer(0);
         int64_t r = a.i % b.i;
@@ -177,7 +177,7 @@ inline Value numMod(const Value& a, const Value& b) {
 }
 // Whole-number division, rounding down.
 inline Value numQuotient(const Value& a, const Value& b) {
-    if (isZeroNum(b)) fail("I can't divide by zero.");
+    if (isZeroNum(b)) fail("I can't divide by zero. Try checking the divisor first, like: if b is not 0 then ...");
     if (a.tag == Value::Float || b.tag == Value::Float) {
         checkMix(a, b);
         double q = std::floor(toDouble(a) / toDouble(b));
