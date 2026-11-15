@@ -92,6 +92,7 @@ shows the fifteen words that are enough for the first seven lessons.
 | [docs/ADVANCED.md](docs/ADVANCED.md) | Closures, classes, tasks, networking, packages |
 | [docs/DEVELOPER.md](docs/DEVELOPER.md) | For contributors: how it works, how to add things, the trace format, tests, releasing, gotchas |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | What is done and what comes next |
+| [docs/pdf/](docs/pdf/) | All of the above as PDFs: `Plain-documentation.pdf` (everything) and `Plain-for-kids.pdf` (bigger type) |
 
 ## Good to know
 

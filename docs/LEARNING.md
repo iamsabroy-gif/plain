@@ -3,9 +3,6 @@
 Plain is built so that a learner can see what their own code does, with no drawing
 code and no special syntax.
 
-Plain is built so that a learner can see what their own code does, with no
-drawing code and no special syntax.
-
 ```
 plain visualize examples/sorting.plain       # writes sorting.html: open it in a browser
 plain count     examples/sorting.plain       # comparisons, swaps, calls
@@ -26,7 +23,7 @@ just run, and draws what the variables hold *from the values themselves*:
 | An action that calls itself | The call stack, and the tree of calls with each answer as it returns |
 | Maps with `value` / `left` / `right` | A tree. With `value` / `next`, a linked chain. With `children`, a general tree |
 | A map of lists whose items are its own keys | A graph. Nodes held by variables are ringed and named; other maps and lists of nodes (`seen`, `order`) tint them |
-| `Stack`, `Queue`, `Heap` from the library | The live items only; a heap as a tree |
+| `Stack`, `Queue`, `Deque`, `RingBuffer`, `Heap` from the library | The live items only (a queue starts at its front; a ring shows its used slots); a heap as a tree |
 
 To see only some variables, add a comment line `# watch: xs, total`: comments
 are not code, so the language does not change. Steps inside the built-in library

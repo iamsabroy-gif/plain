@@ -49,6 +49,7 @@ Useful while working:
 | `plain count file.plain` | comparisons, swaps, calls, instructions |
 | `plain format --print file.plain` | see the standard style |
 | `plain practice --selftest` | check every practice problem against its reference |
+| `make pdf` (or `node tools/make-pdf.js`) | rebuild `docs/pdf/*.pdf` from the Markdown (needs Playwright's Chromium); fails on a broken link |
 | `sh tests/bless.sh name` | re-save `tests/cases/name.expected` after you have read the diff |
 
 ## Repository map

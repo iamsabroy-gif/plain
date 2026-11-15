@@ -33,7 +33,10 @@ install: build/plain
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/plain
 
+pdf:
+	node tools/make-pdf.js
+
 clean:
 	rm -rf build
 
-.PHONY: all test install uninstall clean
+.PHONY: all test pdf install uninstall clean
