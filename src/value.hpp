@@ -22,6 +22,7 @@ struct PlainError {
     int line = 0;
     std::string file;
     bool incomplete = false;  // the program ended inside an open block (used by the interactive session)
+    bool fatal = false;       // cannot be caught by 'try' (the run was stopped from outside)
 };
 
 [[noreturn]] inline void fail(const std::string& msg, int line = 0) {

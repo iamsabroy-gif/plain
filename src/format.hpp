@@ -312,7 +312,11 @@ inline void splitComment(const std::string& line, std::string& code, std::string
         s = a == std::string::npos ? "" : s.substr(a, b - a + 1);
     };
     trim(code);
-    trim(comment);
+    {   // keep the comment's own indentation (it may hold a code sample); only drop trailing spaces
+        size_t b = comment.find_last_not_of(" \t\r");
+        comment = b == std::string::npos ? "" : comment.substr(0, b + 1);
+        if (comment.find_first_not_of(" \t") == std::string::npos) comment.clear();
+    }
     if (!hasComment && code.size() >= 5) {
         std::string head = code.substr(0, 5);
         for (char& h : head) h = (char)tolower((unsigned char)h);
@@ -408,7 +412,7 @@ inline FormatResult formatSource(const std::string& src) {
         std::string text(std::string((size_t)level * 4, ' '));
         text += body;
         if (hasComment) {
-            std::string c = comment.empty() ? "#" : "# " + comment;
+            std::string c = comment.empty() ? "#" : (comment[0] == ' ' ? "#" + comment : "# " + comment);
             text += body.empty() ? c : "  " + c;
         }
         if (ok) {
