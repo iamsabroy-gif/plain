@@ -24,15 +24,23 @@ say "5 factorial is", factorial(5)
 
 ## Install
 
-You need a C++ compiler (on a Mac: `xcode-select --install`).
+Paste this one line into Terminal (Mac, Linux, or Windows with WSL). You do not
+need a compiler or anything else:
 
 ```
-cd ~/projects/plain
-sh install.sh
+curl -fsSL https://raw.githubusercontent.com/iamsabroy-gif/plain/main/install.sh | sh
 ```
 
-This builds Plain, runs the tests and copies the `plain` command to a folder
-on your PATH. To build without installing, run `make` and use `./build/plain`.
+It downloads a ready-made `plain` for your computer, puts it in `~/.local/bin`,
+and adds that folder to your PATH. Then close the Terminal window, open a new one
+and try `plain -e "say 6 * 7"`.
+
+Prefer to build it yourself? You need a C++ compiler (on a Mac: `xcode-select
+--install`); then `sh install.sh --build` in this folder, or just `make` and use
+`./build/plain`.
+
+Maintainers: the ready-made programs are built by `.github/workflows/release.yml`
+when a version tag is pushed (`git tag v2.1.0 && git push --tags`).
 
 ## Use
 

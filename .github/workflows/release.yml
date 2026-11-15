@@ -1,0 +1,52 @@
+# Builds a ready-made 'plain' for Mac and Linux when a version tag is pushed (git tag v2.1.0 && git push --tags),
+# so that the one-line installer in the README has something to download. No compiler is needed by users.
+name: release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - { os: ubuntu-22.04, name: plain-linux-x86_64, flags: "-static-libstdc++ -static-libgcc" }
+          - { os: ubuntu-22.04-arm, name: plain-linux-arm64, flags: "-static-libstdc++ -static-libgcc" }
+          - { os: macos-13, name: plain-macos-x86_64, flags: "" }
+          - { os: macos-14, name: plain-macos-arm64, flags: "" }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          mkdir -p build
+          c++ -O2 -std=c++17 ${{ matrix.flags }} -o build/plain src/main.cpp
+      - name: Test
+        run: make test
+      - name: Package
+        run: |
+          cp build/plain ${{ matrix.name }}
+          (shasum -a 256 ${{ matrix.name }} || sha256sum ${{ matrix.name }}) > ${{ matrix.name }}.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            ${{ matrix.name }}
+            ${{ matrix.name }}.sha256
+
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
