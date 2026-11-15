@@ -1,0 +1,92 @@
+# Trie - words stored letter by letter, so words that start the same share their start.
+#
+# How it works: the trie is a tree of little boxes. Every box holds one letter and a list of the
+# boxes for the letters that can come next. A box also remembers whether a word ENDS there. To add
+# "app" and "apple": a, p, p (ends here), then l, e (ends here) - the first three boxes are shared.
+# Finding every word with a prefix means walking down the prefix, then collecting what hangs below.
+#
+#   use "trie"
+#   set words to new Trie()
+#   words's put("app")
+#   words's put("apple")
+#   say words's starts_with("ap")             # true
+#   say words's words_with_prefix("app")      # ["app", "apple"]
+
+class Trie
+    init
+        set me's root to {value: "", children: [], ends: false}
+        set me's count to 0
+    end
+
+    # The box for this letter below a box, or nothing.
+    define child_of with node, letter
+        for each kid in node's children
+            if kid's value is letter then
+                give back kid
+            end
+        end
+        give back nothing
+    end
+
+    # Walk down the letters of some text. Gives back the box where it ends, or nothing.
+    define find_node with letters
+        set node to me's root
+        for each letter in letters
+            set node to me's child_of(node, letter)
+            if node is nothing then
+                give back nothing
+            end
+        end
+        give back node
+    end
+
+    define put with word
+        set node to me's root
+        for each letter in word
+            set kid to me's child_of(node, letter)
+            if kid is nothing then
+                set kid to {value: letter, children: [], ends: false}
+                add kid to node's children
+            end
+            set node to kid
+        end
+        if not node's ends then
+            set node's ends to true
+            increase me's count by 1
+        end
+    end
+
+    # Is this exact word in the trie?
+    define has with word
+        set node to me's find_node(word)
+        give back node is not nothing and node's ends
+    end
+
+    # Does any word start with this?
+    define starts_with with prefix
+        give back me's find_node(prefix) is not nothing
+    end
+
+    # Every word that starts with the prefix, sorted.
+    define words_with_prefix with prefix
+        set found to []
+        set node to me's find_node(prefix)
+        if node is not nothing then
+            me's collect(node, prefix, found)
+        end
+        give back sort(found)
+    end
+
+    define collect with node, so_far, found
+        if node's ends then
+            add so_far to found
+        end
+        for each kid in node's children
+            me's collect(kid, so_far + kid's value, found)
+        end
+    end
+
+    define size
+        give back me's count
+    end
+end

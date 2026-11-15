@@ -49,8 +49,9 @@ sizes (hollow points in the chart). `--html chart.html` draws the curves, with a
 straight/log switch. `plain compare file a b` runs actions on identical data, checks
 that they give the same answer, and shows their work side by side.
 
-**Practice.** `plain practice` lists 30 problems (arrays, strings, recursion,
-sorting, searching, stacks, queues, trees, graphs). `plain practice two-sum` writes
+**Practice.** `plain practice` lists 50 problems (arrays, strings, recursion,
+sorting, searching, stacks, queues, trees, graphs, then dynamic programming, heaps, tries,
+union-find, backtracking, intervals and weighted graphs). `plain practice two-sum` writes
 `two-sum.plain` with the problem as comments; edit it and run the same command to
 check it against examples and hidden tests. Hidden tests are reported by number
 (and, for edge cases, by what they check) but never shown. `--hint` gives hints one
@@ -77,6 +78,14 @@ puts an editable copy next to your program, and your copy is used instead.
 | `heap` | `new Heap()`: `put`, `smallest`, `peek`; `new MaxHeap()`: `put`, `biggest`; `new PriorityQueue()`: `put(value, priority)`, `take` |
 | `linkedlist` | `new LinkedList()`: `append`, `prepend`, `has`, `drop`, `reverse_in_place`, `to_list` |
 | `tree` | `new Tree()` (a search tree): `put`, `has`, `smallest`, `biggest`, `height`, `in_order`, `pre_order`, `post_order`, `level_order` |
+| `ringbuffer` | `new RingBuffer(capacity)`: `put`, `put_overwrite`, `take`, `peek`, `is_full`, `to_list` |
+| `counter` | `new Counter()` (a multiset): `put`, `count_of`, `total`, `distinct`, `most_common(k)` |
+| `avl` | `new AVLTree()` (a search tree that keeps itself balanced): `put`, `has`, `height`, `in_order`, `is_balanced` |
+| `trie` | `new Trie()`: `put`, `has`, `starts_with`, `words_with_prefix` |
+| `unionfind` | `new UnionFind(n)`: `connect`, `same_group`, `find_root`, `size_of`, `groups` |
+| `lrucache` | `new LRUCache(capacity)`: `put`, `get_value`, `has`, `keys` (newest first) |
+| `fenwick` | `new FenwickTree(n)`: `add_at`, `prefix_sum`, `range_sum` |
+| `segmenttree` | `new SegmentTree(numbers, "sum" or "min")`: `update`, `query(a, b)` |
 | `graph` | `new Graph()`, `new DirectedGraph()`: `add_edge`, `add_weighted_edge`, `neighbors`, `bfs`, `dfs`, `shortest_path`, `has_path`, `distances`, `topological_order` |
 
 Methods are called as `pile's push(3)`. The tree and linked-list nodes are plain

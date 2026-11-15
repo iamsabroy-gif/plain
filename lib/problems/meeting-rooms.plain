@@ -1,0 +1,44 @@
+set __problem to {
+    order: 48,
+    title: "Meeting Rooms",
+    topic: "intervals",
+    level: 3,
+    function: "rooms_needed",
+    params: "meetings",
+    statement: "Each meeting is a pair [start, end]. A meeting that ends exactly when another starts does not overlap it. Give back the fewest rooms needed so that no two meetings in the same room overlap.",
+    examples: [
+        {args: [[[0, 30], [5, 10], [15, 20]]], expect: 2},
+        {args: [[[7, 10], [2, 4]]], expect: 1},
+        {args: [[]], expect: 0}
+    ],
+    hints: [
+        "The number of rooms you need is the most meetings that are going on at the same moment.",
+        "Sort the meetings by start time. As you meet each new meeting, ask: has the earliest-ending meeting still in progress already finished?",
+        "Keep the end times of the meetings in progress in a Heap (smallest on top). If the top is at most the new start, that room is free: remove it. Then add the new end. The biggest the heap ever gets is the answer."
+    ],
+    hidden: [
+        {args: [[[1, 5], [2, 6], [3, 7]]], expect: 3, note: "all overlap"},
+        {args: [[[1, 2], [2, 3]]], expect: 1, note: "touching is not overlapping"},
+        {args: [[[9, 10], [4, 9], [4, 17]]], expect: 2},
+        {args: [map_each(range(1, 1000), action with i gives [0, 10])], expect: 1000, note: "1,000 meetings at once"},
+        {args: [map_each(range(1, 1000), action with i gives [i, i + 1])], expect: 1, note: "1,000 meetings one after another"}
+    ],
+    complexity: "O(n log n) time",
+    explanation: "Process meetings in order of start time and track the end times of those still running in a min-heap. For a new meeting, if the earliest end among the running ones is not after the new start, that meeting is over and its room can be reused (pop it); then the new meeting's end goes into the heap. The heap holds exactly the meetings in progress, so its largest size over time is the number of rooms needed. Sorting costs n log n and each heap step log n."
+}
+# --- solution ---
+use "heap"
+
+define __reference with meetings
+    set ending to new Heap()
+    set busiest to 0
+    for each meeting in sort_by(meetings, action with m gives m[1])
+        if not ending's is_empty() and ending's peek() is at most meeting[1] then
+            ending's smallest()
+        end
+        ending's put(meeting[2])
+        set busiest to max(busiest, ending's size())
+    end
+    give back busiest
+end
+# --- end solution ---

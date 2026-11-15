@@ -180,12 +180,20 @@ static int libCommand(const std::vector<std::string>& args) {
     static const std::pair<const char*, const char*> about[] = {
         {"stack", "last in, first out: push, pop, peek"},
         {"queue", "first in, first out: enqueue, dequeue, front"},
-        {"deque", "a queue you can use from both ends"},
+        {"deque", "a queue you can use from both ends (all four operations are quick)"},
+        {"ringbuffer", "a fixed-size queue that goes round and round"},
+        {"counter", "counts how often each thing was seen (a multiset)"},
         {"unique", "a group of values with no repeats (a set): put, has, drop"},
         {"heap", "smallest (or biggest) first: Heap, MaxHeap, PriorityQueue"},
         {"linkedlist", "values joined one to the next"},
         {"tree", "a binary search tree: put, has, in_order, height ..."},
+        {"avl", "a search tree that keeps itself balanced"},
+        {"trie", "words stored letter by letter: prefixes and autocomplete"},
         {"graph", "nodes and edges: bfs, dfs, shortest_path, distances"},
+        {"unionfind", "which things are in the same group, as groups merge"},
+        {"lrucache", "remembers the most recent things, forgets the oldest"},
+        {"fenwick", "running totals that can change, both quick"},
+        {"segmenttree", "sum or smallest of any stretch of a list, with updates"},
         {"dsa", "all of the above:  use \"dsa\""},
     };
     if (args.size() < 2) {

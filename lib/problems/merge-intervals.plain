@@ -1,0 +1,42 @@
+set __problem to {
+    order: 47,
+    title: "Merge Intervals",
+    topic: "intervals",
+    level: 2,
+    function: "merge_intervals",
+    params: "intervals",
+    statement: "Each interval is a pair [start, end]. Intervals that overlap or touch (one ends exactly where another starts) should be joined into one. Give back the joined intervals, in order of their start. The input is not sorted.",
+    examples: [
+        {args: [[[1, 3], [2, 6], [8, 10], [15, 18]]], expect: [[1, 6], [8, 10], [15, 18]]},
+        {args: [[[1, 4], [4, 5]]], expect: [[1, 5]]},
+        {args: [[]], expect: []}
+    ],
+    hints: [
+        "If the intervals were sorted by start, an interval could only overlap the one just before it. Sorting first makes the problem easy.",
+        "sort_by(intervals, action with pair gives pair[1]) sorts pairs by their first number.",
+        "Walk through the sorted intervals keeping the last joined interval. If the next one starts at or before its end, stretch that end (to the bigger of the two ends). Otherwise start a new one."
+    ],
+    hidden: [
+        {args: [[[1, 4], [0, 4]]], expect: [[0, 4]], note: "not sorted"},
+        {args: [[[1, 4], [2, 3]]], expect: [[1, 4]], note: "one inside another"},
+        {args: [[[5, 6], [1, 2], [3, 4]]], expect: [[1, 2], [3, 4], [5, 6]], note: "no overlaps, out of order"},
+        {args: [[[1, 10], [2, 3], [4, 5], [6, 7]]], expect: [[1, 10]]},
+        {args: [map_each(range(1, 2000), action with i gives [i, i + 1])], expect: [[1, 2001]], note: "2,000 intervals in a chain"}
+    ],
+    complexity: "O(n log n) time (the sort)",
+    explanation: "Sorted by start, an interval can only overlap with the joined interval just before it: if it starts at or before that one's end, they merge and the end becomes the larger of the two ends; otherwise nothing before it can reach it, so it begins a new group. One pass after the sort does all the work. Without sorting you would have to compare every pair."
+}
+# --- solution ---
+define __reference with intervals
+    set merged to []
+    for each pair in sort_by(intervals, action with p gives p[1])
+        if length of merged is 0 or pair[1] is greater than last(merged)[2] then
+            add [pair[1], pair[2]] to merged
+        otherwise
+            set tail to last(merged)
+            set tail[2] to max(tail[2], pair[2])
+        end
+    end
+    give back merged
+end
+# --- end solution ---

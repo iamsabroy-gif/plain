@@ -1,0 +1,42 @@
+set __problem to {
+    order: 45,
+    title: "Subsets That Add Up",
+    topic: "backtracking",
+    level: 3,
+    function: "count_subsets",
+    params: "numbers, target",
+    statement: "Count the ways to choose some of the numbers (each number can be chosen or not; the empty choice is allowed) so that the chosen numbers add up to the target. Numbers in different positions are different choices even when equal. All numbers are positive.",
+    examples: [
+        {args: [[1, 2, 3], 3], expect: 2},
+        {args: [[1, 1, 1], 2], expect: 3},
+        {args: [[], 0], expect: 1}
+    ],
+    hints: [
+        "For each number there are two choices: take it or leave it. Trying all of them gives 2 to the power of the length of the list, which is enormous for 20 numbers.",
+        "Notice the same situation appears many times: 'how many ways to reach sum s using the numbers from here on'. Remembering the answers for each remaining sum avoids repeating work.",
+        "Keep ways[s] = the number of ways to make sum s so far (ways[0] = 1). For each number v, update s from the target DOWN to v: ways[s] = ways[s] + ways[s - v]."
+    ],
+    hidden: [
+        {args: [[2, 4, 6, 10], 16], expect: 2},
+        {args: [[1, 2, 3, 4, 5], 0], expect: 1, note: "the empty choice"},
+        {args: [[5], 5], expect: 1},
+        {args: [[5], 3], expect: 0, note: "impossible"},
+        {args: [map_each(range(1, 20), action with i gives 1), 10], expect: 184756, note: "20 equal numbers (going through every choice is 1,000,000 branches)"}
+    ],
+    complexity: "O(numbers x target) time, O(target) extra space",
+    explanation: "Choosing or skipping each number is a binary tree of 2^n branches, but many branches reach the same remaining sum. The table ways[s] counts how many ways the numbers seen so far can make sum s, starting with ways[0] = 1 (choose nothing). Adding a number v means every way to make s - v can now also make s by taking v, so ways[s] grows by ways[s - v]. Going through s from high to low means each number is used at most once. After all numbers, ways[target] is the answer."
+}
+# --- solution ---
+define __reference with numbers, target
+    set ways to [1]
+    repeat target times
+        add 0 to ways
+    end
+    for each v in numbers
+        for s from target to v by -1
+            increase ways[s + 1] by ways[s - v + 1]
+        end
+    end
+    give back ways[target + 1]
+end
+# --- end solution ---

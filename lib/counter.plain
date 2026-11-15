@@ -1,0 +1,64 @@
+# Counter - counts how many times each thing has been seen (a "multiset").
+#
+# How it works: a map from each thing to its count, plus a list of the things in the order they were
+# first seen. most_common sorts that list by count; the sort keeps things in their original order when
+# counts are equal, so ties come out in first-seen order.
+#
+#   use "counter"
+#   set seen to new Counter()
+#   for each word in split("the cat and the hat and the bat", " ")
+#       seen's put(word)
+#   end
+#   say seen's count_of("the")          # 3
+#   say seen's most_common(2)           # [["the", 3], ["and", 2]]
+
+class Counter
+    init
+        set me's counts to {}
+        set me's order to []
+    end
+
+    define put with thing
+        if has_key(me's counts, thing) then
+            increase me's counts[thing] by 1
+        otherwise
+            set me's counts[thing] to 1
+            add thing to me's order
+        end
+    end
+
+    # How many times this thing has been put (0 if never).
+    define count_of with thing
+        if has_key(me's counts, thing) then
+            give back me's counts[thing]
+        end
+        give back 0
+    end
+
+    # How many puts there have been in all.
+    define total
+        set sum_of_counts to 0
+        for each thing in me's order
+            increase sum_of_counts by me's counts[thing]
+        end
+        give back sum_of_counts
+    end
+
+    # How many different things have been seen.
+    define distinct
+        give back length of me's order
+    end
+
+    # The k things seen most often, as [thing, count] pairs, biggest count first.
+    define most_common with k
+        set counts to me's counts
+        set ranked to sort_by(copy(me's order), action with thing gives 0 - counts[thing])
+        set out to []
+        for each thing in ranked
+            if length of out is less than k then
+                add [thing, counts[thing]] to out
+            end
+        end
+        give back out
+    end
+end

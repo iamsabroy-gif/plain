@@ -1,0 +1,45 @@
+set __problem to {
+    order: 35,
+    title: "Knapsack",
+    topic: "dynamic programming",
+    level: 3,
+    function: "knapsack",
+    params: "weights, values, capacity",
+    statement: "Item k weighs weights[k] and is worth values[k]. You can carry total weight up to capacity, and each item can be taken at most once. Give back the biggest total value you can carry.",
+    examples: [
+        {args: [[1, 3, 4, 5], [1, 4, 5, 7], 7], expect: 9},
+        {args: [[10], [5], 5], expect: 0},
+        {args: [[1, 1, 1], [10, 20, 30], 2], expect: 50}
+    ],
+    hints: [
+        "For each item you decide: take it or leave it. Trying every choice is 2 to the power of the number of items.",
+        "Let best[w] be the best value using total weight at most w, with the items looked at so far. A new item of weight c and value v can improve best[w] to best[w - c] + v.",
+        "Handle one item at a time. Go through w from the capacity DOWN to the item's weight, so that an item is never used twice."
+    ],
+    hidden: [
+        {args: [[5, 4, 6, 3], [10, 40, 30, 50], 10], expect: 90},
+        {args: [[2, 3, 4, 5], [3, 4, 5, 6], 5], expect: 7},
+        {args: [[3], [4], 3], expect: 4, note: "one item that exactly fits"},
+        {args: [[], [], 10], expect: 0, note: "nothing to take"},
+        {args: [map_each(range(1, 100), action with i gives 1), map_each(range(1, 100), action with i gives 1), 50], expect: 50, note: "100 items (trying every choice is hopeless)"}
+    ],
+    complexity: "O(items x capacity) time, O(capacity) extra space",
+    explanation: "best[w] holds the best value reachable with weight at most w using the items seen so far. Adding an item of weight c and value v can only help the cells w >= c: best[w] = max(best[w], best[w - c] + v). Going through w from high to low means best[w - c] still describes the situation BEFORE this item, so the item is used at most once. After all items, best[capacity] is the answer. The table has capacity cells and each item makes one pass, instead of the 2^items choices."
+}
+# --- solution ---
+define __reference with weights, values, capacity
+    set best to []
+    repeat capacity + 1 times
+        add 0 to best
+    end
+    for k from 1 to length of weights
+        for w from capacity to weights[k] by -1
+            set with_item to best[w - weights[k] + 1] + values[k]
+            if with_item is greater than best[w + 1] then
+                set best[w + 1] to with_item
+            end
+        end
+    end
+    give back best[capacity + 1]
+end
+# --- end solution ---

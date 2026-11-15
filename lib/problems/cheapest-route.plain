@@ -1,0 +1,75 @@
+set __problem to {
+    order: 49,
+    title: "Cheapest Route",
+    topic: "advanced graphs",
+    level: 3,
+    function: "cheapest_route",
+    params: "roads, start, goal",
+    statement: "Each road is [from, to, cost] and can only be used in that direction. Give back the smallest total cost to get from start to goal, or -1 if you can't get there. Costs are positive. Going from a place to itself costs 0.",
+    examples: [
+        {args: [[["A", "B", 1], ["B", "C", 2], ["A", "C", 5]], "A", "C"], expect: 3},
+        {args: [[["A", "B", 1]], "B", "A"], expect: -1},
+        {args: [[["A", "B", 1]], "A", "A"], expect: 0}
+    ],
+    hints: [
+        "Fewest roads is not the same as lowest cost: a longer way round can be cheaper. A plain breadth-first search is not enough.",
+        "Keep the best known cost to each place. Always explore next the unexplored place with the LOWEST known cost: its cost can't be improved any more, because all costs are positive.",
+        "A PriorityQueue (use \"heap\") gives you 'the cheapest place so far' quickly: put(place, cost), take(). When you take a place with a worse cost than recorded, skip it. This is Dijkstra's algorithm."
+    ],
+    hidden: [
+        {args: [[["A", "B", 4], ["A", "C", 1], ["C", "B", 2], ["B", "D", 5], ["C", "D", 10]], "A", "D"], expect: 8, note: "the cheapest way is not the shortest"},
+        {args: [[["A", "B", 1], ["C", "D", 1]], "A", "D"], expect: -1, note: "two separate parts"},
+        {args: [[], "A", "B"], expect: -1, note: "no roads"},
+        {args: [[[1, 2, 7], [1, 3, 9], [1, 6, 14], [2, 3, 10], [2, 4, 15], [3, 4, 11], [3, 6, 2], [4, 5, 6], [6, 5, 9]], 1, 5], expect: 20, note: "numbers as place names"},
+        {args: [__ladder(2000), 1, 2000], expect: 1999, note: "a long chain of roads with dearer shortcuts"}
+    ],
+    complexity: "O((roads + places) log places) time",
+    explanation: "Dijkstra's algorithm explores places in order of their best known cost. A priority queue always hands back the cheapest place not yet finished; because every cost is positive, once a place is the cheapest remaining, no later route can reach it more cheaply, so its cost is final. From it, each road offers a possible better cost for its neighbour; if it is better than the best known, it is recorded and the neighbour is queued. A place taken from the queue with an out-of-date (too high) cost is skipped. When the goal is taken, its cost is the answer."
+}
+define __ladder with n
+    set roads to []
+    for i from 1 to n - 1
+        add [i, i + 1, 1] to roads
+        if i + 2 is at most n then
+            add [i, i + 2, 5] to roads
+        end
+    end
+    give back roads
+end
+# --- solution ---
+use "heap"
+
+define __reference with roads, start, goal
+    set leaving to {}
+    for each road in roads
+        if not has_key(leaving, road[1]) then
+            set leaving[road[1]] to []
+        end
+        add road to leaving[road[1]]
+    end
+    set best to {}
+    set best[start] to 0
+    set waiting to new PriorityQueue()
+    waiting's put(start, 0)
+    set done to {}
+    while not waiting's is_empty()
+        set place to waiting's take()
+        if not has_key(done, place) then
+            set done[place] to true
+            if place is goal then
+                give back best[place]
+            end
+            if has_key(leaving, place) then
+                for each road in leaving[place]
+                    set cost to best[place] + road[3]
+                    if not has_key(best, road[2]) or cost is less than best[road[2]] then
+                        set best[road[2]] to cost
+                        waiting's put(road[2], cost)
+                    end
+                end
+            end
+        end
+    end
+    give back -1
+end
+# --- end solution ---

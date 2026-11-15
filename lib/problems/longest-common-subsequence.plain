@@ -1,0 +1,56 @@
+set __problem to {
+    order: 33,
+    title: "Longest Common Subsequence",
+    topic: "dynamic programming",
+    level: 3,
+    function: "common_subsequence_length",
+    params: "first, second",
+    statement: "A subsequence keeps letters in order but may skip some: \"ace\" is a subsequence of \"abcde\". Give back the length of the longest subsequence that both texts share.",
+    examples: [
+        {args: ["abcde", "ace"], expect: 3},
+        {args: ["abc", "abc"], expect: 3},
+        {args: ["abc", "def"], expect: 0}
+    ],
+    hints: [
+        "Compare the last letters. If they are equal, they can both be part of the answer: 1 + the answer for both texts without their last letters.",
+        "If they differ, at least one of them is not used: take the better of (without the last of the first) and (without the last of the second).",
+        "Build a grid: row i, column j holds the answer for the first i letters of one text and the first j of the other. Row 0 and column 0 are all 0. You only need to keep the previous row."
+    ],
+    hidden: [
+        {args: ["AGGTAB", "GXTXAYB"], expect: 4},
+        {args: ["", "abc"], expect: 0, note: "an empty text"},
+        {args: ["abcbdab", "bdcaba"], expect: 4},
+        {args: ["abc", "cba"], expect: 1},
+        {args: [join(map_each(range(1, 300), action with i gives "a"), ""), join(map_each(range(1, 300), action with i gives "a"), "")], expect: 300, note: "two long texts (trying every subsequence is hopeless)"}
+    ],
+    complexity: "O(n x m) time, O(m) extra space",
+    explanation: "Let L(i, j) be the answer for the first i letters of one text and the first j of the other. If letter i and letter j match, L(i, j) = L(i - 1, j - 1) + 1. If not, the better of L(i - 1, j) and L(i, j - 1). Every L is built from three neighbours already worked out, so filling the grid row by row takes n x m steps instead of the 2^n subsequences. Only the previous row is ever needed."
+}
+# --- solution ---
+define __reference with first, second
+    set letters_a to []
+    for each ch in first
+        add ch to letters_a
+    end
+    set letters_b to []
+    for each ch in second
+        add ch to letters_b
+    end
+    set previous to []
+    repeat length of letters_b + 1 times
+        add 0 to previous
+    end
+    for i from 1 to length of letters_a
+        set current to [0]
+        for j from 1 to length of letters_b
+            if letters_a[i] is letters_b[j] then
+                add previous[j] + 1 to current
+            otherwise
+                add max(previous[j + 1], current[j]) to current
+            end
+        end
+        set previous to current
+    end
+    give back previous[length of letters_b + 1]
+end
+# --- end solution ---

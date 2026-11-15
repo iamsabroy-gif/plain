@@ -2,12 +2,226 @@
 #pragma once
 struct LibFile { const char* name; const char* text; };
 static const LibFile LIB_FILES[] = {
+{"avl", R"PLAINLIB(# AVLTree - a search tree that keeps itself balanced.
+#
+# How it works: a plain search tree (see "tree") can become a long thin chain if values arrive in order,
+# and then finding a value is as slow as walking a list. An AVL tree stores the HEIGHT of every box and,
+# after each put, checks that the two sides of a box differ in height by at most 1. If one side has
+# got too tall, the boxes are "rotated" - a small local reshuffle that keeps the sorted order but
+# moves a box up. Putting 1, 2, 3, ... 1000 in order still gives a tree about 10 boxes tall.
+#
+#   use "avl"
+#   set t to new AVLTree()
+#   for i from 1 to 100
+#       t's put(i)
+#   end
+#   say t's height()            # 7, not 100
+
+class AVLTree
+    init
+        set me's root to nothing
+        set me's count to 0
+    end
+
+    define height_of with box
+        if box is nothing then
+            give back 0
+        end
+        give back box's height
+    end
+
+    define refresh with box
+        set box's height to 1 + max(me's height_of(box's left), me's height_of(box's right))
+    end
+
+    # Left side taller by this much (negative when the right side is taller).
+    define lean_of with box
+        give back me's height_of(box's left) - me's height_of(box's right)
+    end
+
+    # The left child comes up, the box goes down to its right.
+    define rotate_right with box
+        set up to box's left
+        set box's left to up's right
+        set up's right to box
+        me's refresh(box)
+        me's refresh(up)
+        give back up
+    end
+
+    # The right child comes up, the box goes down to its left.
+    define rotate_left with box
+        set up to box's right
+        set box's right to up's left
+        set up's left to box
+        me's refresh(box)
+        me's refresh(up)
+        give back up
+    end
+
+    # Put a value below a box and give back the box that is now at the top of that part.
+    define insert_below with box, value
+        if box is nothing then
+            increase me's count by 1
+            give back {value: value, left: nothing, right: nothing, height: 1}
+        end
+        if value is less than box's value then
+            set box's left to me's insert_below(box's left, value)
+        otherwise if value is greater than box's value then
+            set box's right to me's insert_below(box's right, value)
+        otherwise
+            give back box
+        end
+        me's refresh(box)
+        set lean to me's lean_of(box)
+        if lean is greater than 1 then
+            if me's lean_of(box's left) is less than 0 then
+                set box's left to me's rotate_left(box's left)
+            end
+            give back me's rotate_right(box)
+        end
+        if lean is less than -1 then
+            if me's lean_of(box's right) is greater than 0 then
+                set box's right to me's rotate_right(box's right)
+            end
+            give back me's rotate_left(box)
+        end
+        give back box
+    end
+
+    define put with value
+        set me's root to me's insert_below(me's root, value)
+    end
+
+    define has with value
+        set current to me's root
+        while current is not nothing
+            if value is current's value then
+                give back true
+            end
+            if value is less than current's value then
+                set current to current's left
+            otherwise
+                set current to current's right
+            end
+        end
+        give back false
+    end
+
+    define height
+        give back me's height_of(me's root)
+    end
+
+    define size
+        give back me's count
+    end
+
+    define is_empty
+        give back me's count is 0
+    end
+
+    # Left, then this box, then right: the values sorted.
+    define in_order
+        set out to []
+        me's walk(me's root, out)
+        give back out
+    end
+    define walk with box, out
+        if box is not nothing then
+            me's walk(box's left, out)
+            add box's value to out
+            me's walk(box's right, out)
+        end
+    end
+
+    # Is every box within 1 of balanced, with a correct height? (For checking the tree itself.)
+    define is_balanced
+        give back me's check(me's root) is not -1
+    end
+    define check with box
+        if box is nothing then
+            give back 0
+        end
+        set left_height to me's check(box's left)
+        set right_height to me's check(box's right)
+        if left_height is -1 or right_height is -1 or abs(left_height - right_height) is greater than 1 then
+            give back -1
+        end
+        give back 1 + max(left_height, right_height)
+    end
+end
+)PLAINLIB"},
+{"counter", R"PLAINLIB(# Counter - counts how many times each thing has been seen (a "multiset").
+#
+# How it works: a map from each thing to its count, plus a list of the things in the order they were
+# first seen. most_common sorts that list by count; the sort keeps things in their original order when
+# counts are equal, so ties come out in first-seen order.
+#
+#   use "counter"
+#   set seen to new Counter()
+#   for each word in split("the cat and the hat and the bat", " ")
+#       seen's put(word)
+#   end
+#   say seen's count_of("the")          # 3
+#   say seen's most_common(2)           # [["the", 3], ["and", 2]]
+
+class Counter
+    init
+        set me's counts to {}
+        set me's order to []
+    end
+
+    define put with thing
+        if has_key(me's counts, thing) then
+            increase me's counts[thing] by 1
+        otherwise
+            set me's counts[thing] to 1
+            add thing to me's order
+        end
+    end
+
+    # How many times this thing has been put (0 if never).
+    define count_of with thing
+        if has_key(me's counts, thing) then
+            give back me's counts[thing]
+        end
+        give back 0
+    end
+
+    # How many puts there have been in all.
+    define total
+        set sum_of_counts to 0
+        for each thing in me's order
+            increase sum_of_counts by me's counts[thing]
+        end
+        give back sum_of_counts
+    end
+
+    # How many different things have been seen.
+    define distinct
+        give back length of me's order
+    end
+
+    # The k things seen most often, as [thing, count] pairs, biggest count first.
+    define most_common with k
+        set counts to me's counts
+        set ranked to sort_by(copy(me's order), action with thing gives 0 - counts[thing])
+        set out to []
+        for each thing in ranked
+            if length of out is less than k then
+                add [thing, counts[thing]] to out
+            end
+        end
+        give back out
+    end
+end
+)PLAINLIB"},
 {"deque", R"PLAINLIB(# Deque - a queue you can use from both ends ("deck").
 #
-# How it works: the values are kept in one list. Working at the back of the list
-# is quick. Working at the front slides the other items along, so it costs more
-# for a long deque (a production deque uses a ring buffer to avoid this, and
-# this one stays simple so you can read it).
+# How it works: like a RingBuffer that grows. The values sit in a list of slots; "head" says where the
+# front value is. Pushing at the front moves head one slot BACK (round to the end of the list if it
+# has to), pushing at the back uses the slot after the last value. When the list is full it is
+# replaced by one twice as big. Nothing slides along, so all four operations are quick.
 #
 #   use "deque"
 #   set d to new Deque()
@@ -17,55 +231,99 @@ static const LibFile LIB_FILES[] = {
 
 class Deque
     init
-        set me's items to []
+        set me's slots to [nothing, nothing, nothing, nothing]
+        set me's head to 1
+        set me's count to 0
+    end
+
+    # Which slot holds the k-th value from the front.
+    define slot_of with k
+        give back (me's head + k - 2) % length of me's slots + 1
+    end
+
+    # Make sure there is room for one more value (doubling the list when it is full).
+    define make_room
+        if me's count is length of me's slots then
+            set bigger to []
+            for k from 1 to me's count
+                add me's slots[me's slot_of(k)] to bigger
+            end
+            repeat me's count times
+                add nothing to bigger
+            end
+            set me's slots to bigger
+            set me's head to 1
+        end
     end
 
     define push_back with value
-        add value to me's items
+        me's make_room()
+        increase me's count by 1
+        set me's slots[me's slot_of(me's count)] to value
     end
 
     define push_front with value
-        insert(me's items, 1, value)
+        me's make_room()
+        set me's head to (me's head - 2) % length of me's slots + 1
+        set me's slots[me's head] to value
+        increase me's count by 1
     end
 
     define pop_back
         if me's is_empty() then
             fail with "This deque is empty, so there is nothing to pop. Check is_empty() first."
         end
-        give back pop(me's items)
+        set place to me's slot_of(me's count)
+        set value to me's slots[place]
+        set me's slots[place] to nothing
+        decrease me's count by 1
+        give back value
     end
 
     define pop_front
         if me's is_empty() then
             fail with "This deque is empty, so there is nothing to pop. Check is_empty() first."
         end
-        give back pop_at(me's items, 1)
+        set value to me's slots[me's head]
+        set me's slots[me's head] to nothing
+        set me's head to me's head % length of me's slots + 1
+        decrease me's count by 1
+        give back value
     end
 
     define peek_back
         if me's is_empty() then
             fail with "This deque is empty. Check is_empty() first."
         end
-        give back last(me's items)
+        give back me's slots[me's slot_of(me's count)]
     end
 
     define peek_front
         if me's is_empty() then
             fail with "This deque is empty. Check is_empty() first."
         end
-        give back first(me's items)
+        give back me's slots[me's head]
     end
 
     define is_empty
-        give back length of me's items is 0
+        give back me's count is 0
     end
 
     define size
-        give back length of me's items
+        give back me's count
+    end
+
+    # The values, front first.
+    define to_list
+        set out to []
+        for k from 1 to me's count
+            add me's slots[me's slot_of(k)] to out
+        end
+        give back out
     end
 
     define to_text
-        give back "Deque(front to back: " + text(me's items) + ")"
+        give back "Deque(front to back: " + text(me's to_list()) + ")"
     end
 end
 )PLAINLIB"},
@@ -75,11 +333,80 @@ end
 use "stack"
 use "queue"
 use "deque"
+use "ringbuffer"
 use "unique"
+use "counter"
 use "heap"
 use "linkedlist"
 use "tree"
+use "avl"
+use "trie"
 use "graph"
+use "unionfind"
+use "lrucache"
+use "fenwick"
+use "segmenttree"
+)PLAINLIB"},
+{"fenwick", R"PLAINLIB(# FenwickTree - running totals that can change, both quick.
+#
+# How it works: keeping a plain list of numbers makes "the total of items 1 to i" slow (add them all
+# up), and keeping a list of running totals makes "change item i" slow (fix every total after it).
+# A Fenwick tree keeps in slot i the total of a block of the items that END at i; the block is as long
+# as the biggest power of 2 that divides i (slot 8 covers 8 items, slot 6 covers 2, slot 7 covers 1).
+# Any total is then a few blocks stuck together, and a change touches a few blocks: about log2(n)
+# slots either way.
+#
+#   use "fenwick"
+#   set sales to new FenwickTree(8)
+#   sales's add_at(3, 10)
+#   sales's add_at(5, 4)
+#   say sales's prefix_sum(5)           # 14
+#   say sales's range_sum(4, 5)         # 4
+
+class FenwickTree
+    init with n
+        set me's n to n
+        set me's tree to []
+        repeat n times
+            add 0 to me's tree
+        end
+    end
+
+    # The biggest power of 2 that divides i (6 gives 2, 8 gives 8).
+    define low_bit with i
+        set bit to 1
+        while i % (bit * 2) is 0
+            set bit to bit * 2
+        end
+        give back bit
+    end
+
+    # Add delta to item i.
+    define add_at with i, delta
+        if i is less than 1 or i is greater than me's n then
+            fail with "There is no item " + text(i) + ": this tree has items 1 to " + text(me's n) + "."
+        end
+        while i is at most me's n
+            increase me's tree[i] by delta
+            increase i by me's low_bit(i)
+        end
+    end
+
+    # The total of items 1 to i.
+    define prefix_sum with i
+        set total to 0
+        while i is greater than 0
+            increase total by me's tree[i]
+            decrease i by me's low_bit(i)
+        end
+        give back total
+    end
+
+    # The total of items a to b.
+    define range_sum with a, b
+        give back me's prefix_sum(b) - me's prefix_sum(a - 1)
+    end
+end
 )PLAINLIB"},
 {"graph", R"PLAINLIB(# Graph - things (nodes) joined by connections (edges).
 #
@@ -594,6 +921,96 @@ class LinkedList
     end
 end
 )PLAINLIB"},
+{"lrucache", R"PLAINLIB(# LRUCache - remembers the most recent things, and forgets the one not used for longest.
+#
+# How it works: two pieces work together.
+#   1. A map from each key to its "box", so any key is found at once.
+#   2. The boxes are also chained in a line from NEWEST to OLDEST (each box points at its
+#      neighbours both ways). Using a key unhooks its box and puts it at the newest end. When there
+#      are too many, the box at the oldest end is unhooked and its key is dropped from the map.
+# The two end boxes are "guards" that hold nothing, so no step has to ask "is this the first box?".
+#
+#   use "lrucache"
+#   set recent to new LRUCache(2)
+#   recent's put("a", 1)
+#   recent's put("b", 2)
+#   recent's get_value("a")         # a is used, so b is now the oldest
+#   recent's put("c", 3)            # too many: b is forgotten
+#   say recent's has("b"), recent's keys()      # false ["c", "a"]
+
+class LRUCache
+    init with capacity
+        set me's capacity to capacity
+        set me's table to {}
+        set me's newest_end to {key: nothing, value: nothing, newer: nothing, older: nothing}
+        set me's oldest_end to {key: nothing, value: nothing, newer: nothing, older: nothing}
+        set me's newest_end's older to me's oldest_end
+        set me's oldest_end's newer to me's newest_end
+    end
+
+    define unhook with box
+        set box's newer's older to box's older
+        set box's older's newer to box's newer
+    end
+
+    define hook_as_newest with box
+        set next_older to me's newest_end's older
+        set box's newer to me's newest_end
+        set box's older to next_older
+        set next_older's newer to box
+        set me's newest_end's older to box
+    end
+
+    # The value for a key (and the key becomes the newest), or nothing if it isn't there.
+    define get_value with key
+        if not has_key(me's table, key) then
+            give back nothing
+        end
+        set box to me's table[key]
+        me's unhook(box)
+        me's hook_as_newest(box)
+        give back box's value
+    end
+
+    # Store a value. If that makes too many, the least recently used key is forgotten.
+    define put with key, value
+        if has_key(me's table, key) then
+            set box to me's table[key]
+            set box's value to value
+            me's unhook(box)
+            me's hook_as_newest(box)
+            give back nothing
+        end
+        set box to {key: key, value: value, newer: nothing, older: nothing}
+        set me's table[key] to box
+        me's hook_as_newest(box)
+        if length of me's table is greater than me's capacity then
+            set oldest to me's oldest_end's newer
+            me's unhook(oldest)
+            remove oldest's key from me's table
+        end
+    end
+
+    define has with key
+        give back has_key(me's table, key)
+    end
+
+    define size
+        give back length of me's table
+    end
+
+    # The keys, newest first.
+    define keys
+        set out to []
+        set box to me's newest_end's older
+        while box is not me's oldest_end
+            add box's key to out
+            set box to box's older
+        end
+        give back out
+    end
+end
+)PLAINLIB"},
 {"queue", R"PLAINLIB(# Queue - first in, first out.
 #
 # How it works: values are added to the end of a list, and a number called
@@ -652,6 +1069,181 @@ class Queue
 
     define to_text
         give back "Queue(front to back: " + text(slice(me's items, me's head, length of me's items)) + ")"
+    end
+end
+)PLAINLIB"},
+{"ringbuffer", R"PLAINLIB(# RingBuffer - a queue with a fixed size that goes round and round.
+#
+# How it works: a list with a fixed number of slots, a note of which slot holds the oldest value
+# ("head") and how many values there are ("count"). New values go in the next free slot, and when
+# the end of the list is reached, the next slot is the START again (that's the ring). Nothing ever
+# slides along, so putting in and taking out are both quick.
+#
+#   use "ringbuffer"
+#   set last_three to new RingBuffer(3)
+#   for each n in [1, 2, 3, 4, 5]
+#       last_three's put_overwrite(n)      # when full, the oldest value is dropped
+#   end
+#   say last_three's to_list()             # [3, 4, 5]
+
+class RingBuffer
+    init with capacity
+        set me's slots to []
+        repeat capacity times
+            add nothing to me's slots
+        end
+        set me's capacity to capacity
+        set me's head to 1
+        set me's count to 0
+    end
+
+    # Add a value. It is an error if the ring is full (see put_overwrite).
+    define put with value
+        if me's is_full() then
+            fail with "This ring buffer is full, so there is no room to put " + text(value) + ". Take something out first, or use put_overwrite."
+        end
+        set place to (me's head + me's count - 1) % me's capacity + 1
+        set me's slots[place] to value
+        increase me's count by 1
+    end
+
+    # Add a value; if the ring is full, the oldest value is dropped to make room.
+    define put_overwrite with value
+        if me's is_full() then
+            me's take()
+        end
+        me's put(value)
+    end
+
+    # Take out the oldest value.
+    define take
+        if me's is_empty() then
+            fail with "This ring buffer is empty, so there is nothing to take. Check is_empty() first."
+        end
+        set value to me's slots[me's head]
+        set me's slots[me's head] to nothing
+        set me's head to me's head % me's capacity + 1
+        decrease me's count by 1
+        give back value
+    end
+
+    define peek
+        if me's is_empty() then
+            fail with "This ring buffer is empty. Check is_empty() first."
+        end
+        give back me's slots[me's head]
+    end
+
+    define is_empty
+        give back me's count is 0
+    end
+
+    define is_full
+        give back me's count is me's capacity
+    end
+
+    define size
+        give back me's count
+    end
+
+    # The values, oldest first.
+    define to_list
+        set out to []
+        for k from 1 to me's count
+            add me's slots[(me's head + k - 2) % me's capacity + 1] to out
+        end
+        give back out
+    end
+end
+)PLAINLIB"},
+{"segmenttree", R"PLAINLIB(# SegmentTree - the sum (or the smallest) of any stretch of a list, with the list still changing.
+#
+# How it works: a list twice as long as the data. The data sits in the second half (the "leaves");
+# every slot in the first half holds the answer for its two children (sum or smallest), all the way up
+# to slot 1, which covers everything. To change one value, fix the slots above it (about log2(n) of
+# them). To ask about a stretch, take whole blocks from the bottom, climbing as blocks join up.
+#
+#   use "segmenttree"
+#   set heights to new SegmentTree([5, 2, 8, 1, 9], "min")
+#   say heights's query(2, 4)           # 1 (the smallest of items 2 to 4)
+#   heights's update(4, 7)
+#   say heights's query(2, 4)           # 2
+
+class SegmentTree
+    init with numbers, kind
+        if kind is not "sum" and kind is not "min" then
+            fail with "A segment tree answers \"sum\" or \"min\", not " + text(kind) + "."
+        end
+        set me's n to length of numbers
+        set me's kind to kind
+        set me's tree to []
+        repeat me's n times
+            add 0 to me's tree
+        end
+        for each value in numbers
+            add value to me's tree
+        end
+        for k from me's n - 1 to 1 by -1
+            me's set_node(k, me's combine(me's node(2 * k), me's node(2 * k + 1)))
+        end
+    end
+
+    # Slots are counted from 0 in the maths below, and the list from 1: these two translate.
+    define node with k
+        give back me's tree[k + 1]
+    end
+    define set_node with k, value
+        set me's tree[k + 1] to value
+    end
+
+    define combine with a, b
+        if me's kind is "sum" then
+            give back a + b
+        end
+        give back min(a, b)
+    end
+
+    # Change item p (counting from 1) to a new value.
+    define update with p, value
+        if p is less than 1 or p is greater than me's n then
+            fail with "There is no item " + text(p) + ": this tree has items 1 to " + text(me's n) + "."
+        end
+        set k to p - 1 + me's n
+        me's set_node(k, value)
+        while k is greater than 1
+            set k to quotient(k, 2)
+            me's set_node(k, me's combine(me's node(2 * k), me's node(2 * k + 1)))
+        end
+    end
+
+    # The sum (or smallest) of items a to b.
+    define query with a, b
+        if a is less than 1 or b is greater than me's n or a is greater than b then
+            fail with "Ask about items 1 to " + text(me's n) + ", with the first not after the last."
+        end
+        set left_at to a - 1 + me's n
+        set right_at to b + me's n
+        set result to nothing
+        while left_at is less than right_at
+            if left_at % 2 is 1 then
+                set result to me's join_with(result, me's node(left_at))
+                increase left_at by 1
+            end
+            if right_at % 2 is 1 then
+                decrease right_at by 1
+                set result to me's join_with(result, me's node(right_at))
+            end
+            set left_at to quotient(left_at, 2)
+            set right_at to quotient(right_at, 2)
+        end
+        give back result
+    end
+
+    define join_with with so_far, value
+        if so_far is nothing then
+            give back value
+        end
+        give back me's combine(so_far, value)
     end
 end
 )PLAINLIB"},
@@ -879,6 +1471,172 @@ class Tree
     end
 end
 )PLAINLIB"},
+{"trie", R"PLAINLIB(# Trie - words stored letter by letter, so words that start the same share their start.
+#
+# How it works: the trie is a tree of little boxes. Every box holds one letter and a list of the
+# boxes for the letters that can come next. A box also remembers whether a word ENDS there. To add
+# "app" and "apple": a, p, p (ends here), then l, e (ends here) - the first three boxes are shared.
+# Finding every word with a prefix means walking down the prefix, then collecting what hangs below.
+#
+#   use "trie"
+#   set words to new Trie()
+#   words's put("app")
+#   words's put("apple")
+#   say words's starts_with("ap")             # true
+#   say words's words_with_prefix("app")      # ["app", "apple"]
+
+class Trie
+    init
+        set me's root to {value: "", children: [], ends: false}
+        set me's count to 0
+    end
+
+    # The box for this letter below a box, or nothing.
+    define child_of with node, letter
+        for each kid in node's children
+            if kid's value is letter then
+                give back kid
+            end
+        end
+        give back nothing
+    end
+
+    # Walk down the letters of some text. Gives back the box where it ends, or nothing.
+    define find_node with letters
+        set node to me's root
+        for each letter in letters
+            set node to me's child_of(node, letter)
+            if node is nothing then
+                give back nothing
+            end
+        end
+        give back node
+    end
+
+    define put with word
+        set node to me's root
+        for each letter in word
+            set kid to me's child_of(node, letter)
+            if kid is nothing then
+                set kid to {value: letter, children: [], ends: false}
+                add kid to node's children
+            end
+            set node to kid
+        end
+        if not node's ends then
+            set node's ends to true
+            increase me's count by 1
+        end
+    end
+
+    # Is this exact word in the trie?
+    define has with word
+        set node to me's find_node(word)
+        give back node is not nothing and node's ends
+    end
+
+    # Does any word start with this?
+    define starts_with with prefix
+        give back me's find_node(prefix) is not nothing
+    end
+
+    # Every word that starts with the prefix, sorted.
+    define words_with_prefix with prefix
+        set found to []
+        set node to me's find_node(prefix)
+        if node is not nothing then
+            me's collect(node, prefix, found)
+        end
+        give back sort(found)
+    end
+
+    define collect with node, so_far, found
+        if node's ends then
+            add so_far to found
+        end
+        for each kid in node's children
+            me's collect(kid, so_far + kid's value, found)
+        end
+    end
+
+    define size
+        give back me's count
+    end
+end
+)PLAINLIB"},
+{"unionfind", R"PLAINLIB(# UnionFind - keeps track of which things belong to the same group, as groups merge.
+#
+# How it works: every thing (numbered 1 to n) points at a "parent". A thing that points at itself is
+# the leader of its group. To find the group of x, follow the parents up to the leader. To join two
+# groups, make one leader point at the other. Two tricks keep the paths short: always hang the
+# smaller group under the bigger one, and, while looking for a leader, point everything you pass
+# straight at it ("path compression"). Together they make each step nearly constant time.
+#
+#   use "unionfind"
+#   set friends to new UnionFind(5)
+#   friends's connect(1, 2)
+#   friends's connect(2, 3)
+#   say friends's same_group(1, 3)      # true
+#   say friends's groups()              # 3  ({1,2,3}, {4}, {5})
+
+class UnionFind
+    init with n
+        set me's parent to []
+        set me's group_size to []
+        for i from 1 to n
+            add i to me's parent
+            add 1 to me's group_size
+        end
+        set me's group_count to n
+    end
+
+    # The leader of the group x is in.
+    define find_root with x
+        set root to x
+        while me's parent[root] is not root
+            set root to me's parent[root]
+        end
+        while me's parent[x] is not root
+            set next_x to me's parent[x]
+            set me's parent[x] to root
+            set x to next_x
+        end
+        give back root
+    end
+
+    # Join the groups of a and b. Gives back false if they were already together.
+    define connect with a, b
+        set root_a to me's find_root(a)
+        set root_b to me's find_root(b)
+        if root_a is root_b then
+            give back false
+        end
+        if me's group_size[root_a] is less than me's group_size[root_b] then
+            set held to root_a
+            set root_a to root_b
+            set root_b to held
+        end
+        set me's parent[root_b] to root_a
+        increase me's group_size[root_a] by me's group_size[root_b]
+        decrease me's group_count by 1
+        give back true
+    end
+
+    define same_group with a, b
+        give back me's find_root(a) is me's find_root(b)
+    end
+
+    # How many things are in the group of x.
+    define size_of with x
+        give back me's group_size[me's find_root(x)]
+    end
+
+    # How many separate groups there are.
+    define groups
+        give back me's group_count
+    end
+end
+)PLAINLIB"},
 {"unique", R"PLAINLIB(# Unique - a group of values with no repeats (what other languages call a "set").
 # ("set" is already a Plain word, so this one is called Unique.)
 #
@@ -1009,6 +1767,46 @@ define __reference with first, second
 end
 # --- end solution ---
 )PLAINLIB"},
+{"problems/autocomplete", R"PLAINLIB(set __problem to {
+    order: 40,
+    title: "Autocomplete",
+    topic: "tries",
+    level: 2,
+    function: "autocomplete",
+    params: "words, prefix",
+    statement: "Give back every different word from the list that starts with the prefix, in alphabetical order. The same word may appear in the list more than once, but should appear only once in the answer. An empty prefix matches everything.",
+    examples: [
+        {args: [["apple", "app", "apricot", "banana"], "ap"], expect: ["app", "apple", "apricot"]},
+        {args: [["apple", "app", "apricot", "banana"], "b"], expect: ["banana"]},
+        {args: [["apple", "app", "apricot", "banana"], "z"], expect: []}
+    ],
+    hints: [
+        "You could test every word with starts_with. Fine for a short list; for a big dictionary asked many times it repeats work.",
+        "A trie shares the beginnings of words: a box per letter, with the next letters hanging below. Words that start the same share their first boxes.",
+        "Put every word into a Trie (use \"trie\"). To answer a prefix, walk down its letters and collect everything below. The library's words_with_prefix does exactly that; try writing the walk yourself."
+    ],
+    hidden: [
+        {args: [[], "a"], expect: [], note: "no words"},
+        {args: [["a", "ab", "abc"], ""], expect: ["a", "ab", "abc"], note: "an empty prefix"},
+        {args: [["dog", "do", "dot"], "do"], expect: ["do", "dog", "dot"], note: "the prefix is itself a word"},
+        {args: [["go", "go", "gone"], "g"], expect: ["go", "gone"], note: "a repeated word"},
+        {args: [map_each(range(1, 3000), action with i gives "w" + text(i % 700)), "w69"], expect: ["w69", "w690", "w691", "w692", "w693", "w694", "w695", "w696", "w697", "w698", "w699"], note: "3,000 words"}
+    ],
+    complexity: "O(total letters) to build; O(prefix + answers) per question",
+    explanation: "A trie stores each word as a path of letters from a shared root, so words with the same start share the same boxes. To find all words with a prefix, follow the prefix's letters down (if the path breaks, nothing matches) and then collect every word-ending below that point. The work depends on the length of the prefix and the size of the answer, not on how many words are stored."
+}
+# --- solution ---
+use "trie"
+
+define __reference with words, prefix
+    set dictionary to new Trie()
+    for each word in words
+        dictionary's put(word)
+    end
+    give back dictionary's words_with_prefix(prefix)
+end
+# --- end solution ---
+)PLAINLIB"},
 {"problems/binary-search", R"PLAINLIB(set __problem to {
     order: 19,
     title: "Binary Search",
@@ -1055,6 +1853,171 @@ define __reference with numbers, target
 end
 # --- end solution ---
 )PLAINLIB"},
+{"problems/cheapest-route", R"PLAINLIB(set __problem to {
+    order: 49,
+    title: "Cheapest Route",
+    topic: "advanced graphs",
+    level: 3,
+    function: "cheapest_route",
+    params: "roads, start, goal",
+    statement: "Each road is [from, to, cost] and can only be used in that direction. Give back the smallest total cost to get from start to goal, or -1 if you can't get there. Costs are positive. Going from a place to itself costs 0.",
+    examples: [
+        {args: [[["A", "B", 1], ["B", "C", 2], ["A", "C", 5]], "A", "C"], expect: 3},
+        {args: [[["A", "B", 1]], "B", "A"], expect: -1},
+        {args: [[["A", "B", 1]], "A", "A"], expect: 0}
+    ],
+    hints: [
+        "Fewest roads is not the same as lowest cost: a longer way round can be cheaper. A plain breadth-first search is not enough.",
+        "Keep the best known cost to each place. Always explore next the unexplored place with the LOWEST known cost: its cost can't be improved any more, because all costs are positive.",
+        "A PriorityQueue (use \"heap\") gives you 'the cheapest place so far' quickly: put(place, cost), take(). When you take a place with a worse cost than recorded, skip it. This is Dijkstra's algorithm."
+    ],
+    hidden: [
+        {args: [[["A", "B", 4], ["A", "C", 1], ["C", "B", 2], ["B", "D", 5], ["C", "D", 10]], "A", "D"], expect: 8, note: "the cheapest way is not the shortest"},
+        {args: [[["A", "B", 1], ["C", "D", 1]], "A", "D"], expect: -1, note: "two separate parts"},
+        {args: [[], "A", "B"], expect: -1, note: "no roads"},
+        {args: [[[1, 2, 7], [1, 3, 9], [1, 6, 14], [2, 3, 10], [2, 4, 15], [3, 4, 11], [3, 6, 2], [4, 5, 6], [6, 5, 9]], 1, 5], expect: 20, note: "numbers as place names"},
+        {args: [__ladder(2000), 1, 2000], expect: 1999, note: "a long chain of roads with dearer shortcuts"}
+    ],
+    complexity: "O((roads + places) log places) time",
+    explanation: "Dijkstra's algorithm explores places in order of their best known cost. A priority queue always hands back the cheapest place not yet finished; because every cost is positive, once a place is the cheapest remaining, no later route can reach it more cheaply, so its cost is final. From it, each road offers a possible better cost for its neighbour; if it is better than the best known, it is recorded and the neighbour is queued. A place taken from the queue with an out-of-date (too high) cost is skipped. When the goal is taken, its cost is the answer."
+}
+define __ladder with n
+    set roads to []
+    for i from 1 to n - 1
+        add [i, i + 1, 1] to roads
+        if i + 2 is at most n then
+            add [i, i + 2, 5] to roads
+        end
+    end
+    give back roads
+end
+# --- solution ---
+use "heap"
+
+define __reference with roads, start, goal
+    set leaving to {}
+    for each road in roads
+        if not has_key(leaving, road[1]) then
+            set leaving[road[1]] to []
+        end
+        add road to leaving[road[1]]
+    end
+    set best to {}
+    set best[start] to 0
+    set waiting to new PriorityQueue()
+    waiting's put(start, 0)
+    set done to {}
+    while not waiting's is_empty()
+        set place to waiting's take()
+        if not has_key(done, place) then
+            set done[place] to true
+            if place is goal then
+                give back best[place]
+            end
+            if has_key(leaving, place) then
+                for each road in leaving[place]
+                    set cost to best[place] + road[3]
+                    if not has_key(best, road[2]) or cost is less than best[road[2]] then
+                        set best[road[2]] to cost
+                        waiting's put(road[2], cost)
+                    end
+                end
+            end
+        end
+    end
+    give back -1
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/climbing-stairs", R"PLAINLIB(set __problem to {
+    order: 31,
+    title: "Climbing Stairs",
+    topic: "dynamic programming",
+    level: 2,
+    function: "climb_ways",
+    params: "n",
+    statement: "You climb a staircase of n steps, taking 1 or 2 steps at a time. Give back how many different ways there are to reach the top (n is at least 1).",
+    examples: [
+        {args: [1], expect: 1},
+        {args: [2], expect: 2},
+        {args: [3], expect: 3}
+    ],
+    hints: [
+        "Think about the very last move. You arrived at step n either from step n - 1 (one step) or from step n - 2 (two steps).",
+        "So ways(n) = ways(n - 1) + ways(n - 2). That looks familiar: the same shape as the Fibonacci numbers.",
+        "Written as plain recursion it repeats the same work over and over and is hopeless for n = 45. Remember each answer: build ways(1), ways(2), ways(3) ... upwards, keeping only the last two."
+    ],
+    hidden: [
+        {args: [4], expect: 5},
+        {args: [10], expect: 89},
+        {args: [30], expect: 1346269, note: "slow if the same sub-answers are worked out again and again"},
+        {args: [45], expect: 1836311903, note: "far too many ways to count one at a time"}
+    ],
+    complexity: "O(n) time, O(1) extra space",
+    explanation: "This is a dynamic programming problem: the answer for n is made of the answers for smaller n, and the same smaller answers are needed again and again. Instead of recursing from the top (which recomputes them exponentially often), work from the bottom and keep what you need: the ways to reach the previous two steps. Each new step is just their sum, so n steps take n additions."
+}
+# --- solution ---
+define __reference with n
+    set two_back to 1
+    set one_back to 1
+    repeat n - 1 times
+        set next_ways to one_back + two_back
+        set two_back to one_back
+        set one_back to next_ways
+    end
+    give back one_back
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/coin-change", R"PLAINLIB(set __problem to {
+    order: 32,
+    title: "Fewest Coins",
+    topic: "dynamic programming",
+    level: 3,
+    function: "fewest_coins",
+    params: "coins, amount",
+    statement: "You have unlimited coins of each value in the list. Give back the smallest number of coins that add up to exactly the amount, or -1 if it can't be done. An amount of 0 needs 0 coins.",
+    examples: [
+        {args: [[1, 2, 5], 11], expect: 3},
+        {args: [[2], 3], expect: -1},
+        {args: [[1], 0], expect: 0}
+    ],
+    hints: [
+        "Picking the biggest coin each time (the greedy way) is not always right: with coins 1, 3, 4 and amount 6 it gives 4 + 1 + 1 (3 coins), but 3 + 3 uses 2.",
+        "Let best[a] be the fewest coins for amount a. For a coin c, best[a] could be 1 + best[a - c]. Try every coin and keep the smallest.",
+        "Fill a list best[0..amount] from 0 upwards (best[0] = 0). Use a huge number for 'not possible yet', and turn it into -1 at the end."
+    ],
+    hidden: [
+        {args: [[1, 5, 10, 25], 63], expect: 6},
+        {args: [[1, 3, 4], 6], expect: 2, note: "the greedy way gives the wrong answer"},
+        {args: [[2, 5, 10, 1], 27], expect: 4},
+        {args: [[5, 7], 3], expect: -1},
+        {args: [[186, 419, 83, 408], 6249], expect: 20},
+        {args: [[1, 2, 5], 10000], expect: 2000, note: "a big amount (trying every combination is hopeless)"}
+    ],
+    complexity: "O(amount x coins) time, O(amount) extra space",
+    explanation: "The fewest coins for an amount a is 1 + the fewest for a - c, for whichever coin c leaves the best result. Those smaller amounts are needed by many bigger ones, so they are worked out once, in order from 0 up, and stored in a list. 'Impossible' is stored as a number too big to ever win a comparison. The greedy idea of always taking the biggest coin fails for some coin sets, which is why the table is needed."
+}
+# --- solution ---
+define __reference with coins, amount
+    set impossible to amount + 1
+    set best to [0]
+    for a from 1 to amount
+        set fewest to impossible
+        for each coin in coins
+            if coin is at most a and best[a - coin + 1] + 1 is less than fewest then
+                set fewest to best[a - coin + 1] + 1
+            end
+        end
+        add fewest to best
+    end
+    if best[amount + 1] is at least impossible then
+        give back -1
+    end
+    give back best[amount + 1]
+end
+# --- end solution ---
+)PLAINLIB"},
 {"problems/count-paths", R"PLAINLIB(set __problem to {
     order: 13,
     title: "Grid Paths",
@@ -1095,6 +2058,137 @@ define __reference with rows, columns
         end
     end
     give back row[columns]
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/count-provinces", R"PLAINLIB(set __problem to {
+    order: 42,
+    title: "Count the Groups",
+    topic: "union-find",
+    level: 3,
+    function: "count_groups",
+    params: "connected",
+    statement: "There are n cities. connected is an n by n table: connected[i][j] is 1 if city i and city j are directly linked (and 0 if not; every city is linked to itself). Links can be passed along: if A-B and B-C are linked, A and C are in the same group. Give back how many separate groups of cities there are.",
+    examples: [
+        {args: [[[1, 1, 0], [1, 1, 0], [0, 0, 1]]], expect: 2},
+        {args: [[[1, 0, 0], [0, 1, 0], [0, 0, 1]]], expect: 3},
+        {args: [[[1]]], expect: 1}
+    ],
+    hints: [
+        "Start by thinking every city is its own group. Each link may join two groups into one.",
+        "Count groups: begin with n, and subtract 1 every time a link joins two cities that were in DIFFERENT groups.",
+        "A UnionFind (use \"unionfind\") does exactly this: connect(a, b) returns true when it really merged two groups, and groups() tells you how many are left."
+    ],
+    hidden: [
+        {args: [[]], expect: 0, note: "no cities"},
+        {args: [[[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]], expect: 1, note: "everything linked"},
+        {args: [[[1, 1, 0, 0], [1, 1, 1, 0], [0, 1, 1, 0], [0, 0, 0, 1]]], expect: 2, note: "a link passed along through a middle city"},
+        {args: [[[1, 0, 0, 1], [0, 1, 1, 0], [0, 1, 1, 1], [1, 0, 1, 1]]], expect: 1},
+        {args: [__identity(200)], expect: 200, note: "200 cities and no links"}
+    ],
+    complexity: "O(n^2) time to read the table (union-find work is nearly constant per link)",
+    explanation: "Begin with every city in its own group, so n groups. Go through each link: if its two cities are already in the same group, nothing changes; if not, joining their groups reduces the number of groups by 1. A union-find structure answers 'are these in the same group?' and 'join these groups' in almost constant time, thanks to keeping the groups as trees and shortening paths as it goes. The count left at the end is the answer."
+}
+define __identity with n
+    set rows to []
+    for i from 1 to n
+        set row to []
+        for j from 1 to n
+            if i is j then
+                add 1 to row
+            otherwise
+                add 0 to row
+            end
+        end
+        add row to rows
+    end
+    give back rows
+end
+# --- solution ---
+use "unionfind"
+
+define __reference with connected
+    set n to length of connected
+    set cities to new UnionFind(n)
+    for i from 1 to n
+        for j from i + 1 to n
+            if connected[i][j] is 1 then
+                cities's connect(i, j)
+            end
+        end
+    end
+    give back cities's groups()
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/course-schedule", R"PLAINLIB(set __problem to {
+    order: 50,
+    title: "Course Schedule",
+    topic: "advanced graphs",
+    level: 3,
+    function: "can_finish",
+    params: "courses, requirements",
+    statement: "There are courses numbered 1 to courses. Each requirement [a, b] means course b must be taken BEFORE course a. Give back true if it is possible to take all the courses, or false if the requirements go round in a circle (so some course could never be taken).",
+    examples: [
+        {args: [2, [[2, 1]]], expect: true},
+        {args: [2, [[2, 1], [1, 2]]], expect: false},
+        {args: [1, []], expect: true}
+    ],
+    hints: [
+        "Draw a road from b to a for each requirement [a, b]. You can finish everything exactly when there is no loop in these roads.",
+        "A course you can take right now is one with no unfinished requirements. Take one of those, then see which other courses it unlocks.",
+        "Count each course's unfinished requirements. Put the courses with count 0 in a Queue. Take one, lower the count of the courses that needed it, and queue any that reach 0. If you managed to take all of them, there was no loop. (The library's DirectedGraph has topological_order, which does exactly this.)"
+    ],
+    hidden: [
+        {args: [3, [[1, 2], [2, 3]]], expect: true},
+        {args: [4, [[2, 1], [3, 2], [4, 3], [2, 4]]], expect: false, note: "a loop of three courses hidden among others"},
+        {args: [3, [[1, 1]]], expect: false, note: "a course that needs itself"},
+        {args: [5, []], expect: true, note: "no requirements"},
+        {args: [3000, __chain_requirements(3000)], expect: true, note: "a very long chain"},
+        {args: [3000, __chain_requirements(3000) + [[1, 3000]]], expect: false, note: "a very long chain that finally loops back"}
+    ],
+    complexity: "O(courses + requirements) time",
+    explanation: "Taking the courses in an order where every course comes after its requirements is a topological ordering, and one exists exactly when the requirement graph has no loop. Kahn's method builds one: count each course's unmet requirements, queue those with none, and repeatedly take a course and remove it from the counts of the courses that needed it. If every course ends up taken, the answer is true; if some are left with unmet requirements, they must be tied in a loop."
+}
+define __chain_requirements with n
+    set out to []
+    for i from 1 to n - 1
+        add [i + 1, i] to out
+    end
+    give back out
+end
+# --- solution ---
+use "queue"
+
+define __reference with courses, requirements
+    set needs to []
+    set unlocks to []
+    repeat courses times
+        add 0 to needs
+        add [] to unlocks
+    end
+    for each requirement in requirements
+        increase needs[requirement[1]] by 1
+        add requirement[1] to unlocks[requirement[2]]
+    end
+    set ready to new Queue()
+    for course from 1 to courses
+        if needs[course] is 0 then
+            ready's enqueue(course)
+        end
+    end
+    set taken to 0
+    while not ready's is_empty()
+        set course to ready's dequeue()
+        increase taken by 1
+        for each next_course in unlocks[course]
+            decrease needs[next_course] by 1
+            if needs[next_course] is 0 then
+                ready's enqueue(next_course)
+            end
+        end
+    end
+    give back taken is courses
 end
 # --- end solution ---
 )PLAINLIB"},
@@ -1143,6 +2237,64 @@ define __reference with temperatures
         waiting's push(day)
     end
     give back answers
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/edit-distance", R"PLAINLIB(set __problem to {
+    order: 34,
+    title: "Edit Distance",
+    topic: "dynamic programming",
+    level: 3,
+    function: "edit_distance",
+    params: "from_text, to_text",
+    statement: "You may insert a letter, delete a letter or change a letter. Give back the fewest changes needed to turn the first text into the second.",
+    examples: [
+        {args: ["horse", "ros"], expect: 3},
+        {args: ["intention", "execution"], expect: 5},
+        {args: ["", "abc"], expect: 3}
+    ],
+    hints: [
+        "Work with the ends of the texts. If the last letters are equal, they cost nothing: the answer is the answer for the texts without them.",
+        "If they differ, you must do one change at the end: change a letter, delete one, or insert one. Each leaves a smaller problem. Take the cheapest, plus 1.",
+        "Make a grid: d[i][j] is the cost of turning the first i letters of one text into the first j of the other. Row 0 is 0, 1, 2, ... (inserting) and column 0 likewise (deleting)."
+    ],
+    hidden: [
+        {args: ["abc", "abc"], expect: 0, note: "already the same"},
+        {args: ["kitten", "sitting"], expect: 3},
+        {args: ["sunday", "saturday"], expect: 3},
+        {args: ["abc", ""], expect: 3, note: "deleting everything"},
+        {args: ["a", "b"], expect: 1},
+        {args: [join(map_each(range(1, 200), action with i gives "a"), ""), join(map_each(range(1, 200), action with i gives "b"), "")], expect: 200, note: "two long texts with nothing in common"}
+    ],
+    complexity: "O(n x m) time",
+    explanation: "d(i, j) is the fewest changes to turn the first i letters of one text into the first j of the other. If the i-th and j-th letters match, d(i, j) = d(i - 1, j - 1). Otherwise it is 1 + the smallest of d(i - 1, j - 1) (change a letter), d(i - 1, j) (delete) and d(i, j - 1) (insert). The first row and column are plain counts (turning a text into nothing deletes every letter). Filling the grid row by row works out each case once. Spell checkers and DNA comparison use this."
+}
+# --- solution ---
+define __reference with from_text, to_text
+    set a to []
+    for each ch in from_text
+        add ch to a
+    end
+    set b to []
+    for each ch in to_text
+        add ch to b
+    end
+    set previous to []
+    for j from 0 to length of b
+        add j to previous
+    end
+    for i from 1 to length of a
+        set current to [i]
+        for j from 1 to length of b
+            if a[i] is b[j] then
+                add previous[j] to current
+            otherwise
+                add 1 + min(previous[j], previous[j + 1], current[j]) to current
+            end
+        end
+        set previous to current
+    end
+    give back previous[length of b + 1]
 end
 # --- end solution ---
 )PLAINLIB"},
@@ -1330,6 +2482,69 @@ define __reference with items
         end
     end
     give back result
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/generate-parentheses", R"PLAINLIB(set __problem to {
+    order: 46,
+    title: "Matching Brackets",
+    topic: "backtracking",
+    level: 3,
+    function: "all_brackets",
+    params: "n",
+    statement: "Give back every way to write n pairs of round brackets so that they are properly matched, such as \"(())\" and \"()()\" for n = 2. Give them in alphabetical order (\"(\" comes before \")\").",
+    examples: [
+        {args: [1], expect: ["()"]},
+        {args: [2], expect: ["(())", "()()"]},
+        {args: [3], expect: ["((()))", "(()())", "(())()", "()(())", "()()()"]}
+    ],
+    hints: [
+        "Build the text one character at a time. At each step you may add an opening bracket or a closing one, but not always.",
+        "You may add \"(\" while you have used fewer than n of them. You may add \")\" only while there are more opening brackets so far than closing ones.",
+        "If you try \"(\" before \")\" at every step, the answers come out in alphabetical order by themselves. When the text has 2n characters, add it to the answer."
+    ],
+    hidden: [
+        {args: [4], expect: ["(((())))", "((()()))", "((())())", "((()))()", "(()(()))", "(()()())", "(()())()", "(())(())", "(())()()", "()((()))", "()(()())", "()(())()", "()()(())", "()()()()"]},
+        {args: [5], expect: __all_by_splitting(5), note: "42 of them (checked against a completely different way of building them)"},
+        {args: [6], expect: __all_by_splitting(6), note: "132 of them"},
+        {args: [7], expect: __all_by_splitting(7), note: "429 of them"}
+    ],
+    complexity: "About 4^n / sqrt(n) answers (the Catalan number), each of length 2n",
+    explanation: "A text of brackets is matched exactly when no prefix has more closing than opening brackets and the totals are equal. So build the text left to right, adding \"(\" while fewer than n have been used and \")\" while it would not exceed the opening count. Only valid prefixes are ever extended, so no dead ends are explored. Because \"(\" is tried before \")\" everywhere, the finished texts appear in alphabetical order. The number of answers grows as the Catalan numbers: 1, 2, 5, 14, 42, ..."
+}
+# an independent way to build the answers, for the larger test: split at the first pair
+define __all_by_splitting with n
+    if n is 0 then
+        give back [""]
+    end
+    set out to []
+    for inside from 0 to n - 1
+        for each a in __all_by_splitting(inside)
+            for each b in __all_by_splitting(n - 1 - inside)
+                add "(" + a + ")" + b to out
+            end
+        end
+    end
+    give back sort(out)
+end
+# --- solution ---
+define build with so_far, opened, closed, n, found
+    if length of so_far is 2 * n then
+        add so_far to found
+        give back nothing
+    end
+    if opened is less than n then
+        build(so_far + "(", opened + 1, closed, n, found)
+    end
+    if closed is less than opened then
+        build(so_far + ")", opened, closed + 1, n, found)
+    end
+end
+
+define __reference with n
+    set found to []
+    build("", 0, 0, n, found)
+    give back found
 end
 # --- end solution ---
 )PLAINLIB"},
@@ -1681,6 +2896,52 @@ define __reference with tree
 end
 # --- end solution ---
 )PLAINLIB"},
+{"problems/knapsack", R"PLAINLIB(set __problem to {
+    order: 35,
+    title: "Knapsack",
+    topic: "dynamic programming",
+    level: 3,
+    function: "knapsack",
+    params: "weights, values, capacity",
+    statement: "Item k weighs weights[k] and is worth values[k]. You can carry total weight up to capacity, and each item can be taken at most once. Give back the biggest total value you can carry.",
+    examples: [
+        {args: [[1, 3, 4, 5], [1, 4, 5, 7], 7], expect: 9},
+        {args: [[10], [5], 5], expect: 0},
+        {args: [[1, 1, 1], [10, 20, 30], 2], expect: 50}
+    ],
+    hints: [
+        "For each item you decide: take it or leave it. Trying every choice is 2 to the power of the number of items.",
+        "Let best[w] be the best value using total weight at most w, with the items looked at so far. A new item of weight c and value v can improve best[w] to best[w - c] + v.",
+        "Handle one item at a time. Go through w from the capacity DOWN to the item's weight, so that an item is never used twice."
+    ],
+    hidden: [
+        {args: [[5, 4, 6, 3], [10, 40, 30, 50], 10], expect: 90},
+        {args: [[2, 3, 4, 5], [3, 4, 5, 6], 5], expect: 7},
+        {args: [[3], [4], 3], expect: 4, note: "one item that exactly fits"},
+        {args: [[], [], 10], expect: 0, note: "nothing to take"},
+        {args: [map_each(range(1, 100), action with i gives 1), map_each(range(1, 100), action with i gives 1), 50], expect: 50, note: "100 items (trying every choice is hopeless)"}
+    ],
+    complexity: "O(items x capacity) time, O(capacity) extra space",
+    explanation: "best[w] holds the best value reachable with weight at most w using the items seen so far. Adding an item of weight c and value v can only help the cells w >= c: best[w] = max(best[w], best[w - c] + v). Going through w from high to low means best[w - c] still describes the situation BEFORE this item, so the item is used at most once. After all items, best[capacity] is the answer. The table has capacity cells and each item makes one pass, instead of the 2^items choices."
+}
+# --- solution ---
+define __reference with weights, values, capacity
+    set best to []
+    repeat capacity + 1 times
+        add 0 to best
+    end
+    for k from 1 to length of weights
+        for w from capacity to weights[k] by -1
+            set with_item to best[w - weights[k] + 1] + values[k]
+            if with_item is greater than best[w + 1] then
+                set best[w + 1] to with_item
+            end
+        end
+    end
+    give back best[capacity + 1]
+end
+# --- end solution ---
+)PLAINLIB"},
 {"problems/kth-largest", R"PLAINLIB(set __problem to {
     order: 18,
     title: "K-th Largest",
@@ -1757,6 +3018,115 @@ define __reference with words
 end
 # --- end solution ---
 )PLAINLIB"},
+{"problems/longest-common-subsequence", R"PLAINLIB(set __problem to {
+    order: 33,
+    title: "Longest Common Subsequence",
+    topic: "dynamic programming",
+    level: 3,
+    function: "common_subsequence_length",
+    params: "first, second",
+    statement: "A subsequence keeps letters in order but may skip some: \"ace\" is a subsequence of \"abcde\". Give back the length of the longest subsequence that both texts share.",
+    examples: [
+        {args: ["abcde", "ace"], expect: 3},
+        {args: ["abc", "abc"], expect: 3},
+        {args: ["abc", "def"], expect: 0}
+    ],
+    hints: [
+        "Compare the last letters. If they are equal, they can both be part of the answer: 1 + the answer for both texts without their last letters.",
+        "If they differ, at least one of them is not used: take the better of (without the last of the first) and (without the last of the second).",
+        "Build a grid: row i, column j holds the answer for the first i letters of one text and the first j of the other. Row 0 and column 0 are all 0. You only need to keep the previous row."
+    ],
+    hidden: [
+        {args: ["AGGTAB", "GXTXAYB"], expect: 4},
+        {args: ["", "abc"], expect: 0, note: "an empty text"},
+        {args: ["abcbdab", "bdcaba"], expect: 4},
+        {args: ["abc", "cba"], expect: 1},
+        {args: [join(map_each(range(1, 300), action with i gives "a"), ""), join(map_each(range(1, 300), action with i gives "a"), "")], expect: 300, note: "two long texts (trying every subsequence is hopeless)"}
+    ],
+    complexity: "O(n x m) time, O(m) extra space",
+    explanation: "Let L(i, j) be the answer for the first i letters of one text and the first j of the other. If letter i and letter j match, L(i, j) = L(i - 1, j - 1) + 1. If not, the better of L(i - 1, j) and L(i, j - 1). Every L is built from three neighbours already worked out, so filling the grid row by row takes n x m steps instead of the 2^n subsequences. Only the previous row is ever needed."
+}
+# --- solution ---
+define __reference with first, second
+    set letters_a to []
+    for each ch in first
+        add ch to letters_a
+    end
+    set letters_b to []
+    for each ch in second
+        add ch to letters_b
+    end
+    set previous to []
+    repeat length of letters_b + 1 times
+        add 0 to previous
+    end
+    for i from 1 to length of letters_a
+        set current to [0]
+        for j from 1 to length of letters_b
+            if letters_a[i] is letters_b[j] then
+                add previous[j] + 1 to current
+            otherwise
+                add max(previous[j + 1], current[j]) to current
+            end
+        end
+        set previous to current
+    end
+    give back previous[length of letters_b + 1]
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/longest-increasing", R"PLAINLIB(set __problem to {
+    order: 36,
+    title: "Longest Climb",
+    topic: "dynamic programming",
+    level: 3,
+    function: "longest_increasing",
+    params: "numbers",
+    statement: "Give back the length of the longest run of numbers you can pick from the list, left to right (skipping is allowed), where each picked number is bigger than the one before.",
+    examples: [
+        {args: [[10, 9, 2, 5, 3, 7, 101, 18]], expect: 4},
+        {args: [[0, 1, 0, 3, 2, 3]], expect: 4},
+        {args: [[7, 7, 7, 7]], expect: 1}
+    ],
+    hints: [
+        "For each number, ask: how long is the longest climb that ENDS here? Look at every earlier smaller number and add 1 to the best of their answers.",
+        "That works in n x n steps. For a really long list you can do better: keep, for each climb length, the smallest number that can end a climb of that length.",
+        "Those 'smallest ends' are always in increasing order, so each new number can find its place with a binary search (replace the first end that is at least as big, or add a new one at the end). The list length is the answer."
+    ],
+    hidden: [
+        {args: [[1, 3, 6, 7, 9, 4, 10, 5, 6]], expect: 6},
+        {args: [[]], expect: 0, note: "an empty list"},
+        {args: [[5, 4, 3, 2, 1]], expect: 1, note: "always going down"},
+        {args: [[2, 2, 3, 3]], expect: 2, note: "equal numbers do not count as bigger"},
+        {args: [range(1, 6000)], expect: 6000, note: "6,000 numbers (checking every earlier number is too slow)"}
+    ],
+    complexity: "O(n log n) time",
+    explanation: "The simple table (best climb ending at each position, looking back at every smaller number) costs n^2. The faster idea keeps tails[k] = the smallest number that ends any climb of length k + 1. That list is always increasing, so a new number either extends the longest climb (it is bigger than every tail: add it) or improves one tail (it replaces the first tail that is at least as big - found by binary search). The length of tails is the answer, though tails itself is not necessarily a real climb."
+}
+# --- solution ---
+define __reference with numbers
+    set tails to []
+    for each value in numbers
+        set low to 1
+        set high to length of tails + 1
+        while low is less than high
+            set middle to quotient(low + high, 2)
+            if tails[middle] is less than value then
+                set low to middle + 1
+            otherwise
+                set high to middle
+            end
+        end
+        if low is length of tails + 1 then
+            add value to tails
+        otherwise
+            set tails[low] to value
+        end
+    end
+    give back length of tails
+end
+# --- end solution ---
+)PLAINLIB"},
 {"problems/max-subarray", R"PLAINLIB(set __problem to {
     order: 2,
     title: "Biggest Run",
@@ -1794,6 +3164,155 @@ define __reference with numbers
         set best to max(best, running)
     end
     give back best
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/meeting-rooms", R"PLAINLIB(set __problem to {
+    order: 48,
+    title: "Meeting Rooms",
+    topic: "intervals",
+    level: 3,
+    function: "rooms_needed",
+    params: "meetings",
+    statement: "Each meeting is a pair [start, end]. A meeting that ends exactly when another starts does not overlap it. Give back the fewest rooms needed so that no two meetings in the same room overlap.",
+    examples: [
+        {args: [[[0, 30], [5, 10], [15, 20]]], expect: 2},
+        {args: [[[7, 10], [2, 4]]], expect: 1},
+        {args: [[]], expect: 0}
+    ],
+    hints: [
+        "The number of rooms you need is the most meetings that are going on at the same moment.",
+        "Sort the meetings by start time. As you meet each new meeting, ask: has the earliest-ending meeting still in progress already finished?",
+        "Keep the end times of the meetings in progress in a Heap (smallest on top). If the top is at most the new start, that room is free: remove it. Then add the new end. The biggest the heap ever gets is the answer."
+    ],
+    hidden: [
+        {args: [[[1, 5], [2, 6], [3, 7]]], expect: 3, note: "all overlap"},
+        {args: [[[1, 2], [2, 3]]], expect: 1, note: "touching is not overlapping"},
+        {args: [[[9, 10], [4, 9], [4, 17]]], expect: 2},
+        {args: [map_each(range(1, 1000), action with i gives [0, 10])], expect: 1000, note: "1,000 meetings at once"},
+        {args: [map_each(range(1, 1000), action with i gives [i, i + 1])], expect: 1, note: "1,000 meetings one after another"}
+    ],
+    complexity: "O(n log n) time",
+    explanation: "Process meetings in order of start time and track the end times of those still running in a min-heap. For a new meeting, if the earliest end among the running ones is not after the new start, that meeting is over and its room can be reused (pop it); then the new meeting's end goes into the heap. The heap holds exactly the meetings in progress, so its largest size over time is the number of rooms needed. Sorting costs n log n and each heap step log n."
+}
+# --- solution ---
+use "heap"
+
+define __reference with meetings
+    set ending to new Heap()
+    set busiest to 0
+    for each meeting in sort_by(meetings, action with m gives m[1])
+        if not ending's is_empty() and ending's peek() is at most meeting[1] then
+            ending's smallest()
+        end
+        ending's put(meeting[2])
+        set busiest to max(busiest, ending's size())
+    end
+    give back busiest
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/merge-intervals", R"PLAINLIB(set __problem to {
+    order: 47,
+    title: "Merge Intervals",
+    topic: "intervals",
+    level: 2,
+    function: "merge_intervals",
+    params: "intervals",
+    statement: "Each interval is a pair [start, end]. Intervals that overlap or touch (one ends exactly where another starts) should be joined into one. Give back the joined intervals, in order of their start. The input is not sorted.",
+    examples: [
+        {args: [[[1, 3], [2, 6], [8, 10], [15, 18]]], expect: [[1, 6], [8, 10], [15, 18]]},
+        {args: [[[1, 4], [4, 5]]], expect: [[1, 5]]},
+        {args: [[]], expect: []}
+    ],
+    hints: [
+        "If the intervals were sorted by start, an interval could only overlap the one just before it. Sorting first makes the problem easy.",
+        "sort_by(intervals, action with pair gives pair[1]) sorts pairs by their first number.",
+        "Walk through the sorted intervals keeping the last joined interval. If the next one starts at or before its end, stretch that end (to the bigger of the two ends). Otherwise start a new one."
+    ],
+    hidden: [
+        {args: [[[1, 4], [0, 4]]], expect: [[0, 4]], note: "not sorted"},
+        {args: [[[1, 4], [2, 3]]], expect: [[1, 4]], note: "one inside another"},
+        {args: [[[5, 6], [1, 2], [3, 4]]], expect: [[1, 2], [3, 4], [5, 6]], note: "no overlaps, out of order"},
+        {args: [[[1, 10], [2, 3], [4, 5], [6, 7]]], expect: [[1, 10]]},
+        {args: [map_each(range(1, 2000), action with i gives [i, i + 1])], expect: [[1, 2001]], note: "2,000 intervals in a chain"}
+    ],
+    complexity: "O(n log n) time (the sort)",
+    explanation: "Sorted by start, an interval can only overlap with the joined interval just before it: if it starts at or before that one's end, they merge and the end becomes the larger of the two ends; otherwise nothing before it can reach it, so it begins a new group. One pass after the sort does all the work. Without sorting you would have to compare every pair."
+}
+# --- solution ---
+define __reference with intervals
+    set merged to []
+    for each pair in sort_by(intervals, action with p gives p[1])
+        if length of merged is 0 or pair[1] is greater than last(merged)[2] then
+            add [pair[1], pair[2]] to merged
+        otherwise
+            set tail to last(merged)
+            set tail[2] to max(tail[2], pair[2])
+        end
+    end
+    give back merged
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/merge-k-sorted", R"PLAINLIB(set __problem to {
+    order: 38,
+    title: "Merge Many Sorted Lists",
+    topic: "heaps and counting",
+    level: 3,
+    function: "merge_many",
+    params: "lists",
+    statement: "Every list inside the list is already sorted from smallest to biggest. Give back one new sorted list holding all the numbers. Some inner lists may be empty.",
+    examples: [
+        {args: [[[1, 4, 5], [1, 3, 4], [2, 6]]], expect: [1, 1, 2, 3, 4, 4, 5, 6]},
+        {args: [[[]]], expect: []},
+        {args: [[[1], [0]]], expect: [0, 1]}
+    ],
+    hints: [
+        "Joining everything and sorting works but ignores that the lists are sorted. Think about merging two sorted lists, then merging the result with the next, and so on.",
+        "That repeats a lot of copying. Better: the smallest number overall is the first item of one of the lists. Which one? You need the minimum of k candidates, again and again.",
+        "A heap gives the minimum of k candidates quickly. Put the first number of every list in a PriorityQueue (the number is the priority, the list's position is the value). Take the smallest, then add the next number from the same list."
+    ],
+    hidden: [
+        {args: [[[], [1, 2], []]], expect: [1, 2], note: "empty lists in the way"},
+        {args: [[[5], [1], [3], [2]]], expect: [1, 2, 3, 5]},
+        {args: [[]], expect: [], note: "no lists at all"},
+        {args: [[[1, 1], [1], [1, 1, 1]]], expect: [1, 1, 1, 1, 1, 1], note: "equal numbers"},
+        {args: [map_each(range(1, 200), action with i gives __stride(i))], expect: range(1, 4000), note: "200 lists of 20 numbers each"}
+    ],
+    complexity: "O(n log k) time for n numbers in k lists",
+    explanation: "A heap always holds the next unused number of every list that still has one, so the smallest number overall is at its top. Take it, add it to the answer, and put the next number from the same list into the heap. Each number goes into the heap and comes out once, and each heap step costs about log2(k), so the whole merge takes n log k steps instead of sorting everything from scratch."
+}
+define __stride with start
+    set out to []
+    for j from 0 to 19
+        add start + 200 * j to out
+    end
+    give back out
+end
+# --- solution ---
+use "heap"
+
+define __reference with lists
+    set next_position to []
+    set waiting to new PriorityQueue()
+    for k from 1 to length of lists
+        add 1 to next_position
+        if length of lists[k] is greater than 0 then
+            waiting's put(k, lists[k][1])
+        end
+    end
+    set merged to []
+    while not waiting's is_empty()
+        set k to waiting's take()
+        set place to next_position[k]
+        add lists[k][place] to merged
+        set next_position[k] to place + 1
+        if place + 1 is at most length of lists[k] then
+            waiting's put(k, lists[k][place + 1])
+        end
+    end
+    give back merged
 end
 # --- end solution ---
 )PLAINLIB"},
@@ -1893,6 +3412,114 @@ define __reference with numbers
         add 0 to result
     end
     give back result
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/n-queens", R"PLAINLIB(set __problem to {
+    order: 44,
+    title: "N Queens",
+    topic: "backtracking",
+    level: 3,
+    function: "count_queens",
+    params: "n",
+    statement: "Place n queens on an n by n chessboard so that no two queens attack each other (no two in the same row, column or diagonal). Give back how many different ways there are.",
+    examples: [
+        {args: [1], expect: 1},
+        {args: [4], expect: 2},
+        {args: [5], expect: 10}
+    ],
+    hints: [
+        "Place one queen in each row, from the top. In each row, try each column; if the square is not attacked by a queen above, put a queen there and move on to the next row.",
+        "When a row has no safe column, go BACK to the previous row and try its next column. That going back is what 'backtracking' means.",
+        "A square (row, column) is attacked if a queen above is in the same column, or on the same diagonal: row - column equal, or row + column equal. Keep three records (columns, one diagonal direction, the other) so each check is quick."
+    ],
+    hidden: [
+        {args: [2], expect: 0, note: "no solution exists"},
+        {args: [3], expect: 0, note: "no solution exists"},
+        {args: [6], expect: 4},
+        {args: [7], expect: 40},
+        {args: [8], expect: 92, note: "the classic board (trying every placement is hopeless)"}
+    ],
+    complexity: "Exponential, but far less than trying every placement (about n! at worst)",
+    explanation: "Queens in different rows are guaranteed by placing one per row, so the search is: for each row, try each column. A column is safe if no earlier queen shares its column or either diagonal (cells on a diagonal share row - column or row + column). On a safe square, place the queen and go to the next row; when the last row is filled, count one solution. When a row has no safe square the recursion simply returns, which undoes the last choice and lets the row above try its next column. Pruning unsafe squares early is what makes 8 queens fast."
+}
+# --- solution ---
+define place_queens with row, n, columns, up_diagonals, down_diagonals
+    if row is greater than n then
+        give back 1
+    end
+    set ways to 0
+    for column from 1 to n
+        set up to row - column
+        set down to row + column
+        if not has_key(columns, column) and not has_key(up_diagonals, up) and not has_key(down_diagonals, down) then
+            set columns[column] to true
+            set up_diagonals[up] to true
+            set down_diagonals[down] to true
+            increase ways by place_queens(row + 1, n, columns, up_diagonals, down_diagonals)
+            remove column from columns
+            remove up from up_diagonals
+            remove down from down_diagonals
+        end
+    end
+    give back ways
+end
+
+define __reference with n
+    give back place_queens(1, n, {}, {}, {})
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/redundant-connection", R"PLAINLIB(set __problem to {
+    order: 43,
+    title: "The Extra Link",
+    topic: "union-find",
+    level: 3,
+    function: "extra_link",
+    params: "links",
+    statement: "Cities numbered 1 to n were joined by n - 1 links so that every city could be reached from every other. Then ONE extra link was added, which makes a loop. Each link is a pair [a, b]. Give back the extra link: the one that, going through the list in order, first joins two cities that were already connected.",
+    examples: [
+        {args: [[[1, 2], [1, 3], [2, 3]]], expect: [2, 3]},
+        {args: [[[1, 2], [2, 3], [3, 4], [1, 4], [1, 5]]], expect: [1, 4]},
+        {args: [[[1, 2], [2, 3], [1, 3]]], expect: [1, 3]}
+    ],
+    hints: [
+        "A link makes a loop exactly when its two cities can already reach each other through the earlier links.",
+        "So go through the links in order, keeping track of which cities are connected so far. The first link whose two ends are already connected is the answer.",
+        "A UnionFind answers 'already connected?' quickly: connect(a, b) gives back false when a and b were already in the same group."
+    ],
+    hidden: [
+        {args: [[[1, 2], [1, 3], [3, 4], [2, 4]]], expect: [2, 4]},
+        {args: [[[2, 1], [3, 1], [4, 2], [1, 4]]], expect: [1, 4], note: "the links can be written either way round"},
+        {args: [[[1, 2], [2, 3], [3, 1], [3, 4]]], expect: [3, 1], note: "a link after the loop"},
+        {args: [__path_with_loop(2000)], expect: [1, 2000], note: "a very long chain (checking each link against all before it is slow)"}
+    ],
+    complexity: "O(n) union-find steps",
+    explanation: "Processing the links in order, a link closes a loop precisely when its two ends are already connected by earlier links. A union-find keeps the groups of connected cities: connect(a, b) merges two groups, or reports that a and b were already together. The first link for which connect says 'already together' is the extra one. Checking by searching the cities with a fresh walk each time would be much slower on a long chain."
+}
+define __path_with_loop with n
+    set links to []
+    for i from 1 to n - 1
+        add [i, i + 1] to links
+    end
+    add [1, n] to links
+    give back links
+end
+# --- solution ---
+use "unionfind"
+
+define __reference with links
+    set biggest to 0
+    for each link in links
+        set biggest to max(biggest, link[1], link[2])
+    end
+    set cities to new UnionFind(biggest)
+    for each link in links
+        if not cities's connect(link[1], link[2]) then
+            give back link
+        end
+    end
+    give back []
 end
 # --- end solution ---
 )PLAINLIB"},
@@ -2005,6 +3632,53 @@ define __reference with items, k
     end
     set shift to k % n
     give back slice(items, n - shift + 1, n) + slice(items, 1, n - shift)
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/running-median", R"PLAINLIB(set __problem to {
+    order: 39,
+    title: "Running Median",
+    topic: "heaps and counting",
+    level: 3,
+    function: "running_medians",
+    params: "numbers",
+    statement: "Numbers arrive one at a time. After each one, find the median of everything so far: the middle number when they are sorted. When there is an even count, take the smaller of the two middle numbers. Give back the list of medians, one per arrival.",
+    examples: [
+        {args: [[5, 15, 1, 3]], expect: [5, 5, 5, 3]},
+        {args: [[2, 4, 6, 8, 10]], expect: [2, 2, 4, 4, 6]},
+        {args: [[7]], expect: [7]}
+    ],
+    hints: [
+        "Sorting everything again after each arrival works, but repeats the same work. What do you actually need? Only the middle.",
+        "Split the numbers so far into a SMALL half and a BIG half. The median is the biggest of the small half (when the small half is allowed one extra item).",
+        "Keep the small half in a MaxHeap (its top is the biggest) and the big half in a Heap (its top is the smallest). After each arrival, move the top of one to the other so the sizes stay balanced."
+    ],
+    hidden: [
+        {args: [[1, 1, 1]], expect: [1, 1, 1]},
+        {args: [[3, 2, 1]], expect: [3, 2, 2]},
+        {args: [[10, -10]], expect: [10, -10], note: "negative numbers"},
+        {args: [[]], expect: [], note: "no numbers"},
+        {args: [range(1, 2000)], expect: map_each(range(1, 2000), action with k gives quotient(k + 1, 2)), note: "2,000 numbers arriving in order"}
+    ],
+    complexity: "O(n log n) time",
+    explanation: "Two heaps divide the numbers seen so far around the median: the smaller half sits in a max-heap (biggest on top) and the larger half in a min-heap (smallest on top). The small half is kept equal in size to the big half, or one bigger, so its top is always the (lower) median. A new number goes into the small half, then the top of the small half is moved across to the big half, and if the big half is now bigger one number moves back. Each step is a few heap operations of about log n each, so a sort of all the numbers is never repeated."
+}
+# --- solution ---
+use "heap"
+
+define __reference with numbers
+    set small_half to new MaxHeap()
+    set big_half to new Heap()
+    set medians to []
+    for each value in numbers
+        small_half's put(value)
+        big_half's put(small_half's biggest())
+        if big_half's size() is greater than small_half's size() then
+            small_half's put(big_half's smallest())
+        end
+        add small_half's peek() to medians
+    end
+    give back medians
 end
 # --- end solution ---
 )PLAINLIB"},
@@ -2170,6 +3844,49 @@ define __reference with numbers, k
 end
 # --- end solution ---
 )PLAINLIB"},
+{"problems/subset-sum-count", R"PLAINLIB(set __problem to {
+    order: 45,
+    title: "Subsets That Add Up",
+    topic: "backtracking",
+    level: 3,
+    function: "count_subsets",
+    params: "numbers, target",
+    statement: "Count the ways to choose some of the numbers (each number can be chosen or not; the empty choice is allowed) so that the chosen numbers add up to the target. Numbers in different positions are different choices even when equal. All numbers are positive.",
+    examples: [
+        {args: [[1, 2, 3], 3], expect: 2},
+        {args: [[1, 1, 1], 2], expect: 3},
+        {args: [[], 0], expect: 1}
+    ],
+    hints: [
+        "For each number there are two choices: take it or leave it. Trying all of them gives 2 to the power of the length of the list, which is enormous for 20 numbers.",
+        "Notice the same situation appears many times: 'how many ways to reach sum s using the numbers from here on'. Remembering the answers for each remaining sum avoids repeating work.",
+        "Keep ways[s] = the number of ways to make sum s so far (ways[0] = 1). For each number v, update s from the target DOWN to v: ways[s] = ways[s] + ways[s - v]."
+    ],
+    hidden: [
+        {args: [[2, 4, 6, 10], 16], expect: 2},
+        {args: [[1, 2, 3, 4, 5], 0], expect: 1, note: "the empty choice"},
+        {args: [[5], 5], expect: 1},
+        {args: [[5], 3], expect: 0, note: "impossible"},
+        {args: [map_each(range(1, 20), action with i gives 1), 10], expect: 184756, note: "20 equal numbers (going through every choice is 1,000,000 branches)"}
+    ],
+    complexity: "O(numbers x target) time, O(target) extra space",
+    explanation: "Choosing or skipping each number is a binary tree of 2^n branches, but many branches reach the same remaining sum. The table ways[s] counts how many ways the numbers seen so far can make sum s, starting with ways[0] = 1 (choose nothing). Adding a number v means every way to make s - v can now also make s by taking v, so ways[s] grows by ways[s - v]. Going through s from high to low means each number is used at most once. After all numbers, ways[target] is the answer."
+}
+# --- solution ---
+define __reference with numbers, target
+    set ways to [1]
+    repeat target times
+        add 0 to ways
+    end
+    for each v in numbers
+        for s from target to v by -1
+            increase ways[s + 1] by ways[s - v + 1]
+        end
+    end
+    give back ways[target + 1]
+end
+# --- end solution ---
+)PLAINLIB"},
 {"problems/sum-digits", R"PLAINLIB(set __problem to {
     order: 12,
     title: "Sum of the Digits",
@@ -2203,6 +3920,49 @@ define __reference with n
         give back n
     end
     give back n % 10 + __reference(quotient(n, 10))
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/top-k-frequent", R"PLAINLIB(set __problem to {
+    order: 37,
+    title: "Most Frequent",
+    topic: "heaps and counting",
+    level: 2,
+    function: "top_frequent",
+    params: "numbers, k",
+    statement: "Give back the k numbers that appear most often in the list, most frequent first. If two numbers appear equally often, the smaller number comes first.",
+    examples: [
+        {args: [[1, 1, 1, 2, 2, 3], 2], expect: [1, 2]},
+        {args: [[1], 1], expect: [1]},
+        {args: [[4, 4, 5, 5, 6], 2], expect: [4, 5]}
+    ],
+    hints: [
+        "First count how many times each number appears (a map from number to count).",
+        "Then you need the k biggest counts. Sorting all the distinct numbers by count works. (A heap that holds only k of them is faster when k is small.)",
+        "To get ties in the right order, sort the numbers smallest-first before you sort by count: a sort that keeps equal items in their old order (sort_by does) leaves the smaller number first."
+    ],
+    hidden: [
+        {args: [[3, 3, 2, 2, 1, 1], 3], expect: [1, 2, 3], note: "all tied"},
+        {args: [[5, 5, 5, 5, 1, 2, 2], 1], expect: [5]},
+        {args: [[-1, -1, -2, -2, 0], 2], expect: [-2, -1], note: "ties between negative numbers"},
+        {args: [[7, 7, 8, 8, 8, 9], 3], expect: [8, 7, 9]},
+        {args: [map_each(range(1, 3000), action with i gives i % 50), 3], expect: [0, 1, 2], note: "a long list where every number appears equally often"}
+    ],
+    complexity: "O(n + d log d) time for d distinct numbers",
+    explanation: "Counting is one pass with a map. Ranking is a sort of the distinct numbers by count, biggest first. Putting the distinct numbers in increasing order BEFORE the stable sort makes equal counts come out smallest-number-first with no extra rule. The first k of the ranked list are the answer. A min-heap of size k would cut the ranking to O(d log k) for huge inputs."
+}
+# --- solution ---
+define __reference with numbers, k
+    set counts to {}
+    for each value in numbers
+        if has_key(counts, value) then
+            increase counts[value] by 1
+        otherwise
+            set counts[value] to 1
+        end
+    end
+    set ranked to sort_by(sort(keys(counts)), action with value gives 0 - counts[value])
+    give back slice(ranked, 1, k)
 end
 # --- end solution ---
 )PLAINLIB"},
@@ -2345,6 +4105,52 @@ define __reference with text
         end
     end
     give back open_brackets's is_empty()
+end
+# --- end solution ---
+)PLAINLIB"},
+{"problems/word-break", R"PLAINLIB(set __problem to {
+    order: 41,
+    title: "Word Break",
+    topic: "dynamic programming",
+    level: 3,
+    function: "word_break",
+    params: "text, words",
+    statement: "Can the text be cut into pieces so that every piece is one of the words (words may be used any number of times)? Give back true or false. An empty text can always be cut.",
+    examples: [
+        {args: ["leetcode", ["leet", "code"]], expect: true},
+        {args: ["applepenapple", ["apple", "pen"]], expect: true},
+        {args: ["catsandog", ["cats", "dog", "sand", "and", "cat"]], expect: false}
+    ],
+    hints: [
+        "Try each word as the first piece, then ask the same question about what is left. That works but asks the same question about the same ending many times.",
+        "Let ok[i] mean 'the first i letters can be cut up'. ok[0] is true (nothing to cut).",
+        "ok[i] is true if some earlier position j has ok[j] true and the letters j+1 to i are a word. Fill ok from 0 upwards; the answer is ok[length]."
+    ],
+    hidden: [
+        {args: ["", ["a"]], expect: true, note: "an empty text"},
+        {args: ["aaaaaaa", ["aaaa", "aaa"]], expect: true},
+        {args: ["a", ["b"]], expect: false},
+        {args: ["cars", ["car", "ca", "rs"]], expect: true},
+        {args: [join(map_each(range(1, 60), action with i gives "a"), "") + "b", ["a", "aa", "aaa"]], expect: false, note: "a long text that almost works (trying every cut is hopeless)"}
+    ],
+    complexity: "O(length x words) time (each check of a word costs its length)",
+    explanation: "Let ok[i] say whether the first i letters can be cut into words. An empty start is fine (ok[0]). For each i, look for a word that ends at i: if the letters before it can be cut (ok[i - length]) and the word matches the letters, then ok[i] is true. Each position is decided once, using only earlier answers, so the number of ways to cut never matters."
+}
+# --- solution ---
+define __reference with text, words
+    set n to length of text
+    set ok to [true]
+    for i from 1 to n
+        set found to false
+        for each word in words
+            set size to length of word
+            if not found and size is at most i and ok[i - size + 1] and slice(text, i - size + 1, i) is word then
+                set found to true
+            end
+        end
+        add found to ok
+    end
+    give back ok[n + 1]
 end
 # --- end solution ---
 )PLAINLIB"},
@@ -2742,6 +4548,14 @@ function renderHeapTree(items, ctx, listId) {
 
 function renderRecord(v, ctx, depth) {
   const rows = v.v;
+  if (isInst(v) && (v.c === "Deque" || v.c === "RingBuffer") && isList(field(v, "slots")) && typeof field(v, "head") === "number" && typeof field(v, "count") === "number") {
+    // a ring: the live values start at "head" and wrap round the end of the slots
+    const slots = field(v, "slots"), head = field(v, "head"), count = field(v, "count");
+    const live = [];
+    for (let k = 0; k < count && slots.v.length; k++) live.push(slots.v[(head - 1 + k) % slots.v.length]);
+    const body = count === 0 ? h("span", { class: "empty", text: "empty" }) : renderList({ L: -1, n: live.length, v: live }, Object.assign({}, ctx, { boxes: true }));
+    return h("div", { class: "objcard" }, h("div", { class: "cls", text: v.c + "  \u00B7  front \u2192 back  \u00B7  " + count + " of " + slots.v.length + " slots used" }), body);
+  }
   if (isInst(v) && (v.c === "Queue" || v.c === "Stack" || v.c === "Heap") && isList(field(v, "items"))) {
     const items = field(v, "items");
     const head = field(v, "head");

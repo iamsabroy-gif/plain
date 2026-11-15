@@ -1,0 +1,148 @@
+# AVLTree - a search tree that keeps itself balanced.
+#
+# How it works: a plain search tree (see "tree") can become a long thin chain if values arrive in order,
+# and then finding a value is as slow as walking a list. An AVL tree stores the HEIGHT of every box and,
+# after each put, checks that the two sides of a box differ in height by at most 1. If one side has
+# got too tall, the boxes are "rotated" - a small local reshuffle that keeps the sorted order but
+# moves a box up. Putting 1, 2, 3, ... 1000 in order still gives a tree about 10 boxes tall.
+#
+#   use "avl"
+#   set t to new AVLTree()
+#   for i from 1 to 100
+#       t's put(i)
+#   end
+#   say t's height()            # 7, not 100
+
+class AVLTree
+    init
+        set me's root to nothing
+        set me's count to 0
+    end
+
+    define height_of with box
+        if box is nothing then
+            give back 0
+        end
+        give back box's height
+    end
+
+    define refresh with box
+        set box's height to 1 + max(me's height_of(box's left), me's height_of(box's right))
+    end
+
+    # Left side taller by this much (negative when the right side is taller).
+    define lean_of with box
+        give back me's height_of(box's left) - me's height_of(box's right)
+    end
+
+    # The left child comes up, the box goes down to its right.
+    define rotate_right with box
+        set up to box's left
+        set box's left to up's right
+        set up's right to box
+        me's refresh(box)
+        me's refresh(up)
+        give back up
+    end
+
+    # The right child comes up, the box goes down to its left.
+    define rotate_left with box
+        set up to box's right
+        set box's right to up's left
+        set up's left to box
+        me's refresh(box)
+        me's refresh(up)
+        give back up
+    end
+
+    # Put a value below a box and give back the box that is now at the top of that part.
+    define insert_below with box, value
+        if box is nothing then
+            increase me's count by 1
+            give back {value: value, left: nothing, right: nothing, height: 1}
+        end
+        if value is less than box's value then
+            set box's left to me's insert_below(box's left, value)
+        otherwise if value is greater than box's value then
+            set box's right to me's insert_below(box's right, value)
+        otherwise
+            give back box
+        end
+        me's refresh(box)
+        set lean to me's lean_of(box)
+        if lean is greater than 1 then
+            if me's lean_of(box's left) is less than 0 then
+                set box's left to me's rotate_left(box's left)
+            end
+            give back me's rotate_right(box)
+        end
+        if lean is less than -1 then
+            if me's lean_of(box's right) is greater than 0 then
+                set box's right to me's rotate_right(box's right)
+            end
+            give back me's rotate_left(box)
+        end
+        give back box
+    end
+
+    define put with value
+        set me's root to me's insert_below(me's root, value)
+    end
+
+    define has with value
+        set current to me's root
+        while current is not nothing
+            if value is current's value then
+                give back true
+            end
+            if value is less than current's value then
+                set current to current's left
+            otherwise
+                set current to current's right
+            end
+        end
+        give back false
+    end
+
+    define height
+        give back me's height_of(me's root)
+    end
+
+    define size
+        give back me's count
+    end
+
+    define is_empty
+        give back me's count is 0
+    end
+
+    # Left, then this box, then right: the values sorted.
+    define in_order
+        set out to []
+        me's walk(me's root, out)
+        give back out
+    end
+    define walk with box, out
+        if box is not nothing then
+            me's walk(box's left, out)
+            add box's value to out
+            me's walk(box's right, out)
+        end
+    end
+
+    # Is every box within 1 of balanced, with a correct height? (For checking the tree itself.)
+    define is_balanced
+        give back me's check(me's root) is not -1
+    end
+    define check with box
+        if box is nothing then
+            give back 0
+        end
+        set left_height to me's check(box's left)
+        set right_height to me's check(box's right)
+        if left_height is -1 or right_height is -1 or abs(left_height - right_height) is greater than 1 then
+            give back -1
+        end
+        give back 1 + max(left_height, right_height)
+    end
+end

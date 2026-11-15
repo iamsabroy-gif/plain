@@ -1,0 +1,54 @@
+set __problem to {
+    order: 44,
+    title: "N Queens",
+    topic: "backtracking",
+    level: 3,
+    function: "count_queens",
+    params: "n",
+    statement: "Place n queens on an n by n chessboard so that no two queens attack each other (no two in the same row, column or diagonal). Give back how many different ways there are.",
+    examples: [
+        {args: [1], expect: 1},
+        {args: [4], expect: 2},
+        {args: [5], expect: 10}
+    ],
+    hints: [
+        "Place one queen in each row, from the top. In each row, try each column; if the square is not attacked by a queen above, put a queen there and move on to the next row.",
+        "When a row has no safe column, go BACK to the previous row and try its next column. That going back is what 'backtracking' means.",
+        "A square (row, column) is attacked if a queen above is in the same column, or on the same diagonal: row - column equal, or row + column equal. Keep three records (columns, one diagonal direction, the other) so each check is quick."
+    ],
+    hidden: [
+        {args: [2], expect: 0, note: "no solution exists"},
+        {args: [3], expect: 0, note: "no solution exists"},
+        {args: [6], expect: 4},
+        {args: [7], expect: 40},
+        {args: [8], expect: 92, note: "the classic board (trying every placement is hopeless)"}
+    ],
+    complexity: "Exponential, but far less than trying every placement (about n! at worst)",
+    explanation: "Queens in different rows are guaranteed by placing one per row, so the search is: for each row, try each column. A column is safe if no earlier queen shares its column or either diagonal (cells on a diagonal share row - column or row + column). On a safe square, place the queen and go to the next row; when the last row is filled, count one solution. When a row has no safe square the recursion simply returns, which undoes the last choice and lets the row above try its next column. Pruning unsafe squares early is what makes 8 queens fast."
+}
+# --- solution ---
+define place_queens with row, n, columns, up_diagonals, down_diagonals
+    if row is greater than n then
+        give back 1
+    end
+    set ways to 0
+    for column from 1 to n
+        set up to row - column
+        set down to row + column
+        if not has_key(columns, column) and not has_key(up_diagonals, up) and not has_key(down_diagonals, down) then
+            set columns[column] to true
+            set up_diagonals[up] to true
+            set down_diagonals[down] to true
+            increase ways by place_queens(row + 1, n, columns, up_diagonals, down_diagonals)
+            remove column from columns
+            remove up from up_diagonals
+            remove down from down_diagonals
+        end
+    end
+    give back ways
+end
+
+define __reference with n
+    give back place_queens(1, n, {}, {}, {})
+end
+# --- end solution ---

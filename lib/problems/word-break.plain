@@ -1,0 +1,45 @@
+set __problem to {
+    order: 41,
+    title: "Word Break",
+    topic: "dynamic programming",
+    level: 3,
+    function: "word_break",
+    params: "text, words",
+    statement: "Can the text be cut into pieces so that every piece is one of the words (words may be used any number of times)? Give back true or false. An empty text can always be cut.",
+    examples: [
+        {args: ["leetcode", ["leet", "code"]], expect: true},
+        {args: ["applepenapple", ["apple", "pen"]], expect: true},
+        {args: ["catsandog", ["cats", "dog", "sand", "and", "cat"]], expect: false}
+    ],
+    hints: [
+        "Try each word as the first piece, then ask the same question about what is left. That works but asks the same question about the same ending many times.",
+        "Let ok[i] mean 'the first i letters can be cut up'. ok[0] is true (nothing to cut).",
+        "ok[i] is true if some earlier position j has ok[j] true and the letters j+1 to i are a word. Fill ok from 0 upwards; the answer is ok[length]."
+    ],
+    hidden: [
+        {args: ["", ["a"]], expect: true, note: "an empty text"},
+        {args: ["aaaaaaa", ["aaaa", "aaa"]], expect: true},
+        {args: ["a", ["b"]], expect: false},
+        {args: ["cars", ["car", "ca", "rs"]], expect: true},
+        {args: [join(map_each(range(1, 60), action with i gives "a"), "") + "b", ["a", "aa", "aaa"]], expect: false, note: "a long text that almost works (trying every cut is hopeless)"}
+    ],
+    complexity: "O(length x words) time (each check of a word costs its length)",
+    explanation: "Let ok[i] say whether the first i letters can be cut into words. An empty start is fine (ok[0]). For each i, look for a word that ends at i: if the letters before it can be cut (ok[i - length]) and the word matches the letters, then ok[i] is true. Each position is decided once, using only earlier answers, so the number of ways to cut never matters."
+}
+# --- solution ---
+define __reference with text, words
+    set n to length of text
+    set ok to [true]
+    for i from 1 to n
+        set found to false
+        for each word in words
+            set size to length of word
+            if not found and size is at most i and ok[i - size + 1] and slice(text, i - size + 1, i) is word then
+                set found to true
+            end
+        end
+        add found to ok
+    end
+    give back ok[n + 1]
+end
+# --- end solution ---

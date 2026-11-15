@@ -1,0 +1,90 @@
+# SegmentTree - the sum (or the smallest) of any stretch of a list, with the list still changing.
+#
+# How it works: a list twice as long as the data. The data sits in the second half (the "leaves");
+# every slot in the first half holds the answer for its two children (sum or smallest), all the way up
+# to slot 1, which covers everything. To change one value, fix the slots above it (about log2(n) of
+# them). To ask about a stretch, take whole blocks from the bottom, climbing as blocks join up.
+#
+#   use "segmenttree"
+#   set heights to new SegmentTree([5, 2, 8, 1, 9], "min")
+#   say heights's query(2, 4)           # 1 (the smallest of items 2 to 4)
+#   heights's update(4, 7)
+#   say heights's query(2, 4)           # 2
+
+class SegmentTree
+    init with numbers, kind
+        if kind is not "sum" and kind is not "min" then
+            fail with "A segment tree answers \"sum\" or \"min\", not " + text(kind) + "."
+        end
+        set me's n to length of numbers
+        set me's kind to kind
+        set me's tree to []
+        repeat me's n times
+            add 0 to me's tree
+        end
+        for each value in numbers
+            add value to me's tree
+        end
+        for k from me's n - 1 to 1 by -1
+            me's set_node(k, me's combine(me's node(2 * k), me's node(2 * k + 1)))
+        end
+    end
+
+    # Slots are counted from 0 in the maths below, and the list from 1: these two translate.
+    define node with k
+        give back me's tree[k + 1]
+    end
+    define set_node with k, value
+        set me's tree[k + 1] to value
+    end
+
+    define combine with a, b
+        if me's kind is "sum" then
+            give back a + b
+        end
+        give back min(a, b)
+    end
+
+    # Change item p (counting from 1) to a new value.
+    define update with p, value
+        if p is less than 1 or p is greater than me's n then
+            fail with "There is no item " + text(p) + ": this tree has items 1 to " + text(me's n) + "."
+        end
+        set k to p - 1 + me's n
+        me's set_node(k, value)
+        while k is greater than 1
+            set k to quotient(k, 2)
+            me's set_node(k, me's combine(me's node(2 * k), me's node(2 * k + 1)))
+        end
+    end
+
+    # The sum (or smallest) of items a to b.
+    define query with a, b
+        if a is less than 1 or b is greater than me's n or a is greater than b then
+            fail with "Ask about items 1 to " + text(me's n) + ", with the first not after the last."
+        end
+        set left_at to a - 1 + me's n
+        set right_at to b + me's n
+        set result to nothing
+        while left_at is less than right_at
+            if left_at % 2 is 1 then
+                set result to me's join_with(result, me's node(left_at))
+                increase left_at by 1
+            end
+            if right_at % 2 is 1 then
+                decrease right_at by 1
+                set result to me's join_with(result, me's node(right_at))
+            end
+            set left_at to quotient(left_at, 2)
+            set right_at to quotient(right_at, 2)
+        end
+        give back result
+    end
+
+    define join_with with so_far, value
+        if so_far is nothing then
+            give back value
+        end
+        give back me's combine(so_far, value)
+    end
+end

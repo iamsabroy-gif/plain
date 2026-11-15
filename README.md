@@ -75,7 +75,7 @@ enough for the first seven lessons.
 | `plain count program.plain` | Report comparisons, swaps and calls |
 | `plain growth program.plain action …` | Show how the work grows as the data grows (O(n), O(n²) …) |
 | `plain compare program.plain a b` | Run two actions on the same data, side by side |
-| `plain practice [problem]` | 30 classic problems with hidden tests, hints and solutions |
+| `plain practice [problem]` | 50 problems, from arrays to dynamic programming, with hidden tests, hints and solutions |
 | `plain lib [name]` | The built-in stack, queue, heap, tree, graph …, and how each is built |
 | `plain build program.plain -o app` | Make a standalone program that runs without Plain installed |
 | `plain --explain program.plain` | Show the tokens and bytecode, then run |

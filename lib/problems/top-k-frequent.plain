@@ -1,0 +1,42 @@
+set __problem to {
+    order: 37,
+    title: "Most Frequent",
+    topic: "heaps and counting",
+    level: 2,
+    function: "top_frequent",
+    params: "numbers, k",
+    statement: "Give back the k numbers that appear most often in the list, most frequent first. If two numbers appear equally often, the smaller number comes first.",
+    examples: [
+        {args: [[1, 1, 1, 2, 2, 3], 2], expect: [1, 2]},
+        {args: [[1], 1], expect: [1]},
+        {args: [[4, 4, 5, 5, 6], 2], expect: [4, 5]}
+    ],
+    hints: [
+        "First count how many times each number appears (a map from number to count).",
+        "Then you need the k biggest counts. Sorting all the distinct numbers by count works. (A heap that holds only k of them is faster when k is small.)",
+        "To get ties in the right order, sort the numbers smallest-first before you sort by count: a sort that keeps equal items in their old order (sort_by does) leaves the smaller number first."
+    ],
+    hidden: [
+        {args: [[3, 3, 2, 2, 1, 1], 3], expect: [1, 2, 3], note: "all tied"},
+        {args: [[5, 5, 5, 5, 1, 2, 2], 1], expect: [5]},
+        {args: [[-1, -1, -2, -2, 0], 2], expect: [-2, -1], note: "ties between negative numbers"},
+        {args: [[7, 7, 8, 8, 8, 9], 3], expect: [8, 7, 9]},
+        {args: [map_each(range(1, 3000), action with i gives i % 50), 3], expect: [0, 1, 2], note: "a long list where every number appears equally often"}
+    ],
+    complexity: "O(n + d log d) time for d distinct numbers",
+    explanation: "Counting is one pass with a map. Ranking is a sort of the distinct numbers by count, biggest first. Putting the distinct numbers in increasing order BEFORE the stable sort makes equal counts come out smallest-number-first with no extra rule. The first k of the ranked list are the answer. A min-heap of size k would cut the ranking to O(d log k) for huge inputs."
+}
+# --- solution ---
+define __reference with numbers, k
+    set counts to {}
+    for each value in numbers
+        if has_key(counts, value) then
+            increase counts[value] by 1
+        otherwise
+            set counts[value] to 1
+        end
+    end
+    set ranked to sort_by(sort(keys(counts)), action with value gives 0 - counts[value])
+    give back slice(ranked, 1, k)
+end
+# --- end solution ---

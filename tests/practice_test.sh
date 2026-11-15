@@ -7,7 +7,7 @@ WORK=$(mktemp -d)
 fail=0
 check() { grep -q "$2" "$1" || { echo "FAILED: $3 (missing: $2)"; fail=1; }; }
 "$PLAIN" practice --selftest > "$WORK/self.out" 2>&1 || { cat "$WORK/self.out"; fail=1; }
-check "$WORK/self.out" '^30 problems' "the bank has 30 problems"
+check "$WORK/self.out" '^50 problems' "the bank has 50 problems"
 cd "$WORK" || exit 1
 "$PLAIN" practice > list.out
 check list.out 'two-sum' "listing"

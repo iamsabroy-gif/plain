@@ -1,0 +1,46 @@
+set __problem to {
+    order: 39,
+    title: "Running Median",
+    topic: "heaps and counting",
+    level: 3,
+    function: "running_medians",
+    params: "numbers",
+    statement: "Numbers arrive one at a time. After each one, find the median of everything so far: the middle number when they are sorted. When there is an even count, take the smaller of the two middle numbers. Give back the list of medians, one per arrival.",
+    examples: [
+        {args: [[5, 15, 1, 3]], expect: [5, 5, 5, 3]},
+        {args: [[2, 4, 6, 8, 10]], expect: [2, 2, 4, 4, 6]},
+        {args: [[7]], expect: [7]}
+    ],
+    hints: [
+        "Sorting everything again after each arrival works, but repeats the same work. What do you actually need? Only the middle.",
+        "Split the numbers so far into a SMALL half and a BIG half. The median is the biggest of the small half (when the small half is allowed one extra item).",
+        "Keep the small half in a MaxHeap (its top is the biggest) and the big half in a Heap (its top is the smallest). After each arrival, move the top of one to the other so the sizes stay balanced."
+    ],
+    hidden: [
+        {args: [[1, 1, 1]], expect: [1, 1, 1]},
+        {args: [[3, 2, 1]], expect: [3, 2, 2]},
+        {args: [[10, -10]], expect: [10, -10], note: "negative numbers"},
+        {args: [[]], expect: [], note: "no numbers"},
+        {args: [range(1, 2000)], expect: map_each(range(1, 2000), action with k gives quotient(k + 1, 2)), note: "2,000 numbers arriving in order"}
+    ],
+    complexity: "O(n log n) time",
+    explanation: "Two heaps divide the numbers seen so far around the median: the smaller half sits in a max-heap (biggest on top) and the larger half in a min-heap (smallest on top). The small half is kept equal in size to the big half, or one bigger, so its top is always the (lower) median. A new number goes into the small half, then the top of the small half is moved across to the big half, and if the big half is now bigger one number moves back. Each step is a few heap operations of about log n each, so a sort of all the numbers is never repeated."
+}
+# --- solution ---
+use "heap"
+
+define __reference with numbers
+    set small_half to new MaxHeap()
+    set big_half to new Heap()
+    set medians to []
+    for each value in numbers
+        small_half's put(value)
+        big_half's put(small_half's biggest())
+        if big_half's size() is greater than small_half's size() then
+            small_half's put(big_half's smallest())
+        end
+        add small_half's peek() to medians
+    end
+    give back medians
+end
+# --- end solution ---

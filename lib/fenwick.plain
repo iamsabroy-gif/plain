@@ -1,0 +1,60 @@
+# FenwickTree - running totals that can change, both quick.
+#
+# How it works: keeping a plain list of numbers makes "the total of items 1 to i" slow (add them all
+# up), and keeping a list of running totals makes "change item i" slow (fix every total after it).
+# A Fenwick tree keeps in slot i the total of a block of the items that END at i; the block is as long
+# as the biggest power of 2 that divides i (slot 8 covers 8 items, slot 6 covers 2, slot 7 covers 1).
+# Any total is then a few blocks stuck together, and a change touches a few blocks: about log2(n)
+# slots either way.
+#
+#   use "fenwick"
+#   set sales to new FenwickTree(8)
+#   sales's add_at(3, 10)
+#   sales's add_at(5, 4)
+#   say sales's prefix_sum(5)           # 14
+#   say sales's range_sum(4, 5)         # 4
+
+class FenwickTree
+    init with n
+        set me's n to n
+        set me's tree to []
+        repeat n times
+            add 0 to me's tree
+        end
+    end
+
+    # The biggest power of 2 that divides i (6 gives 2, 8 gives 8).
+    define low_bit with i
+        set bit to 1
+        while i % (bit * 2) is 0
+            set bit to bit * 2
+        end
+        give back bit
+    end
+
+    # Add delta to item i.
+    define add_at with i, delta
+        if i is less than 1 or i is greater than me's n then
+            fail with "There is no item " + text(i) + ": this tree has items 1 to " + text(me's n) + "."
+        end
+        while i is at most me's n
+            increase me's tree[i] by delta
+            increase i by me's low_bit(i)
+        end
+    end
+
+    # The total of items 1 to i.
+    define prefix_sum with i
+        set total to 0
+        while i is greater than 0
+            increase total by me's tree[i]
+            decrease i by me's low_bit(i)
+        end
+        give back total
+    end
+
+    # The total of items a to b.
+    define range_sum with a, b
+        give back me's prefix_sum(b) - me's prefix_sum(a - 1)
+    end
+end

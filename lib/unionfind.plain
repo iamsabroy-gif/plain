@@ -1,0 +1,72 @@
+# UnionFind - keeps track of which things belong to the same group, as groups merge.
+#
+# How it works: every thing (numbered 1 to n) points at a "parent". A thing that points at itself is
+# the leader of its group. To find the group of x, follow the parents up to the leader. To join two
+# groups, make one leader point at the other. Two tricks keep the paths short: always hang the
+# smaller group under the bigger one, and, while looking for a leader, point everything you pass
+# straight at it ("path compression"). Together they make each step nearly constant time.
+#
+#   use "unionfind"
+#   set friends to new UnionFind(5)
+#   friends's connect(1, 2)
+#   friends's connect(2, 3)
+#   say friends's same_group(1, 3)      # true
+#   say friends's groups()              # 3  ({1,2,3}, {4}, {5})
+
+class UnionFind
+    init with n
+        set me's parent to []
+        set me's group_size to []
+        for i from 1 to n
+            add i to me's parent
+            add 1 to me's group_size
+        end
+        set me's group_count to n
+    end
+
+    # The leader of the group x is in.
+    define find_root with x
+        set root to x
+        while me's parent[root] is not root
+            set root to me's parent[root]
+        end
+        while me's parent[x] is not root
+            set next_x to me's parent[x]
+            set me's parent[x] to root
+            set x to next_x
+        end
+        give back root
+    end
+
+    # Join the groups of a and b. Gives back false if they were already together.
+    define connect with a, b
+        set root_a to me's find_root(a)
+        set root_b to me's find_root(b)
+        if root_a is root_b then
+            give back false
+        end
+        if me's group_size[root_a] is less than me's group_size[root_b] then
+            set held to root_a
+            set root_a to root_b
+            set root_b to held
+        end
+        set me's parent[root_b] to root_a
+        increase me's group_size[root_a] by me's group_size[root_b]
+        decrease me's group_count by 1
+        give back true
+    end
+
+    define same_group with a, b
+        give back me's find_root(a) is me's find_root(b)
+    end
+
+    # How many things are in the group of x.
+    define size_of with x
+        give back me's group_size[me's find_root(x)]
+    end
+
+    # How many separate groups there are.
+    define groups
+        give back me's group_count
+    end
+end

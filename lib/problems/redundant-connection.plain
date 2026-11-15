@@ -1,0 +1,52 @@
+set __problem to {
+    order: 43,
+    title: "The Extra Link",
+    topic: "union-find",
+    level: 3,
+    function: "extra_link",
+    params: "links",
+    statement: "Cities numbered 1 to n were joined by n - 1 links so that every city could be reached from every other. Then ONE extra link was added, which makes a loop. Each link is a pair [a, b]. Give back the extra link: the one that, going through the list in order, first joins two cities that were already connected.",
+    examples: [
+        {args: [[[1, 2], [1, 3], [2, 3]]], expect: [2, 3]},
+        {args: [[[1, 2], [2, 3], [3, 4], [1, 4], [1, 5]]], expect: [1, 4]},
+        {args: [[[1, 2], [2, 3], [1, 3]]], expect: [1, 3]}
+    ],
+    hints: [
+        "A link makes a loop exactly when its two cities can already reach each other through the earlier links.",
+        "So go through the links in order, keeping track of which cities are connected so far. The first link whose two ends are already connected is the answer.",
+        "A UnionFind answers 'already connected?' quickly: connect(a, b) gives back false when a and b were already in the same group."
+    ],
+    hidden: [
+        {args: [[[1, 2], [1, 3], [3, 4], [2, 4]]], expect: [2, 4]},
+        {args: [[[2, 1], [3, 1], [4, 2], [1, 4]]], expect: [1, 4], note: "the links can be written either way round"},
+        {args: [[[1, 2], [2, 3], [3, 1], [3, 4]]], expect: [3, 1], note: "a link after the loop"},
+        {args: [__path_with_loop(2000)], expect: [1, 2000], note: "a very long chain (checking each link against all before it is slow)"}
+    ],
+    complexity: "O(n) union-find steps",
+    explanation: "Processing the links in order, a link closes a loop precisely when its two ends are already connected by earlier links. A union-find keeps the groups of connected cities: connect(a, b) merges two groups, or reports that a and b were already together. The first link for which connect says 'already together' is the extra one. Checking by searching the cities with a fresh walk each time would be much slower on a long chain."
+}
+define __path_with_loop with n
+    set links to []
+    for i from 1 to n - 1
+        add [i, i + 1] to links
+    end
+    add [1, n] to links
+    give back links
+end
+# --- solution ---
+use "unionfind"
+
+define __reference with links
+    set biggest to 0
+    for each link in links
+        set biggest to max(biggest, link[1], link[2])
+    end
+    set cities to new UnionFind(biggest)
+    for each link in links
+        if not cities's connect(link[1], link[2]) then
+            give back link
+        end
+    end
+    give back []
+end
+# --- end solution ---

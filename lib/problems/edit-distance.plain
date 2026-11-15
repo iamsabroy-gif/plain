@@ -1,0 +1,57 @@
+set __problem to {
+    order: 34,
+    title: "Edit Distance",
+    topic: "dynamic programming",
+    level: 3,
+    function: "edit_distance",
+    params: "from_text, to_text",
+    statement: "You may insert a letter, delete a letter or change a letter. Give back the fewest changes needed to turn the first text into the second.",
+    examples: [
+        {args: ["horse", "ros"], expect: 3},
+        {args: ["intention", "execution"], expect: 5},
+        {args: ["", "abc"], expect: 3}
+    ],
+    hints: [
+        "Work with the ends of the texts. If the last letters are equal, they cost nothing: the answer is the answer for the texts without them.",
+        "If they differ, you must do one change at the end: change a letter, delete one, or insert one. Each leaves a smaller problem. Take the cheapest, plus 1.",
+        "Make a grid: d[i][j] is the cost of turning the first i letters of one text into the first j of the other. Row 0 is 0, 1, 2, ... (inserting) and column 0 likewise (deleting)."
+    ],
+    hidden: [
+        {args: ["abc", "abc"], expect: 0, note: "already the same"},
+        {args: ["kitten", "sitting"], expect: 3},
+        {args: ["sunday", "saturday"], expect: 3},
+        {args: ["abc", ""], expect: 3, note: "deleting everything"},
+        {args: ["a", "b"], expect: 1},
+        {args: [join(map_each(range(1, 200), action with i gives "a"), ""), join(map_each(range(1, 200), action with i gives "b"), "")], expect: 200, note: "two long texts with nothing in common"}
+    ],
+    complexity: "O(n x m) time",
+    explanation: "d(i, j) is the fewest changes to turn the first i letters of one text into the first j of the other. If the i-th and j-th letters match, d(i, j) = d(i - 1, j - 1). Otherwise it is 1 + the smallest of d(i - 1, j - 1) (change a letter), d(i - 1, j) (delete) and d(i, j - 1) (insert). The first row and column are plain counts (turning a text into nothing deletes every letter). Filling the grid row by row works out each case once. Spell checkers and DNA comparison use this."
+}
+# --- solution ---
+define __reference with from_text, to_text
+    set a to []
+    for each ch in from_text
+        add ch to a
+    end
+    set b to []
+    for each ch in to_text
+        add ch to b
+    end
+    set previous to []
+    for j from 0 to length of b
+        add j to previous
+    end
+    for i from 1 to length of a
+        set current to [i]
+        for j from 1 to length of b
+            if a[i] is b[j] then
+                add previous[j] to current
+            otherwise
+                add 1 + min(previous[j], previous[j + 1], current[j]) to current
+            end
+        end
+        set previous to current
+    end
+    give back previous[length of b + 1]
+end
+# --- end solution ---

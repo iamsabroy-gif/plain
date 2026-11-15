@@ -1,9 +1,9 @@
 # Deque - a queue you can use from both ends ("deck").
 #
-# How it works: the values are kept in one list. Working at the back of the list
-# is quick. Working at the front slides the other items along, so it costs more
-# for a long deque (a production deque uses a ring buffer to avoid this, and
-# this one stays simple so you can read it).
+# How it works: like a RingBuffer that grows. The values sit in a list of slots; "head" says where the
+# front value is. Pushing at the front moves head one slot BACK (round to the end of the list if it
+# has to), pushing at the back uses the slot after the last value. When the list is full it is
+# replaced by one twice as big. Nothing slides along, so all four operations are quick.
 #
 #   use "deque"
 #   set d to new Deque()
@@ -13,54 +13,98 @@
 
 class Deque
     init
-        set me's items to []
+        set me's slots to [nothing, nothing, nothing, nothing]
+        set me's head to 1
+        set me's count to 0
+    end
+
+    # Which slot holds the k-th value from the front.
+    define slot_of with k
+        give back (me's head + k - 2) % length of me's slots + 1
+    end
+
+    # Make sure there is room for one more value (doubling the list when it is full).
+    define make_room
+        if me's count is length of me's slots then
+            set bigger to []
+            for k from 1 to me's count
+                add me's slots[me's slot_of(k)] to bigger
+            end
+            repeat me's count times
+                add nothing to bigger
+            end
+            set me's slots to bigger
+            set me's head to 1
+        end
     end
 
     define push_back with value
-        add value to me's items
+        me's make_room()
+        increase me's count by 1
+        set me's slots[me's slot_of(me's count)] to value
     end
 
     define push_front with value
-        insert(me's items, 1, value)
+        me's make_room()
+        set me's head to (me's head - 2) % length of me's slots + 1
+        set me's slots[me's head] to value
+        increase me's count by 1
     end
 
     define pop_back
         if me's is_empty() then
             fail with "This deque is empty, so there is nothing to pop. Check is_empty() first."
         end
-        give back pop(me's items)
+        set place to me's slot_of(me's count)
+        set value to me's slots[place]
+        set me's slots[place] to nothing
+        decrease me's count by 1
+        give back value
     end
 
     define pop_front
         if me's is_empty() then
             fail with "This deque is empty, so there is nothing to pop. Check is_empty() first."
         end
-        give back pop_at(me's items, 1)
+        set value to me's slots[me's head]
+        set me's slots[me's head] to nothing
+        set me's head to me's head % length of me's slots + 1
+        decrease me's count by 1
+        give back value
     end
 
     define peek_back
         if me's is_empty() then
             fail with "This deque is empty. Check is_empty() first."
         end
-        give back last(me's items)
+        give back me's slots[me's slot_of(me's count)]
     end
 
     define peek_front
         if me's is_empty() then
             fail with "This deque is empty. Check is_empty() first."
         end
-        give back first(me's items)
+        give back me's slots[me's head]
     end
 
     define is_empty
-        give back length of me's items is 0
+        give back me's count is 0
     end
 
     define size
-        give back length of me's items
+        give back me's count
+    end
+
+    # The values, front first.
+    define to_list
+        set out to []
+        for k from 1 to me's count
+            add me's slots[me's slot_of(k)] to out
+        end
+        give back out
     end
 
     define to_text
-        give back "Deque(front to back: " + text(me's items) + ")"
+        give back "Deque(front to back: " + text(me's to_list()) + ")"
     end
 end

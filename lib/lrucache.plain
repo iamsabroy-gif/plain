@@ -1,0 +1,89 @@
+# LRUCache - remembers the most recent things, and forgets the one not used for longest.
+#
+# How it works: two pieces work together.
+#   1. A map from each key to its "box", so any key is found at once.
+#   2. The boxes are also chained in a line from NEWEST to OLDEST (each box points at its
+#      neighbours both ways). Using a key unhooks its box and puts it at the newest end. When there
+#      are too many, the box at the oldest end is unhooked and its key is dropped from the map.
+# The two end boxes are "guards" that hold nothing, so no step has to ask "is this the first box?".
+#
+#   use "lrucache"
+#   set recent to new LRUCache(2)
+#   recent's put("a", 1)
+#   recent's put("b", 2)
+#   recent's get_value("a")         # a is used, so b is now the oldest
+#   recent's put("c", 3)            # too many: b is forgotten
+#   say recent's has("b"), recent's keys()      # false ["c", "a"]
+
+class LRUCache
+    init with capacity
+        set me's capacity to capacity
+        set me's table to {}
+        set me's newest_end to {key: nothing, value: nothing, newer: nothing, older: nothing}
+        set me's oldest_end to {key: nothing, value: nothing, newer: nothing, older: nothing}
+        set me's newest_end's older to me's oldest_end
+        set me's oldest_end's newer to me's newest_end
+    end
+
+    define unhook with box
+        set box's newer's older to box's older
+        set box's older's newer to box's newer
+    end
+
+    define hook_as_newest with box
+        set next_older to me's newest_end's older
+        set box's newer to me's newest_end
+        set box's older to next_older
+        set next_older's newer to box
+        set me's newest_end's older to box
+    end
+
+    # The value for a key (and the key becomes the newest), or nothing if it isn't there.
+    define get_value with key
+        if not has_key(me's table, key) then
+            give back nothing
+        end
+        set box to me's table[key]
+        me's unhook(box)
+        me's hook_as_newest(box)
+        give back box's value
+    end
+
+    # Store a value. If that makes too many, the least recently used key is forgotten.
+    define put with key, value
+        if has_key(me's table, key) then
+            set box to me's table[key]
+            set box's value to value
+            me's unhook(box)
+            me's hook_as_newest(box)
+            give back nothing
+        end
+        set box to {key: key, value: value, newer: nothing, older: nothing}
+        set me's table[key] to box
+        me's hook_as_newest(box)
+        if length of me's table is greater than me's capacity then
+            set oldest to me's oldest_end's newer
+            me's unhook(oldest)
+            remove oldest's key from me's table
+        end
+    end
+
+    define has with key
+        give back has_key(me's table, key)
+    end
+
+    define size
+        give back length of me's table
+    end
+
+    # The keys, newest first.
+    define keys
+        set out to []
+        set box to me's newest_end's older
+        while box is not me's oldest_end
+            add box's key to out
+            set box to box's older
+        end
+        give back out
+    end
+end

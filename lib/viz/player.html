@@ -272,6 +272,14 @@ function renderHeapTree(items, ctx, listId) {
 
 function renderRecord(v, ctx, depth) {
   const rows = v.v;
+  if (isInst(v) && (v.c === "Deque" || v.c === "RingBuffer") && isList(field(v, "slots")) && typeof field(v, "head") === "number" && typeof field(v, "count") === "number") {
+    // a ring: the live values start at "head" and wrap round the end of the slots
+    const slots = field(v, "slots"), head = field(v, "head"), count = field(v, "count");
+    const live = [];
+    for (let k = 0; k < count && slots.v.length; k++) live.push(slots.v[(head - 1 + k) % slots.v.length]);
+    const body = count === 0 ? h("span", { class: "empty", text: "empty" }) : renderList({ L: -1, n: live.length, v: live }, Object.assign({}, ctx, { boxes: true }));
+    return h("div", { class: "objcard" }, h("div", { class: "cls", text: v.c + "  \u00B7  front \u2192 back  \u00B7  " + count + " of " + slots.v.length + " slots used" }), body);
+  }
   if (isInst(v) && (v.c === "Queue" || v.c === "Stack" || v.c === "Heap") && isList(field(v, "items"))) {
     const items = field(v, "items");
     const head = field(v, "head");

@@ -1,0 +1,51 @@
+set __problem to {
+    order: 36,
+    title: "Longest Climb",
+    topic: "dynamic programming",
+    level: 3,
+    function: "longest_increasing",
+    params: "numbers",
+    statement: "Give back the length of the longest run of numbers you can pick from the list, left to right (skipping is allowed), where each picked number is bigger than the one before.",
+    examples: [
+        {args: [[10, 9, 2, 5, 3, 7, 101, 18]], expect: 4},
+        {args: [[0, 1, 0, 3, 2, 3]], expect: 4},
+        {args: [[7, 7, 7, 7]], expect: 1}
+    ],
+    hints: [
+        "For each number, ask: how long is the longest climb that ENDS here? Look at every earlier smaller number and add 1 to the best of their answers.",
+        "That works in n x n steps. For a really long list you can do better: keep, for each climb length, the smallest number that can end a climb of that length.",
+        "Those 'smallest ends' are always in increasing order, so each new number can find its place with a binary search (replace the first end that is at least as big, or add a new one at the end). The list length is the answer."
+    ],
+    hidden: [
+        {args: [[1, 3, 6, 7, 9, 4, 10, 5, 6]], expect: 6},
+        {args: [[]], expect: 0, note: "an empty list"},
+        {args: [[5, 4, 3, 2, 1]], expect: 1, note: "always going down"},
+        {args: [[2, 2, 3, 3]], expect: 2, note: "equal numbers do not count as bigger"},
+        {args: [range(1, 6000)], expect: 6000, note: "6,000 numbers (checking every earlier number is too slow)"}
+    ],
+    complexity: "O(n log n) time",
+    explanation: "The simple table (best climb ending at each position, looking back at every smaller number) costs n^2. The faster idea keeps tails[k] = the smallest number that ends any climb of length k + 1. That list is always increasing, so a new number either extends the longest climb (it is bigger than every tail: add it) or improves one tail (it replaces the first tail that is at least as big - found by binary search). The length of tails is the answer, though tails itself is not necessarily a real climb."
+}
+# --- solution ---
+define __reference with numbers
+    set tails to []
+    for each value in numbers
+        set low to 1
+        set high to length of tails + 1
+        while low is less than high
+            set middle to quotient(low + high, 2)
+            if tails[middle] is less than value then
+                set low to middle + 1
+            otherwise
+                set high to middle
+            end
+        end
+        if low is length of tails + 1 then
+            add value to tails
+        otherwise
+            set tails[low] to value
+        end
+    end
+    give back length of tails
+end
+# --- end solution ---

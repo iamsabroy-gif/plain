@@ -1,0 +1,59 @@
+set __problem to {
+    order: 42,
+    title: "Count the Groups",
+    topic: "union-find",
+    level: 3,
+    function: "count_groups",
+    params: "connected",
+    statement: "There are n cities. connected is an n by n table: connected[i][j] is 1 if city i and city j are directly linked (and 0 if not; every city is linked to itself). Links can be passed along: if A-B and B-C are linked, A and C are in the same group. Give back how many separate groups of cities there are.",
+    examples: [
+        {args: [[[1, 1, 0], [1, 1, 0], [0, 0, 1]]], expect: 2},
+        {args: [[[1, 0, 0], [0, 1, 0], [0, 0, 1]]], expect: 3},
+        {args: [[[1]]], expect: 1}
+    ],
+    hints: [
+        "Start by thinking every city is its own group. Each link may join two groups into one.",
+        "Count groups: begin with n, and subtract 1 every time a link joins two cities that were in DIFFERENT groups.",
+        "A UnionFind (use \"unionfind\") does exactly this: connect(a, b) returns true when it really merged two groups, and groups() tells you how many are left."
+    ],
+    hidden: [
+        {args: [[]], expect: 0, note: "no cities"},
+        {args: [[[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]], expect: 1, note: "everything linked"},
+        {args: [[[1, 1, 0, 0], [1, 1, 1, 0], [0, 1, 1, 0], [0, 0, 0, 1]]], expect: 2, note: "a link passed along through a middle city"},
+        {args: [[[1, 0, 0, 1], [0, 1, 1, 0], [0, 1, 1, 1], [1, 0, 1, 1]]], expect: 1},
+        {args: [__identity(200)], expect: 200, note: "200 cities and no links"}
+    ],
+    complexity: "O(n^2) time to read the table (union-find work is nearly constant per link)",
+    explanation: "Begin with every city in its own group, so n groups. Go through each link: if its two cities are already in the same group, nothing changes; if not, joining their groups reduces the number of groups by 1. A union-find structure answers 'are these in the same group?' and 'join these groups' in almost constant time, thanks to keeping the groups as trees and shortening paths as it goes. The count left at the end is the answer."
+}
+define __identity with n
+    set rows to []
+    for i from 1 to n
+        set row to []
+        for j from 1 to n
+            if i is j then
+                add 1 to row
+            otherwise
+                add 0 to row
+            end
+        end
+        add row to rows
+    end
+    give back rows
+end
+# --- solution ---
+use "unionfind"
+
+define __reference with connected
+    set n to length of connected
+    set cities to new UnionFind(n)
+    for i from 1 to n
+        for j from i + 1 to n
+            if connected[i][j] is 1 then
+                cities's connect(i, j)
+            end
+        end
+    end
+    give back cities's groups()
+end
+# --- end solution ---

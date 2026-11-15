@@ -12,7 +12,9 @@ for closures; clearer reserved-word errors and errors that show the line and wha
 try; the data-structure library written in Plain (`use "dsa"`, `plain lib`);
 `plain visualize` (one standalone page that steps through a run and draws lists,
 recursion, trees, linked lists and graphs); `plain count`, `growth` and `compare`;
-`plain practice` with 30 problems; `plain check --beginner`; a watched copy of the
+`plain practice` with 30 problems (50 after the advanced set: dynamic programming, heaps,
+tries, union-find, backtracking, intervals, weighted graphs); more data structures (trie, union-find,
+ring buffer, LRU cache, Fenwick and segment trees, AVL tree, counter, O(1) deque); `plain check --beginner`; a watched copy of the
 VM loop that costs nothing when it is not used.
 
 Candidates, largest effect first:

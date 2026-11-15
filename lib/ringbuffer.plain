@@ -1,0 +1,83 @@
+# RingBuffer - a queue with a fixed size that goes round and round.
+#
+# How it works: a list with a fixed number of slots, a note of which slot holds the oldest value
+# ("head") and how many values there are ("count"). New values go in the next free slot, and when
+# the end of the list is reached, the next slot is the START again (that's the ring). Nothing ever
+# slides along, so putting in and taking out are both quick.
+#
+#   use "ringbuffer"
+#   set last_three to new RingBuffer(3)
+#   for each n in [1, 2, 3, 4, 5]
+#       last_three's put_overwrite(n)      # when full, the oldest value is dropped
+#   end
+#   say last_three's to_list()             # [3, 4, 5]
+
+class RingBuffer
+    init with capacity
+        set me's slots to []
+        repeat capacity times
+            add nothing to me's slots
+        end
+        set me's capacity to capacity
+        set me's head to 1
+        set me's count to 0
+    end
+
+    # Add a value. It is an error if the ring is full (see put_overwrite).
+    define put with value
+        if me's is_full() then
+            fail with "This ring buffer is full, so there is no room to put " + text(value) + ". Take something out first, or use put_overwrite."
+        end
+        set place to (me's head + me's count - 1) % me's capacity + 1
+        set me's slots[place] to value
+        increase me's count by 1
+    end
+
+    # Add a value; if the ring is full, the oldest value is dropped to make room.
+    define put_overwrite with value
+        if me's is_full() then
+            me's take()
+        end
+        me's put(value)
+    end
+
+    # Take out the oldest value.
+    define take
+        if me's is_empty() then
+            fail with "This ring buffer is empty, so there is nothing to take. Check is_empty() first."
+        end
+        set value to me's slots[me's head]
+        set me's slots[me's head] to nothing
+        set me's head to me's head % me's capacity + 1
+        decrease me's count by 1
+        give back value
+    end
+
+    define peek
+        if me's is_empty() then
+            fail with "This ring buffer is empty. Check is_empty() first."
+        end
+        give back me's slots[me's head]
+    end
+
+    define is_empty
+        give back me's count is 0
+    end
+
+    define is_full
+        give back me's count is me's capacity
+    end
+
+    define size
+        give back me's count
+    end
+
+    # The values, oldest first.
+    define to_list
+        set out to []
+        for k from 1 to me's count
+            add me's slots[(me's head + k - 2) % me's capacity + 1] to out
+        end
+        give back out
+    end
+end

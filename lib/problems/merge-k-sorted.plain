@@ -1,0 +1,60 @@
+set __problem to {
+    order: 38,
+    title: "Merge Many Sorted Lists",
+    topic: "heaps and counting",
+    level: 3,
+    function: "merge_many",
+    params: "lists",
+    statement: "Every list inside the list is already sorted from smallest to biggest. Give back one new sorted list holding all the numbers. Some inner lists may be empty.",
+    examples: [
+        {args: [[[1, 4, 5], [1, 3, 4], [2, 6]]], expect: [1, 1, 2, 3, 4, 4, 5, 6]},
+        {args: [[[]]], expect: []},
+        {args: [[[1], [0]]], expect: [0, 1]}
+    ],
+    hints: [
+        "Joining everything and sorting works but ignores that the lists are sorted. Think about merging two sorted lists, then merging the result with the next, and so on.",
+        "That repeats a lot of copying. Better: the smallest number overall is the first item of one of the lists. Which one? You need the minimum of k candidates, again and again.",
+        "A heap gives the minimum of k candidates quickly. Put the first number of every list in a PriorityQueue (the number is the priority, the list's position is the value). Take the smallest, then add the next number from the same list."
+    ],
+    hidden: [
+        {args: [[[], [1, 2], []]], expect: [1, 2], note: "empty lists in the way"},
+        {args: [[[5], [1], [3], [2]]], expect: [1, 2, 3, 5]},
+        {args: [[]], expect: [], note: "no lists at all"},
+        {args: [[[1, 1], [1], [1, 1, 1]]], expect: [1, 1, 1, 1, 1, 1], note: "equal numbers"},
+        {args: [map_each(range(1, 200), action with i gives __stride(i))], expect: range(1, 4000), note: "200 lists of 20 numbers each"}
+    ],
+    complexity: "O(n log k) time for n numbers in k lists",
+    explanation: "A heap always holds the next unused number of every list that still has one, so the smallest number overall is at its top. Take it, add it to the answer, and put the next number from the same list into the heap. Each number goes into the heap and comes out once, and each heap step costs about log2(k), so the whole merge takes n log k steps instead of sorting everything from scratch."
+}
+define __stride with start
+    set out to []
+    for j from 0 to 19
+        add start + 200 * j to out
+    end
+    give back out
+end
+# --- solution ---
+use "heap"
+
+define __reference with lists
+    set next_position to []
+    set waiting to new PriorityQueue()
+    for k from 1 to length of lists
+        add 1 to next_position
+        if length of lists[k] is greater than 0 then
+            waiting's put(k, lists[k][1])
+        end
+    end
+    set merged to []
+    while not waiting's is_empty()
+        set k to waiting's take()
+        set place to next_position[k]
+        add lists[k][place] to merged
+        set next_position[k] to place + 1
+        if place + 1 is at most length of lists[k] then
+            waiting's put(k, lists[k][place + 1])
+        end
+    end
+    give back merged
+end
+# --- end solution ---
