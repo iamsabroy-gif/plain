@@ -38,9 +38,44 @@ jobs:
             ${{ matrix.name }}
             ${{ matrix.name }}.sha256
 
+  # Windows: built with MinGW (gcc) and linked statically, so plain.exe needs no extra files.
+  # Not yet tested by a person on Windows; if this job fails the Mac and Linux files are still published.
+  build-windows:
+    runs-on: windows-latest
+    continue-on-error: true
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: mingw-w64-x86_64-gcc
+      - name: Build
+        run: |
+          mkdir -p build
+          g++ -O2 -std=c++17 -static -o build/plain.exe src/main.cpp
+      - name: Smoke test
+        run: |
+          ./build/plain.exe --version
+          test "$(./build/plain.exe -e 'say 6 * 7' | tr -d '\r')" = "42"
+          ./build/plain.exe examples/sorting.plain
+          ./build/plain.exe practice --selftest
+      - name: Package
+        run: |
+          cp build/plain.exe plain-windows-x86_64.exe
+          sha256sum plain-windows-x86_64.exe > plain-windows-x86_64.exe.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plain-windows-x86_64
+          path: |
+            plain-windows-x86_64.exe
+            plain-windows-x86_64.exe.sha256
+
   publish:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, build-windows]
+    if: ${{ !cancelled() && needs.build.result == 'success' && startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4

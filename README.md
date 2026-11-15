@@ -24,16 +24,24 @@ say "5 factorial is", factorial(5)
 
 ## Install
 
-Paste this one line into Terminal (Mac, Linux, or Windows with WSL). You do not
-need a compiler or anything else:
+You do not need a compiler or anything else. Paste one line:
+
+**Mac and Linux** (in Terminal):
 
 ```
 curl -fsSL https://raw.githubusercontent.com/iamsabroy-gif/plain/main/install.sh | sh
 ```
 
-It downloads a ready-made `plain` for your computer, puts it in `~/.local/bin`,
-and adds that folder to your PATH. Then close the Terminal window, open a new one
-and try `plain -e "say 6 * 7"`.
+**Windows** (in PowerShell: press the Windows key, type `PowerShell`, press Enter):
+
+```
+irm https://raw.githubusercontent.com/iamsabroy-gif/plain/main/install.ps1 | iex
+```
+
+Each downloads a ready-made `plain` for your computer and adds it to your PATH.
+Then close the window, open a new one and try `plain -e "say 6 * 7"`.
+(Windows support is new and has had less testing than Mac and Linux. If it gives
+you trouble, install WSL with `wsl --install` and use the Mac and Linux command inside it.)
 
 Prefer to build it yourself? You need a C++ compiler (on a Mac: `xcode-select
 --install`); then `sh install.sh --build` in this folder, or just `make` and use
