@@ -216,6 +216,7 @@ inline std::string arityMessage(const Func* f, int given) {
 
 // ------------------------------------------------------------------- VM
 struct VM;
+struct Observer;
 inline thread_local VM* tl_vm = nullptr;
 inline Value vmToText(const Value& v);
 
@@ -245,6 +246,7 @@ struct VM {
     std::vector<Value> openUps;  // variables still living on the stack, lowest first
     std::vector<std::string> args;
     std::mt19937_64 rng;
+    Observer* obs = nullptr;  // set to watch a run (counts, traces); null for a normal, full-speed run
 
     explicit VM(Program& p, size_t stackSize = 1 << 20) : prog(p), rng(std::random_device{}()) {
         stack = static_cast<Value*>(calloc(stackSize, sizeof(Value)));  // all-zero bits == nothing
@@ -328,8 +330,17 @@ struct VM {
         return execute(sp, (uint32_t)values.size(), frames.size());
     }
 
-    Value execute(Value* sp, uint32_t nargs, size_t stopDepth);
+    // The main loop exists in two copies: one with the watching hooks compiled in, one without any trace of them.
+    template <bool OBS>
+    Value executeT(Value* sp, uint32_t nargs, size_t stopDepth);
+    Value execute(Value* sp, uint32_t nargs, size_t stopDepth) {
+        return obs ? executeT<true>(sp, nargs, stopDepth) : executeT<false>(sp, nargs, stopDepth);
+    }
 };
+
+}  // namespace plain
+#include "observe.hpp"
+namespace plain {
 
 // An object may define 'to_text' to say how it is shown.
 inline Value vmToText(const Value& v) {
@@ -368,6 +379,7 @@ inline size_t collectGarbage();
         fn = f_;                                                                                                   \
         code = ip = f_->code.data();                                                                               \
         consts = f_->consts.data();                                                                                \
+        if constexpr (OBS) obs->onCall(*this, f_, base, (int)(ARGC));                                              \
         TICK()                                                                                                     \
     }
 
@@ -410,6 +422,7 @@ inline size_t collectGarbage();
         Value& x = sp[-2];                                                             \
         Value& y = sp[-1];                                                             \
         bool r;                                                                        \
+        if constexpr (OBS) obs->onCompare();                                           \
         if (x.tag == Value::Int && y.tag == Value::Int) r = x.i op y.i;                \
         else if (x.tag == Value::Float && y.tag == Value::Float) r = x.n op y.n;       \
         else {                                                                         \
@@ -422,7 +435,8 @@ inline size_t collectGarbage();
     }                                                                                  \
     break;
 
-inline Value VM::execute(Value* sp, uint32_t nargs, size_t stopDepth) {
+template <bool OBS>
+inline Value VM::executeT(Value* sp, uint32_t nargs, size_t stopDepth) {
     Value* entrySp = sp - nargs - 1;
     Value* base = entrySp;
     Func* fn = frames.empty() ? nullptr : frames.back().fn;
@@ -444,6 +458,7 @@ inline Value VM::execute(Value* sp, uint32_t nargs, size_t stopDepth) {
                     ins = (uint32_t)OP_CALL | (nargs << 8);
                 } else {
                     ins = *ip++;
+                    if constexpr (OBS) obs->tick(*this, fn, (size_t)(ip - 1 - code), ins, sp);
                 }
                 a = ins >> 8;
                 switch (ins & 0xFF) {
@@ -459,7 +474,10 @@ inline Value VM::execute(Value* sp, uint32_t nargs, size_t stopDepth) {
                         break;
                     case OP_SWAP: std::swap(sp[-1], sp[-2]); break;
                     case OP_GETL: *sp++ = base[a]; break;
-                    case OP_SETL: base[a] = std::move(*--sp); break;
+                    case OP_SETL:
+                        base[a] = std::move(*--sp);
+                        if constexpr (OBS) obs->onSetLocal(*this, a);
+                        break;
                     case OP_GETG: {
                         const Value& g = globals[a];
                         if (g.tag == Value::Undef) unknownName(fn, a, false);
@@ -520,6 +538,7 @@ inline Value VM::execute(Value* sp, uint32_t nargs, size_t stopDepth) {
                     case OP_NOT: sp[-1] = Value::boolean(!truthy(sp[-1])); break;
 
                     case OP_EQ: {
+                        if constexpr (OBS) obs->onCompare();
                         bool r = equals(sp[-2], sp[-1]);
                         --sp;
                         sp->clear();
@@ -527,6 +546,7 @@ inline Value VM::execute(Value* sp, uint32_t nargs, size_t stopDepth) {
                         break;
                     }
                     case OP_NE: {
+                        if constexpr (OBS) obs->onCompare();
                         bool r = !equals(sp[-2], sp[-1]);
                         --sp;
                         sp->clear();
@@ -715,8 +735,17 @@ inline Value VM::execute(Value* sp, uint32_t nargs, size_t stopDepth) {
                         (--sp)->clear();
                         (--sp)->clear();
                         break;
-                    case OP_GETIDX: SLOWOP(getIndex)
+                    case OP_GETIDX: {
+                        SYNC();
+                        Value r = getIndex(sp[-2], sp[-1]);
+                        if constexpr (OBS) obs->onRead(sp[-2], sp[-1]);
+                        --sp;
+                        sp->clear();
+                        sp[-1] = std::move(r);
+                        break;
+                    }
                     case OP_SETIDX:
+                        if constexpr (OBS) obs->onWrite(sp[-3], sp[-2], sp[-1]);
                         setIndex(sp[-3], sp[-2], sp[-1]);
                         (--sp)->clear();
                         (--sp)->clear();
@@ -732,7 +761,12 @@ inline Value VM::execute(Value* sp, uint32_t nargs, size_t stopDepth) {
                             out += fmt(*p);
                         }
                         out += '\n';
-                        fwrite(out.data(), 1, out.size(), stdout);
+                        if constexpr (OBS) {
+                            if (obs->capture) obs->output(out);
+                            else fwrite(out.data(), 1, out.size(), stdout);
+                        } else {
+                            fwrite(out.data(), 1, out.size(), stdout);
+                        }
                         for (uint32_t i = 0; i < a; ++i) (--sp)->clear();
                         break;
                     }
@@ -740,8 +774,13 @@ inline Value VM::execute(Value* sp, uint32_t nargs, size_t stopDepth) {
                         SYNC();
                         std::string prompt = fmt(sp[-1]);
                         if (!prompt.empty()) {
-                            fputs(prompt.c_str(), stdout);
-                            fputc(' ', stdout);
+                            if constexpr (OBS) {
+                                if (obs->capture) obs->output(prompt + " ");
+                                else { fputs(prompt.c_str(), stdout); fputc(' ', stdout); }
+                            } else {
+                                fputs(prompt.c_str(), stdout);
+                                fputc(' ', stdout);
+                            }
                         }
                         fflush(stdout);
                         std::string line;
@@ -887,6 +926,7 @@ inline Value VM::execute(Value* sp, uint32_t nargs, size_t stopDepth) {
                 }
             }
         } catch (PlainError& e) {
+            if constexpr (OBS) obs->onError(*this, e);
             bool inside = frames.size() > stopDepth && fn;
             if (e.line == 0 && inside) {
                 size_t at = (size_t)(ip - code);
@@ -894,16 +934,18 @@ inline Value VM::execute(Value* sp, uint32_t nargs, size_t stopDepth) {
                 if (at < fn->lines.size()) e.line = fn->lines[at];
                 e.file = fn->file;
             }
-            if (handlers.empty() || handlers.back().depth <= stopDepth) {
+            if (e.fatal || handlers.empty() || handlers.back().depth <= stopDepth) {
                 closeUps(entrySp);
                 for (Value* p = entrySp; p < sp; ++p) p->clear();
                 frames.resize(std::min(frames.size(), stopDepth));
+                if constexpr (OBS) obs->onUnwind(*this);
                 throw;
             }
             // A 'try' is waiting: unwind to it and hand it the message.
             Handler h = handlers.back();
             handlers.pop_back();
             while (frames.size() > h.depth) frames.pop_back();
+            if constexpr (OBS) obs->onUnwind(*this);
             closeUps(h.sp);
             for (Value* p = h.sp; p < sp; ++p) p->clear();
             sp = h.sp;

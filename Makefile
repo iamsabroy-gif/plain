@@ -8,7 +8,7 @@ PREFIX ?= /usr/local
 
 all: build/plain
 
-src/libfiles.hpp: $(wildcard lib/*.plain lib/problems/*.plain)
+src/libfiles.hpp: $(wildcard lib/*.plain lib/problems/*.plain lib/viz/*.html)
 	sh tools/embed.sh
 
 build/plain: src/main.cpp src/*.hpp
@@ -20,6 +20,7 @@ test: build/plain
 	@sh tests/pkg_test.sh build/plain
 	@sh tests/format_test.sh build/plain
 	@sh tests/lib_test.sh build/plain
+	@sh tests/viz_test.sh build/plain
 
 install: build/plain
 	install -d $(DESTDIR)$(PREFIX)/bin

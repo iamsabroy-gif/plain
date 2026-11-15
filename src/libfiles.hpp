@@ -966,4 +966,809 @@ class Unique
     end
 end
 )PLAINLIB"},
+{"viz/player.html", R"PLAINLIB(<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plain - step through a program</title>
+<style>
+:root {
+  --bg: #f7f7f5; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6b66; --line: #dcdcd6;
+  --accent: #2f5bea; --bar: #7b97f0; --cmp: #f2b01e; --move: #e5484d; --done: #30a46c;
+  --hl-line: #fff3c4; --code-bg: #fbfbfa; --chip: #eef0f6; --changed: #e6f0ff;
+  --t1: #8fd0b0; --t2: #f4b183; --t3: #b9a3e8; --t4: #8dc6e8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15161a; --panel: #1e2026; --ink: #e8e8e4; --muted: #9a9a94; --line: #34363e;
+    --accent: #7c9bff; --bar: #5a73c9; --cmp: #e0a516; --move: #ef6a6e; --done: #3fb97f;
+    --hl-line: #4a4220; --code-bg: #1a1c21; --chip: #2a2d36; --changed: #26324d;
+    --t1: #4f9d7c; --t2: #b87d4f; --t3: #7f6cb8; --t4: #4f8db3;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15161a; --panel: #1e2026; --ink: #e8e8e4; --muted: #9a9a94; --line: #34363e;
+  --accent: #7c9bff; --bar: #5a73c9; --cmp: #e0a516; --move: #ef6a6e; --done: #3fb97f;
+  --hl-line: #4a4220; --code-bg: #1a1c21; --chip: #2a2d36; --changed: #26324d;
+  --t1: #4f9d7c; --t2: #b87d4f; --t3: #7f6cb8; --t4: #4f8db3;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+code, pre, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+header.bar { position: sticky; top: 0; z-index: 5; background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+header.bar h1 { font-size: 15px; margin: 0; font-weight: 600; }
+header.bar h1 span { color: var(--muted); font-weight: 400; }
+.controls { display: flex; gap: 6px; align-items: center; }
+button { font: inherit; background: var(--chip); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 5px 11px; cursor: pointer; min-width: 38px; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); min-width: 78px; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scrub { flex: 1 1 220px; display: flex; gap: 10px; align-items: center; min-width: 200px; }
+.scrub input[type=range] { flex: 1; accent-color: var(--accent); }
+.scrub .count { color: var(--muted); font-size: 13px; white-space: nowrap; }
+label.speed { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+main { display: grid; grid-template-columns: minmax(280px, 42%) 1fr; gap: 14px; padding: 14px 16px 40px; align-items: start; }
+@media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+section.card > h2 { margin: 0; padding: 8px 14px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
+section.card > .body { padding: 10px 14px; }
+.tabs { display: flex; gap: 4px; padding: 6px 10px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tabs button { border-radius: 8px 8px 0 0; border-bottom: none; font-size: 12px; padding: 3px 9px; }
+.tabs button.on { background: var(--code-bg); border-color: var(--accent); }
+#source { background: var(--code-bg); max-height: 70vh; overflow: auto; padding: 8px 0; font-size: 13px; line-height: 1.6; }
+#source .ln { display: grid; grid-template-columns: 44px 1fr; white-space: pre; }
+#source .ln .n { text-align: right; padding-right: 10px; color: var(--muted); user-select: none; }
+#source .ln.on { background: var(--hl-line); box-shadow: inset 3px 0 0 var(--cmp); }
+#source .ln.on .n { color: var(--ink); font-weight: 700; }
+#source .ln .t { padding-right: 14px; }
+.cmt { color: var(--muted); }
+.str { color: #1a7f4b; } @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .str { color: #6fd3a0; } }
+.kw { color: var(--accent); font-weight: 600; }
+.hint { font-size: 12px; color: var(--muted); padding: 6px 14px; border-bottom: 1px solid var(--line); }
+.group { margin-bottom: 12px; }
+.group > .gname { font-size: 12px; color: var(--muted); margin-bottom: 4px; display: flex; gap: 8px; align-items: baseline; }
+.group > .gname b { color: var(--ink); font-size: 13px; }
+.var { display: grid; grid-template-columns: max-content 1fr; gap: 4px 10px; align-items: start; padding: 4px 6px; border-radius: 8px; margin-bottom: 2px; }
+.var.changed { background: var(--changed); }
+.var > .vn { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; padding-top: 3px; color: var(--accent); font-weight: 600; }
+.chip { display: inline-block; background: var(--chip); border-radius: 6px; padding: 1px 7px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; max-width: 28em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.chip.nothing { color: var(--muted); font-style: italic; }
+.chip.fn { color: var(--muted); }
+.cells { display: flex; gap: 0; align-items: flex-end; flex-wrap: wrap; }
+.cell { display: flex; flex-direction: column; align-items: center; min-width: 38px; }
+.cell .box { border: 1px solid var(--line); background: var(--chip); min-width: 38px; height: 34px; padding: 0 6px; display: flex; align-items: center; justify-content: center; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+.cell .box.cmp, .bar.cmp { background: var(--cmp); color: #1d1d1b; border-color: var(--cmp); }
+.cell .box.mv, .bar.mv { background: repeating-linear-gradient(45deg, var(--move), var(--move) 5px, rgba(255,255,255,.28) 5px, rgba(255,255,255,.28) 9px); color: #fff; border-color: var(--move); }
+.cell .idx { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.cell .mark { font-size: 11px; font-weight: 700; color: var(--accent); min-height: 15px; line-height: 15px; font-family: ui-monospace, Menlo, monospace; }
+.bars { display: flex; align-items: flex-end; gap: 3px; padding-top: 4px; min-height: 40px; flex-wrap: nowrap; overflow-x: auto; }
+.bcol { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 16px; flex: 0 0 auto; }
+.bar { width: 100%; min-width: 16px; background: var(--bar); border-radius: 3px 3px 0 0; }
+.bcol .val { font-size: 11px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+.bcol .idx { font-size: 10px; color: var(--muted); }
+.bcol .mark { font-size: 11px; font-weight: 700; color: var(--accent); min-height: 14px; font-family: ui-monospace, Menlo, monospace; }
+.more { color: var(--muted); font-size: 12px; align-self: center; padding-left: 6px; }
+table.kv { border-collapse: collapse; font-size: 13px; }
+table.kv td { border-top: 1px solid var(--line); padding: 2px 8px 2px 0; vertical-align: top; }
+table.kv tr:first-child td { border-top: none; }
+table.kv td.k { color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+.objcard { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; display: inline-block; max-width: 100%; }
+.objcard > .cls { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 3px; }
+.chain { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+.link { display: flex; flex-direction: column; align-items: center; }
+.link .labels { font-size: 11px; font-weight: 700; color: var(--accent); min-height: 15px; font-family: ui-monospace, Menlo, monospace; }
+.link .node { border: 1px solid var(--line); background: var(--chip); border-radius: 6px; padding: 4px 10px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+.link .node.pointed { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.arrow { color: var(--muted); padding: 0 4px; margin-top: 15px; }
+svg text { font-family: ui-monospace, Menlo, Consolas, monospace; }
+.svgwrap { overflow: auto; max-width: 100%; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding: 8px 14px; border-top: 1px solid var(--line); }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+#output { white-space: pre-wrap; font-family: ui-monospace, Menlo, monospace; font-size: 13px; min-height: 22px; max-height: 220px; overflow: auto; }
+#output .cursor { color: var(--muted); }
+.stack-frame { display: flex; justify-content: space-between; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; margin-bottom: 4px; font-size: 13px; font-family: ui-monospace, Menlo, monospace; }
+.stack-frame.top { border-color: var(--accent); background: var(--changed); }
+.stack-frame span { color: var(--muted); }
+.banner { padding: 8px 14px; font-size: 14px; }
+.banner.err { background: rgba(229,72,77,.14); border-top: 1px solid var(--move); color: var(--ink); }
+.banner.warn { background: rgba(242,176,30,.16); }
+.ret { color: var(--done); font-weight: 600; font-family: ui-monospace, Menlo, monospace; }
+.empty { color: var(--muted); font-style: italic; }
+#counts { display: flex; gap: 8px 18px; flex-wrap: wrap; font-size: 13px; }
+#counts b { font-family: ui-monospace, Menlo, monospace; }
+.toggle { font-size: 12px; color: var(--muted); display: flex; gap: 5px; align-items: center; text-transform: none; letter-spacing: 0; font-weight: 400; }
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1 id="title">Plain <span>step through a program</span></h1>
+  <div class="controls" role="group" aria-label="Playback">
+    <button id="first" title="Back to the start (Home)" aria-label="Back to the start">&#9198;</button>
+    <button id="prev" title="Step back (Left arrow)" aria-label="Step back">&#9664;</button>
+    <button id="play" class="primary" title="Play or pause (Space)">&#9654; Play</button>
+    <button id="next" title="Step forward (Right arrow)" aria-label="Step forward">&#9654;&#124;</button>
+    <button id="last" title="Jump to the end (End)" aria-label="Jump to the end">&#9197;</button>
+  </div>
+  <label class="speed">Speed <input id="speed" type="range" min="1" max="10" value="5" aria-label="Speed"></label>
+  <div class="scrub"><input id="scrub" type="range" min="0" max="0" value="0" aria-label="Position in the run"><span class="count" id="count"></span></div>
+</header>
+<main>
+  <div>
+    <section class="card">
+      <h2><span>Program</span><span id="where" class="mono"></span></h2>
+      <div class="tabs" id="tabs" hidden></div>
+      <div class="hint">The highlighted line is the one that has just run. The variables show how things look right after it.</div>
+      <div id="source" tabindex="0" aria-label="Source code"></div>
+      <div id="banner"></div>
+    </section>
+    <section class="card">
+      <h2><span>Output</span></h2>
+      <div class="body"><div id="output"></div></div>
+    </section>
+    <section class="card" id="countsCard">
+      <h2><span>Counts for the whole run</span></h2>
+      <div class="body"><div id="counts"></div></div>
+    </section>
+  </div>
+  <div>
+    <section class="card">
+      <h2><span>Variables</span><label class="toggle" id="watchToggle" hidden><input type="checkbox" id="showAll"> show all</label></h2>
+      <div class="body" id="vars"></div>
+      <div class="legend" id="legend" hidden>
+        <span><i style="background:var(--cmp)"></i>compared</span>
+        <span><i style="background:var(--move)"></i>moved or changed</span>
+        <span><i style="background:var(--accent)"></i>name under an item = a variable pointing at it</span>
+      </div>
+    </section>
+    <section class="card" id="stackCard" hidden>
+      <h2><span>Call stack</span><span>newest on top</span></h2>
+      <div class="body" id="stack"></div>
+    </section>
+    <section class="card" id="treeCard" hidden>
+      <h2><span>Calls so far</span><span id="treeNote"></span></h2>
+      <div class="body"><div class="svgwrap" id="calltree"></div></div>
+    </section>
+  </div>
+</main>
+<script>
+const DATA = /*__PLAIN_DATA__*/null;
+</script>
+<script>
+(function () {
+"use strict";
+const $ = (id) => document.getElementById(id);
+const D = DATA;
+const POINTERS = new Set(["i","j","k","lo","hi","low","high","mid","left","right","start","stop","pivot","pos","position","index","idx","gap","front","back","slow","fast","smallest","largest","min_index","max_index","low_at","high_at","split"]);
+
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    if (k === "class") e.className = attrs[k];
+    else if (k === "text") e.textContent = attrs[k];
+    else if (attrs[k] !== null && attrs[k] !== undefined) e.setAttribute(k, attrs[k]);
+  }
+  for (const c of kids) if (c !== null && c !== undefined && c !== false) e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return e;
+}
+const SVGNS = "http://www.w3.org/2000/svg";
+function s(tag, attrs, ...kids) {
+  const e = document.createElementNS(SVGNS, tag);
+  if (attrs) for (const k in attrs) if (attrs[k] !== null && attrs[k] !== undefined) e.setAttribute(k, attrs[k]);
+  for (const c of kids) if (c) e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return e;
+}
+
+// ---------------------------------------------------------- value helpers
+const V = (id) => D.vals[id];
+const isObj = (v) => v !== null && typeof v === "object";
+const isList = (v) => isObj(v) && "L" in v;
+const isMap = (v) => isObj(v) && "M" in v;
+const isInst = (v) => isObj(v) && "O" in v;
+const isRec = (v) => isMap(v) || isInst(v);
+const isNum = (v) => typeof v === "number" || (isObj(v) && v.$ === "n");
+const isScalar = (v) => v === null || typeof v !== "object" || (isObj(v) && v.$ === "n");
+const idOf = (v) => (isList(v) ? v.L : isMap(v) ? v.M : isInst(v) ? v.O : null);
+function field(v, name) { if (!isRec(v)) return undefined; for (const e of v.v) if (e[0] === name) return e[1]; return undefined; }
+function hasField(v, name) { return isRec(v) && v.v.some((e) => e[0] === name); }
+function scalarText(v) {
+  if (v === null) return "nothing";
+  if (typeof v === "string") return v;
+  if (typeof v === "boolean") return v ? "true" : "false";
+  if (typeof v === "number") return Number.isInteger(v) ? String(v) : String(+v.toPrecision(10));
+  if (isObj(v) && v.$ === "n") return v.s;
+  return "?";
+}
+function numVal(v) { return typeof v === "number" ? v : isObj(v) && v.$ === "n" ? parseFloat(v.s) : NaN; }
+function shorten(t, n) { t = String(t); return t.length > n ? t.slice(0, n - 1) + "…" : t; }
+
+function scalarChip(v) {
+  if (v === null) return h("span", { class: "chip nothing", text: "nothing" });
+  if (typeof v === "string") return h("span", { class: "chip", text: '"' + v + '"', title: v });
+  return h("span", { class: "chip", text: scalarText(v) });
+}
+
+// every object id reachable inside a value
+function reach(v, set) {
+  set = set || new Set();
+  if (!isObj(v)) return set;
+  const id = idOf(v);
+  if (id !== null) { if (set.has(id)) return set; set.add(id); }
+  if (isList(v)) v.v.forEach((x) => reach(x, set));
+  else if (isRec(v)) v.v.forEach((e) => reach(e[1], set));
+  return set;
+}
+
+// ------------------------------------------------------------ rendering
+function render(v, ctx, depth) {
+  depth = depth || 0;
+  if (isScalar(v)) return scalarChip(v);
+  if (v.F !== undefined) return h("span", { class: "chip fn", text: "action " + v.F });
+  if (v.C !== undefined) return h("span", { class: "chip fn", text: "class " + v.C });
+  if (v.$ === "more" || v.$ === "deep") return h("span", { class: "chip fn", text: "…" });
+  if (v.$ === "cycle") return h("span", { class: "chip fn", text: "↺ same as before" });
+  if (isList(v)) return renderList(v, ctx);
+  if (isRec(v)) {
+    if (isGraph(v)) return renderGraph(v, ctx, null);
+    if (isBinaryNode(v)) return renderBinaryTree(v, ctx);
+    if (isKidsNode(v)) return renderKidsTree(v, ctx);
+    if (isChainNode(v)) return renderChain(v, ctx);
+    return renderRecord(v, ctx, depth);
+  }
+  return h("span", { class: "chip", text: "?" });
+}
+
+// A heap is a list used as a tree: item i has children 2i and 2i+1.
+function renderHeapTree(items, ctx, listId) {
+  const mv = new Set();
+  (ctx.step.w || []).forEach((p) => { if (p[0] === listId) mv.add(p[1]); });
+  (ctx.step.s || []).forEach((p) => { if (p[0] === listId) { mv.add(p[1]); mv.add(p[2]); } });
+  const cmp = new Set();
+  (ctx.step.c || []).forEach((p) => { if (p[0] === listId) cmp.add(p[1]); });
+  const n = Math.min(items.length, 63);
+  const lay = layoutKids({ i: 0 }, (nd) => [2 * nd.i + 1, 2 * nd.i + 2].filter((k) => k < n).map((k) => ({ i: k })), 90);
+  const wrap = h("div", { class: "svgwrap" });
+  wrap.append(drawTree(lay, ctx, (nd) => ({ text: scalarText(items[nd.v.i]), fill: mv.has(nd.v.i) ? "var(--move)" : cmp.has(nd.v.i) ? "var(--cmp)" : null }), {}));
+  return wrap;
+}
+
+function renderRecord(v, ctx, depth) {
+  const rows = v.v;
+  if (isInst(v) && (v.c === "Queue" || v.c === "Stack" || v.c === "Heap") && isList(field(v, "items"))) {
+    const items = field(v, "items");
+    const head = field(v, "head");
+    const live = v.c === "Queue" && typeof head === "number" ? { L: -1, n: items.n - head + 1, v: items.v.slice(head - 1) } : items;
+    const note = v.c === "Queue" ? "front \u2192 back" : v.c === "Stack" ? "bottom \u2192 top" : "the smallest is at the top";
+    const body = v.c === "Heap" && items.v.length ? renderHeapTree(items.v, ctx, items.L) : live.n === 0 ? h("span", { class: "empty", text: "empty" }) : renderList(live, Object.assign({}, ctx, { boxes: true }));
+    return h("div", { class: "objcard" }, h("div", { class: "cls", text: v.c + "  \u00B7  " + note }), body);
+  }
+  if (depth > 5) return h("span", { class: "chip fn", text: "…" });
+  if (isInst(v)) {
+    const wInst = field(v, "weights");
+    const edges = field(v, "edges");
+    const box = h("div", { class: "objcard" }, h("div", { class: "cls", text: v.c }));
+    const tbl = h("table", { class: "kv" });
+    let any = false;
+    for (const e of rows) {
+      if (e[0] === "weights" && edges !== undefined) continue;
+      any = true;
+      let cell;
+      if (e[0] === "edges" && isGraph(e[1])) cell = renderGraph(e[1], ctx, wInst);
+      else cell = render(e[1], ctx, depth + 1);
+      tbl.append(h("tr", null, h("td", { class: "k", text: e[0] }), h("td", null, cell)));
+    }
+    if (any) box.append(tbl); else box.append(h("span", { class: "empty", text: "no fields yet" }));
+    return box;
+  }
+  if (!rows.length) return h("span", { class: "chip", text: "{}" });
+  const tbl = h("table", { class: "kv" });
+  for (const e of rows) tbl.append(h("tr", null, h("td", { class: "k", text: scalarText(e[0]) }), h("td", null, render(e[1], ctx, depth + 1))));
+  if (v.n > rows.length) tbl.append(h("tr", null, h("td", { class: "k", text: "…" }), h("td", { class: "more", text: "+" + (v.n - rows.length) + " more" })));
+  return tbl;
+}
+
+function renderList(v, ctx) {
+  const items = v.v, n = v.n;
+  const id = v.L;
+  const cmp = new Set(), mv = new Set();
+  (ctx.step.c || []).forEach((p) => { if (p[0] === id) cmp.add(p[1]); });
+  (ctx.step.w || []).forEach((p) => { if (p[0] === id) mv.add(p[1]); });
+  (ctx.step.s || []).forEach((p) => { if (p[0] === id) { mv.add(p[1]); mv.add(p[2]); } });
+  // variables that look like positions in this list
+  const marks = {};
+  (ctx.scope || []).forEach(([name, val]) => {
+    if (typeof val === "number" && Number.isInteger(val) && val >= 1 && val <= n && POINTERS.has(name)) (marks[val - 1] = marks[val - 1] || []).push(name);
+  });
+  const allNum = items.length > 0 && items.every((x) => typeof x === "number" || x === null && false);
+  if (n === 0) return h("span", { class: "chip", text: "[ ]" });
+  if (items.every(isList) && items.length > 0 && items.every((r) => r.v.every(isScalar))) return renderMatrix(v, ctx);
+  if (allNum && items.length >= 2 && !ctx.boxes) return renderBars(v, ctx, cmp, mv, marks);
+  const wrap = h("div", { class: "cells" });
+  items.forEach((x, i) => {
+    const cls = "box" + (cmp.has(i) ? " cmp" : mv.has(i) ? " mv" : "");
+    const inner = isScalar(x) ? (typeof x === "string" ? shorten(x, 12) : scalarText(x)) : null;
+    const box = h("div", { class: cls });
+    if (inner !== null) box.textContent = inner; else box.append(render(x, ctx, 3));
+    wrap.append(h("div", { class: "cell" }, h("div", { class: "mark", text: (marks[i] || []).join(",") }), box, h("div", { class: "idx", text: i + 1 })));
+  });
+  if (n > items.length) wrap.append(h("span", { class: "more", text: "… +" + (n - items.length) + " more" }));
+  return wrap;
+}
+
+function renderBars(v, ctx, cmp, mv, marks) {
+  const items = v.v;
+  const vals = items.map(numVal);
+  const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
+  const span = hi - lo || 1;
+  const H = 110;
+  const wrap = h("div", { class: "bars" });
+  items.forEach((x, i) => {
+    const hgt = Math.max(3, Math.round(((numVal(x) - lo) / span) * H));
+    const cls = "bar" + (cmp.has(i) ? " cmp" : mv.has(i) ? " mv" : "");
+    const col = h("div", { class: "bcol", style: "width:" + (items.length > 30 ? 14 : items.length > 16 ? 22 : 30) + "px" },
+      items.length <= 40 ? h("div", { class: "val", text: scalarText(x) }) : null,
+      h("div", { class: cls, style: "height:" + hgt + "px", title: "item " + (i + 1) + " = " + scalarText(x) }),
+      items.length <= 40 ? h("div", { class: "idx", text: i + 1 }) : null,
+      h("div", { class: "mark", text: (marks[i] || []).join(",") }));
+    wrap.append(col);
+  });
+  if (v.n > items.length) wrap.append(h("span", { class: "more", text: "… +" + (v.n - items.length) + " more" }));
+  return wrap;
+}
+
+function renderMatrix(v, ctx) {
+  const tbl = h("table", { class: "kv" });
+  v.v.forEach((row, r) => {
+    const tr = h("tr", null, h("td", { class: "k", text: r + 1 }));
+    row.v.forEach((x) => tr.append(h("td", null, scalarChip(x))));
+    tbl.append(tr);
+  });
+  return tbl;
+}
+
+// -------------------------------------------------------------- chains
+function valueFieldOf(v) { for (const n of ["value", "val", "data", "key", "name"]) if (hasField(v, n)) return n; return null; }
+function isChainNode(v) { return isRec(v) && hasField(v, "next") && valueFieldOf(v) !== null; }
+function labelsFor(ctx, id) { return (ctx.labels && ctx.labels[id]) || []; }
+
+function renderChain(v, ctx) {
+  const wrap = h("div", { class: "chain" });
+  const seen = new Set();
+  let cur = v, count = 0;
+  while (isRec(cur) && count < 40) {
+    if (seen.has(idOf(cur))) { wrap.append(h("span", { class: "arrow", text: "→" }), h("span", { class: "chip fn", text: "↺ back to a node above" })); cur = null; break; }
+    seen.add(idOf(cur));
+    const labs = labelsFor(ctx, idOf(cur));
+    wrap.append(h("div", { class: "link" }, h("div", { class: "labels", text: labs.join(",") }),
+      h("div", { class: "node" + (labs.length ? " pointed" : "") }, scalarText(field(cur, valueFieldOf(cur))))));
+    const nx = field(cur, "next");
+    ++count;
+    if (nx === null || nx === undefined) { wrap.append(h("span", { class: "arrow", text: "→" }), h("span", { class: "chip nothing", text: "nothing" })); cur = null; break; }
+    wrap.append(h("span", { class: "arrow", text: "→" }));
+    cur = nx;
+    if (!isRec(cur)) { wrap.append(render(cur, ctx, 3)); break; }
+  }
+  return wrap;
+}
+
+// --------------------------------------------------------------- trees
+function isBinaryNode(v) { return isRec(v) && (hasField(v, "left") || hasField(v, "right")) && valueFieldOf(v) !== null; }
+function isKidsNode(v) { return isRec(v) && hasField(v, "children") && isList(field(v, "children")) && valueFieldOf(v) !== null; }
+
+function layoutBinary(root) {
+  const nodes = [], edges = [];
+  let xi = 0, maxDepth = 0;
+  function walk(v, depth, parent) {
+    if (!isRec(v) || nodes.length >= 90) return null;
+    maxDepth = Math.max(maxDepth, depth);
+    const n = { v, depth, id: idOf(v), x: 0 };
+    const l = field(v, "left"), r = field(v, "right");
+    const ln = isBinaryNode(l) ? walk(l, depth + 1, n) : null;
+    n.x = xi++;
+    nodes.push(n);
+    const rn = isBinaryNode(r) ? walk(r, depth + 1, n) : null;
+    if (ln) edges.push([n, ln]);
+    if (rn) edges.push([n, rn]);
+    return n;
+  }
+  walk(root, 0, null);
+  return { nodes, edges, maxDepth, width: xi };
+}
+function layoutKids(root, kidsOf, limit) {
+  const nodes = [], edges = [];
+  let leaf = 0, maxDepth = 0;
+  function walk(v, depth) {
+    if (nodes.length >= limit) return null;
+    maxDepth = Math.max(maxDepth, depth);
+    const n = { v, depth, id: idOf(v), x: 0, kids: [] };
+    nodes.push(n);
+    for (const k of kidsOf(v)) { const c = walk(k, depth + 1); if (c) { n.kids.push(c); edges.push([n, c]); } }
+    n.x = n.kids.length ? (n.kids[0].x + n.kids[n.kids.length - 1].x) / 2 : leaf++;
+    return n;
+  }
+  walk(root, 0);
+  return { nodes, edges, maxDepth, width: leaf };
+}
+function drawTree(lay, ctx, labelOf, opts) {
+  const dx = opts.dx || 44, dy = opts.dy || 54, r = opts.r || 16, pad = 24;
+  const W = Math.max(1, lay.width) * dx + pad * 2, H = (lay.maxDepth + 1) * dy + pad * 2 + 10;
+  const svg = s("svg", { width: W, height: H, viewBox: "0 0 " + W + " " + H, role: "img" });
+  const px = (n) => pad + n.x * dx + dx / 2 - dx / 2 + r, py = (n) => pad + n.depth * dy + r;
+  lay.edges.forEach(([a, b]) => svg.append(s("line", { x1: px(a), y1: py(a), x2: px(b), y2: py(b), stroke: "var(--line)", "stroke-width": 2 })));
+  lay.nodes.forEach((n) => {
+    const labs = labelsFor(ctx, n.id);
+    const info = labelOf(n);
+    const fill = info.fill || (labs.length ? "var(--accent)" : "var(--chip)");
+    const tc = info.fill || labs.length ? "#fff" : "var(--ink)";
+    svg.append(s("circle", { cx: px(n), cy: py(n), r: r, fill: fill, stroke: labs.length ? "var(--accent)" : "var(--line)", "stroke-width": 2 }));
+    svg.append(s("text", { x: px(n), y: py(n) + 4, "text-anchor": "middle", "font-size": 12, fill: tc }, shorten(info.text, 5)));
+    if (labs.length) svg.append(s("text", { x: px(n), y: py(n) + r + 12, "text-anchor": "middle", "font-size": 10, fill: "var(--accent)", "font-weight": 700 }, labs.join(",")));
+    if (info.sub) svg.append(s("text", { x: px(n), y: py(n) - r - 3, "text-anchor": "middle", "font-size": 10, fill: "var(--done)", "font-weight": 700 }, info.sub));
+  });
+  return svg;
+}
+function renderBinaryTree(v, ctx) {
+  const lay = layoutBinary(v);
+  const wrap = h("div", { class: "svgwrap" });
+  wrap.append(drawTree(lay, ctx, (n) => ({ text: scalarText(field(n.v, valueFieldOf(n.v))) }), {}));
+  return wrap;
+}
+function renderKidsTree(v, ctx) {
+  const lay = layoutKids(v, (n) => { const c = field(n, "children"); return isList(c) ? c.v.filter(isKidsNode) : []; }, 90);
+  const wrap = h("div", { class: "svgwrap" });
+  wrap.append(drawTree(lay, ctx, (n) => ({ text: scalarText(field(n.v, valueFieldOf(n.v))) }), {}));
+  return wrap;
+}
+
+// -------------------------------------------------------------- graphs
+function isGraph(v) {
+  if (!isMap(v) || v.v.length < 2) return false;
+  const keys = new Set(v.v.map((e) => String(scalarText(e[0]))));
+  return v.v.every((e) => isList(e[1]) && e[1].v.every((x) => isScalar(x) && keys.has(String(scalarText(x))))) && v.v.some((e) => e[1].n > 0);
+}
+const TINTS = ["var(--t1)", "var(--t2)", "var(--t3)", "var(--t4)"];
+function renderGraph(g, ctx, weights) {
+  const names = g.v.map((e) => String(scalarText(e[0])));
+  const idx = {};
+  names.forEach((nm, i) => (idx[nm] = i));
+  const N = names.length;
+  const R = Math.min(150, 28 + N * 16), size = R * 2 + 90, c = size / 2;
+  const pos = names.map((_, i) => [c + R * Math.cos((2 * Math.PI * i) / N - Math.PI / 2), c + R * Math.sin((2 * Math.PI * i) / N - Math.PI / 2)]);
+  const adj = {};
+  g.v.forEach((e) => (adj[String(scalarText(e[0]))] = e[1].v.map((x) => String(scalarText(x)))));
+  const wmap = {};
+  if (weights && isMap(weights)) weights.v.forEach((e) => (wmap[String(e[0])] = e[1]));
+  const svg = s("svg", { width: size, height: size, viewBox: "0 0 " + size + " " + size, role: "img" });
+  svg.append(s("defs", null, s("marker", { id: "arr", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto-start-reverse" }, s("path", { d: "M0,0 L10,5 L0,10 z", fill: "var(--muted)" }))));
+  const r = 17;
+  names.forEach((a, i) => adj[a].forEach((b) => {
+    const j = idx[b];
+    if (j === i) return;
+    const mutual = adj[b].includes(a);
+    if (mutual && j < i) return;
+    const [x1, y1] = pos[i], [x2, y2] = pos[j];
+    const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+    const ux = (x2 - x1) / len, uy = (y2 - y1) / len;
+    svg.append(s("line", { x1: x1 + ux * r, y1: y1 + uy * r, x2: x2 - ux * (r + (mutual ? 0 : 3)), y2: y2 - uy * (r + (mutual ? 0 : 3)), stroke: "var(--muted)", "stroke-width": 1.6, "marker-end": mutual ? null : "url(#arr)" }));
+    const w = wmap[a + ">" + b];
+    if (w !== undefined && w !== 1) svg.append(s("text", { x: (x1 + x2) / 2 + 6 * -uy, y: (y1 + y2) / 2 + 6 * ux, "font-size": 11, "text-anchor": "middle", fill: "var(--done)", "font-weight": 700 }, String(scalarText(w))));
+  }));
+  // tint nodes that appear in other collections of this scope (such as "seen" or "order")
+  const tint = {}, legend = [];
+  (ctx.collections || []).forEach(([name, val]) => {
+    if (val === g || legend.length >= 4) return;
+    let ks = null;
+    if (isMap(val)) ks = val.v.map((e) => String(scalarText(e[0])));
+    else if (isList(val)) ks = val.v.map((x) => String(scalarText(x)));
+    if (!ks || !ks.length || !ks.every((k) => k in idx)) return;
+    const t = TINTS[legend.length];
+    legend.push([name, t]);
+    ks.forEach((k) => { if (!tint[k]) tint[k] = t; });
+  });
+  names.forEach((nm, i) => {
+    const holders = (ctx.scalars || []).filter(([, val]) => String(scalarText(val)) === nm).map(([n]) => n);
+    svg.append(s("circle", { cx: pos[i][0], cy: pos[i][1], r: r, fill: tint[nm] || "var(--chip)", stroke: holders.length ? "var(--accent)" : "var(--line)", "stroke-width": holders.length ? 3 : 2 }));
+    svg.append(s("text", { x: pos[i][0], y: pos[i][1] + 4, "text-anchor": "middle", "font-size": 12, fill: "var(--ink)" }, shorten(nm, 4)));
+    if (holders.length) svg.append(s("text", { x: pos[i][0], y: pos[i][1] - r - 5, "text-anchor": "middle", "font-size": 10, fill: "var(--accent)", "font-weight": 700 }, holders.join(",")));
+  });
+  const wrap = h("div", { class: "svgwrap" }, svg);
+  if (legend.length) wrap.append(h("div", { class: "legend", style: "border-top:none;padding:4px 0 0" }, ...legend.map(([n, t]) => h("span", null, h("i", { style: "background:" + t }), "in " + n))));
+  return wrap;
+}
+
+// ------------------------------------------------------ the call tree
+function renderCallTree(i) {
+  const calls = D.calls;
+  const visible = [];
+  for (let k = 0; k < calls.length; ++k) if (calls[k].s <= i) visible.push(k);
+  if (!visible.length) return null;
+  const idx = {};
+  visible.forEach((k) => (idx[k] = { k, kids: [], c: calls[k] }));
+  const roots = [];
+  visible.forEach((k) => { const p = calls[k].p; if (p >= 0 && idx[p]) idx[p].kids.push(idx[k]); else roots.push(idx[k]); });
+  const LIMIT = 120;
+  const virtual = { c: { n: "" }, kids: roots, k: -1 };
+  const lay = layoutKids(virtual, (n) => n.kids, LIMIT + 1);
+  lay.nodes = lay.nodes.filter((n) => n.v !== virtual);
+  lay.edges = lay.edges.filter(([a]) => a.v !== virtual);
+  const dx = 78, dy = 50, r = 22, pad = 12;
+  const W = Math.max(1, lay.width) * dx + pad * 2, H = lay.maxDepth * dy + pad * 2 + r * 2;
+  const svg = s("svg", { width: W, height: H, viewBox: "0 0 " + W + " " + H, role: "img" });
+  const px = (n) => pad + n.x * dx + dx / 2, py = (n) => pad + (n.depth - 1) * dy + r;
+  lay.edges.forEach(([a, b]) => svg.append(s("line", { x1: px(a), y1: py(a), x2: px(b), y2: py(b), stroke: "var(--line)", "stroke-width": 2 })));
+  const cur = D.steps[i].cs;
+  lay.nodes.forEach((n) => {
+    const c = n.v.c;
+    const done = c.e >= 0 && c.e <= i;
+    const active = n.v.k === cur;
+    const lab = c.n + "(" + c.a.map((id) => shorten(scalarText0(V(id)), 6)).join(",") + ")";
+    svg.append(s("rect", { x: px(n) - dx / 2 + 3, y: py(n) - r / 1.6, width: dx - 6, height: r * 1.25, rx: 8, fill: active ? "var(--accent)" : done ? "var(--chip)" : "var(--panel)", stroke: active ? "var(--accent)" : done ? "var(--done)" : "var(--muted)", "stroke-width": active ? 2.5 : 1.5 }));
+    svg.append(s("text", { x: px(n), y: py(n) - 1, "text-anchor": "middle", "font-size": 10.5, fill: active ? "#fff" : "var(--ink)" }, shorten(lab, 13)));
+    if (done) svg.append(s("text", { x: px(n), y: py(n) + 11, "text-anchor": "middle", "font-size": 10.5, fill: active ? "#fff" : "var(--done)", "font-weight": 700 }, "→ " + shorten(scalarText0(V(c.r)), 8)));
+  });
+  return { svg, shown: lay.nodes.length, total: visible.length };
+}
+function scalarText0(v) {
+  if (isScalar(v)) return scalarText(v);
+  if (isList(v)) return "[" + v.v.slice(0, 4).map(scalarText0).join(",") + (v.n > 4 ? ",…" : "") + "]";
+  if (isRec(v)) return isInst(v) ? v.c : "{…}";
+  return "…";
+}
+
+// ---------------------------------------------------------- the player
+let cur = 0, timer = null;
+const steps = D.steps;
+const hasRecursion = (() => {
+  if (D.calls.length < 3) return false;
+  return D.calls.some((c, k) => { for (let p = c.p; p >= 0; p = D.calls[p].p) if (D.calls[p].n === c.n) return true; return false; });
+})();
+
+function highlightSource(text) {
+  // light colouring for keywords, text and comments
+  const KW = /\b(set|say|show|print|ask|into|add|remove|from|increase|decrease|by|if|then|otherwise|end|repeat|times|while|for|each|in|define|with|give|back|stop|skip|is|not|and|or|greater|less|than|at|least|most|equal|contains|plus|minus|multiplied|divided|modulo|length|of|item|true|false|nothing|action|gives|class|extends|new|me|parent|try|fail|use)\b/g;
+  const out = document.createDocumentFragment();
+  let code = text, comment = "";
+  let q = false;
+  for (let k = 0; k < text.length; ++k) {
+    if (text[k] === '"' && text[k - 1] !== "\\") q = !q;
+    if (!q && text[k] === "#") { code = text.slice(0, k); comment = text.slice(k); break; }
+  }
+  const parts = code.split(/("(?:[^"\\]|\\.)*")/);
+  parts.forEach((p, k) => {
+    if (k % 2) out.append(h("span", { class: "str", text: p }));
+    else {
+      let last = 0, m;
+      KW.lastIndex = 0;
+      while ((m = KW.exec(p))) { out.append(p.slice(last, m.index)); out.append(h("span", { class: "kw", text: m[0] })); last = m.index + m[0].length; }
+      out.append(p.slice(last));
+    }
+  });
+  if (comment) out.append(h("span", { class: "cmt", text: comment }));
+  return out;
+}
+
+let activeFile = 0;
+const srcByName = {};
+D.sources.forEach((sr) => (srcByName[sr.name] = sr));
+function drawSource(fileIdx, line) {
+  const name = D.files[fileIdx] !== undefined ? D.files[fileIdx] : (D.sources[0] && D.sources[0].name);
+  const src = srcByName[name] || D.sources[0];
+  const box = $("source");
+  if (box.dataset.name !== (src && src.name)) {
+    box.dataset.name = src ? src.name : "";
+    box.textContent = "";
+    if (src) src.text.replace(/\n$/, "").split("\n").forEach((t, k) => {
+      const row = h("div", { class: "ln", id: "ln" + (k + 1) }, h("span", { class: "n", text: k + 1 }), h("span", { class: "t" }));
+      row.lastChild.append(highlightSource(t) || "");
+      if (!t) row.lastChild.append(" ");
+      box.append(row);
+    });
+  }
+  box.querySelectorAll(".ln.on").forEach((e) => e.classList.remove("on"));
+  const row = $("ln" + line);
+  if (row) {
+    row.classList.add("on");
+    const top = row.offsetTop - box.clientHeight / 2 + row.clientHeight;
+    if (row.offsetTop < box.scrollTop + 20 || row.offsetTop > box.scrollTop + box.clientHeight - 40) box.scrollTop = Math.max(0, top);
+  }
+  $("where").textContent = (src ? shortName(src.name) : "") + (line ? " : line " + line : "");
+  const tabs = $("tabs");
+  if (D.files.length > 1) {
+    tabs.hidden = false;
+    tabs.textContent = "";
+    D.files.forEach((f, k) => tabs.append(h("button", { class: f === name ? "on" : "", text: shortName(f), onclick: "" })));
+    Array.from(tabs.children).forEach((b, k) => (b.onclick = () => { activeFile = k; drawSource(k, 0); }));
+  }
+}
+function shortName(n) { return String(n).split(/[\\/]/).pop(); }
+
+function scopeOf(pairs) {
+  return pairs.map(([n, id]) => [n, V(id)]);
+}
+
+function variableGroups(step, prev) {
+  const watch = D.watch.length && !$("showAll").checked ? new Set(D.watch) : null;
+  const groups = [];
+  const take = (title, sub, pairs, prevPairs) => {
+    const list = pairs.filter(([n]) => !watch || watch.has(n));
+    if (list.length || !watch) groups.push({ title, sub, pairs: list, prev: prevPairs || [] });
+  };
+  take("Variables", "", step.g, prev ? prev.g : []);
+  step.f.forEach((f, k) => {
+    const pf = prev && prev.f[k] && prev.f[k].n === f.n ? prev.f[k].v : [];
+    take(f.n, f.l ? "waiting at line " + f.l : "running", f.v, pf);
+  });
+  return groups;
+}
+
+function labelMap(groups) {
+  const labels = {};
+  groups.forEach((g) => g.pairs.forEach(([n, id]) => {
+    const v = V(id);
+    const oid = idOf(v);
+    if (oid !== null) (labels[oid] = labels[oid] || []).push(n);
+  }));
+  return labels;
+}
+
+function drawVars(i) {
+  const step = steps[i], prev = i > 0 ? steps[i - 1] : null;
+  const box = $("vars");
+  box.textContent = "";
+  const groups = variableGroups(step, prev);
+  const labels = labelMap(groups);
+  // a variable that points into a structure another variable shows is drawn as a pointer chip, not drawn twice
+  const contained = new Set();
+  groups.forEach((g) => g.pairs.forEach(([n, id]) => {
+    const v = V(id);
+    if (!isRec(v) && !isList(v)) return;
+    groups.forEach((g2) => g2.pairs.forEach(([n2, id2]) => {
+      if (n2 === n && g2 === g) return;
+      const v2 = V(id2);
+      if (!isRec(v2) && !isList(v2)) return;
+      if (isList(v) && isList(v2)) return;
+      const r2 = reach(v2);
+      const mine = idOf(v);
+      if (r2.has(mine) && (mine !== idOf(v2) || (g2 === groups[0] && g !== groups[0]) || n2 < n)) contained.add(g.title + "/" + n);
+    }));
+  }));
+  // the same list or map seen through two names (a variable and a parameter): draw it once, where it is being worked on
+  const owner = {};
+  groups.forEach((g, gi) => g.pairs.forEach(([n, id]) => {
+    const oid = idOf(V(id));
+    if (oid !== null && !contained.has(g.title + "/" + n)) owner[oid] = [gi, n, g.title];
+  }));
+  let any = false;
+  groups.forEach((g, gi) => {
+    if (!g.pairs.length) return;
+    any = true;
+    const gd = h("div", { class: "group" });
+    if (g !== groups[0] || groups.length > 1) gd.append(h("div", { class: "gname" }, h("b", { text: g.title }), g.sub));
+    const scope = scopeOf(g.pairs);
+    const scalars = scope.filter(([, v]) => isScalar(v));
+    const collections = scope.filter(([, v]) => isMap(v) || isList(v));
+    const ctx = { step, labels, scope, scalars, collections };
+    g.pairs.forEach(([n, id]) => {
+      const v = V(id);
+      const was = g.prev.find((p) => p[0] === n);
+      const changed = !was || was[1] !== id;
+      let cell;
+      const oid = idOf(v), own = oid !== null ? owner[oid] : null;
+      if (contained.has(g.title + "/" + n)) cell = h("span", { class: "chip fn", text: "→ points into the structure above" });
+      else if (own && (own[0] !== gi || own[1] !== n)) cell = h("span", { class: "chip fn", text: "the same as " + own[1] + (own[2] !== "Variables" ? " (in " + own[2] + ")" : "") + (own[0] > gi ? " below" : " above") });
+      else cell = render(v, ctx, 0);
+      gd.append(h("div", { class: "var" + (changed ? " changed" : "") }, h("div", { class: "vn", text: n }), h("div", null, cell)));
+    });
+    box.append(gd);
+  });
+  if (!any) box.append(h("div", { class: "empty", text: D.watch.length ? "Nothing to show for the watched names yet." : "No variables yet." }));
+  const interesting = Array.from(box.querySelectorAll(".bar, .box, .objcard, svg")).length > 0;
+  $("legend").hidden = !interesting;
+}
+
+function drawStack(i) {
+  const step = steps[i];
+  const card = $("stackCard");
+  if (!D.calls.length) { card.hidden = true; return; }
+  card.hidden = false;
+  const box = $("stack");
+  box.textContent = "";
+  box.append(h("div", { class: "stack-frame" + (step.f.length ? "" : " top") }, "main program", h("span", { text: step.f.length ? "" : "line " + step.l })));
+  const list = [];
+  step.f.forEach((f, k) => list.push([f, k === step.f.length - 1]));
+  list.reverse().forEach(([f, top]) => {
+    const args = f.v.map(([n, id]) => n + "=" + shorten(scalarText0(V(id)), 14)).join(", ");
+    box.prepend(h("div", { class: "stack-frame" + (top ? " top" : "") }, f.n + "(" + shorten(args, 40) + ")", h("span", { text: "line " + f.l })));
+  });
+  if (step.r !== undefined) box.prepend(h("div", { class: "ret", text: "returning " + scalarText0(V(step.r)) }));
+}
+
+function drawTree_(i) {
+  const card = $("treeCard");
+  if (!hasRecursion) { card.hidden = true; return; }
+  card.hidden = false;
+  const r = renderCallTree(i);
+  const box = $("calltree");
+  box.textContent = "";
+  if (!r) return;
+  box.append(r.svg);
+  $("treeNote").textContent = r.total > r.shown ? "showing " + r.shown + " of " + r.total + " calls" : r.total + " call" + (r.total === 1 ? "" : "s");
+}
+
+function drawOutput(i) {
+  const n = steps[i].o;
+  const out = $("output");
+  out.textContent = D.out.slice(0, n).join("");
+  out.scrollTop = out.scrollHeight;
+}
+
+function show(i) {
+  cur = Math.max(0, Math.min(steps.length - 1, i));
+  const step = steps[cur];
+  drawSource(step.fi, step.l);
+  drawVars(cur);
+  drawStack(cur);
+  drawTree_(cur);
+  drawOutput(cur);
+  $("scrub").value = cur;
+  $("count").textContent = "step " + (cur + 1) + " of " + steps.length;
+  const banner = $("banner");
+  banner.textContent = "";
+  if (step.e) banner.append(h("div", { class: "banner err" }, "Problem on line " + step.l + ": " + step.e));
+  else if (cur === steps.length - 1 && D.error) banner.append(h("div", { class: "banner err" }, "The program stopped: " + D.error.msg));
+  else if (cur === steps.length - 1 && D.truncated) banner.append(h("div", { class: "banner warn" }, "This run is longer than the player records, so it ends here. Try a smaller input."));
+  $("play").innerHTML = timer ? "&#10074;&#10074; Pause" : (cur >= steps.length - 1 ? "&#8635; Replay" : "&#9654; Play");
+}
+
+function stop() { if (timer) { clearInterval(timer); timer = null; } }
+function delay() { return 1150 - Number($("speed").value) * 105; }
+function play() {
+  if (timer) { stop(); show(cur); return; }
+  if (cur >= steps.length - 1) cur = 0;
+  timer = setInterval(() => {
+    if (cur >= steps.length - 1) { stop(); show(cur); return; }
+    show(cur + 1);
+  }, delay());
+  show(cur);
+}
+$("speed").addEventListener("input", () => { if (timer) { stop(); play(); } });
+$("play").onclick = play;
+$("next").onclick = () => { stop(); show(cur + 1); };
+$("prev").onclick = () => { stop(); show(cur - 1); };
+$("first").onclick = () => { stop(); show(0); };
+$("last").onclick = () => { stop(); show(steps.length - 1); };
+$("scrub").addEventListener("input", (e) => { stop(); show(Number(e.target.value)); });
+$("showAll").addEventListener("change", () => show(cur));
+document.addEventListener("keydown", (e) => {
+  if (e.target && (e.target.tagName === "INPUT" && e.target.type !== "range")) return;
+  if (e.key === " " && e.target.tagName !== "BUTTON") { e.preventDefault(); play(); }
+  else if (e.key === "ArrowRight") { stop(); show(cur + 1); }
+  else if (e.key === "ArrowLeft") { stop(); show(cur - 1); }
+  else if (e.key === "Home") { stop(); show(0); }
+  else if (e.key === "End") { stop(); show(steps.length - 1); }
+});
+
+// ------------------------------------------------------------ start up
+const c = D.counts;
+$("title").innerHTML = "";
+$("title").append("Plain ", h("span", { text: D.sources[0] ? shortName(D.sources[0].name) : "" }));
+document.title = "Plain - " + (D.sources[0] ? shortName(D.sources[0].name) : "program");
+$("counts").append(
+  h("span", null, "comparisons ", h("b", { text: c.comparisons })), h("span", null, "swaps ", h("b", { text: c.swaps })),
+  h("span", null, "list writes ", h("b", { text: c.writes })), h("span", null, "calls ", h("b", { text: c.calls })),
+  h("span", null, "instructions ", h("b", { text: c.instructions })));
+if (D.watch.length) $("watchToggle").hidden = false;
+if (!steps.length) {
+  $("vars").textContent = "";
+  $("vars").append(h("div", { class: "empty", text: "This program ran no lines, so there is nothing to step through." }));
+  document.querySelectorAll("header .controls button, #scrub").forEach((b) => (b.disabled = true));
+} else {
+  $("scrub").max = steps.length - 1;
+  show(0);
+}
+})();
+</script>
+</body>
+</html>
+)PLAINLIB"},
 {nullptr, nullptr}};

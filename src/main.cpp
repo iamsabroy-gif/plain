@@ -170,6 +170,9 @@ static int runProgram(const std::string& src, const std::string& file, const std
     }
 }
 
+static void setUp(Program& prog);
+#include "tools.hpp"
+
 // plain lib [name [--copy]]: list the built-in library, show how a part is built, or copy it to edit.
 static int libCommand(const std::vector<std::string>& args) {
     static const std::pair<const char*, const char*> about[] = {
@@ -365,6 +368,8 @@ static void usage() {
            "                                make a standalone program that runs without Plain installed\n"
            "  plain --explain program.plain show the tokens and bytecode, then run\n"
            "  plain -e \"say 1 + 2\"          run one line of code\n"
+           "  plain visualize program.plain make a web page that steps through the run (-o page.html)\n"
+           "  plain count program.plain     run it, then report comparisons, swaps and calls\n"
            "  plain lib [name]              list the built-in data structures, or show how one is built\n"
            "  plain init                    start a project (writes plain.json)\n"
            "  plain install [address]       add a package: folder, git address or user/repo[#version]\n"
@@ -418,6 +423,8 @@ int main(int argc, char** argv) {
         }
         if (cmd == "format") return formatCommand(args);
         if (cmd == "lib") return libCommand(args);
+        if (cmd == "visualize" || cmd == "visualise") return visualizeCommand(args);
+        if (cmd == "count") return countCommand(args);
         bool explain = false, check = false, beginner = false;
         size_t at = 0;
         if (cmd == "--explain") { explain = true; at = 1; }

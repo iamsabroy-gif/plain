@@ -1,0 +1,7 @@
+define fib with n
+    if n is at most 1 then
+        give back n
+    end
+    give back fib(n - 1) + fib(n - 2)
+end
+say fib(4)

@@ -1,0 +1,23 @@
+use "dsa"
+set g to new Graph()
+g's add_edge("A", "B")
+g's add_edge("A", "C")
+g's add_edge("B", "D")
+g's add_edge("C", "D")
+g's add_edge("D", "E")
+set seen to {}
+set order to []
+set waiting to new Queue()
+waiting's enqueue("A")
+set seen["A"] to true
+while not waiting's is_empty()
+    set node to waiting's dequeue()
+    add node to order
+    for each nb in g's neighbors(node)
+        if not has_key(seen, nb) then
+            set seen[nb] to true
+            waiting's enqueue(nb)
+        end
+    end
+end
+say order

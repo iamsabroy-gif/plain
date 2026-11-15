@@ -20,6 +20,13 @@ inline const char* libSource(const std::string& path) {
     return nullptr;
 }
 
+// A packed file by its name, such as "viz/player.html" or "problems/two-sum" (null if there is none).
+inline const char* packedFile(const std::string& name) {
+    for (const LibFile* f = LIB_FILES; f->name; ++f)
+        if (name == f->name) return f->text;
+    return nullptr;
+}
+
 inline std::string plainHome() {
     const char* h = getenv("PLAIN_HOME");
     if (h && *h) return h;

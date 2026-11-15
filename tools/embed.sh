@@ -9,10 +9,10 @@ out=${1:-src/libfiles.hpp}
     echo "#pragma once"
     echo "struct LibFile { const char* name; const char* text; };"
     echo "static const LibFile LIB_FILES[] = {"
-    for f in lib/*.plain lib/problems/*.plain; do
+    for f in lib/*.plain lib/problems/*.plain lib/viz/*.html; do
         [ -f "$f" ] || continue
         name=${f#lib/}
-        name=${name%.plain}
+        case "$name" in *.plain) name=${name%.plain} ;; esac
         printf '{"%s", R"PLAINLIB(' "$name"
         cat "$f"
         printf ')PLAINLIB"},\n'
