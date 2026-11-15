@@ -1,0 +1,119 @@
+# Advanced features
+
+None of this is needed for the first seven lessons (see [CORE.md](CORE.md)). It is all
+still part of Plain.
+
+## Anonymous actions and closures
+
+```
+set double to action with x gives x * 2
+say map_each([1, 2, 3], double)            # [2, 4, 6]
+
+define make_counter
+    set count to 0
+    define bump
+        increase count by 1
+        give back count
+    end
+    give back bump
+end
+set next to make_counter()
+say next(), next()                         # 1 2
+```
+
+An action can be stored, passed and returned. It keeps the variables of the
+action it was made in (one counter per `make_counter()` call). Every round of a
+`for` / `for each` loop gets its own copy of the loop's variable (and, inside an
+action, of the variables made in the loop's body), so closures made in different
+rounds keep different values. (Variables made with `set` in a loop body at the top
+level are shared by the whole program; put the loop in an action to get one per round.) `map_each`, `keep_if`, `find_first`,
+`combine(items, start, action)` and `sort_by(items, action)` take actions.
+A longer anonymous action can use a block: `action with a, b` … `give back …` … `end`.
+
+## Classes and methods
+
+```
+class Animal
+    init with name
+        set me's name to name
+    end
+    define speak
+        say me's name + " makes a sound"
+    end
+end
+
+class Dog extends Animal
+    init with name
+        parent's init(name)
+    end
+    define speak
+        say me's name + " barks"
+    end
+end
+
+set rex to new Dog("Rex")
+rex's speak()
+say is_a(rex, Animal)            # true
+```
+
+`init` runs when an object is made. `me` is the object, `parent's name(...)`
+calls the parent class's action. An object can define `to_text` (no values) to
+say how it is shown by `say`. Fields are created by `set me's field to …`.
+
+## Tasks, channels and locks
+
+```
+set results to channel()
+define work with id
+    send(results, id * 10)
+end
+set t to start_task(work, 4)
+say receive(results)               # 40
+wait_for(t)
+```
+
+`start_task(action, values…)` runs an action alongside the program;
+`wait_for(task)` gives its answer (or its error). `channel()`, `send`, `receive`
+(waits; `nothing` once the channel is closed and empty), `close_channel`, and
+`lock()` with `acquire` / `release` / `try_acquire`. Tasks are real operating-system
+threads that take turns running Plain code (a global interpreter lock, like Python),
+so they overlap while waiting for files, the network or `wait`, but do not run
+Plain code on several cores at once. Use a lock around a change that must not be
+interleaved, such as `set counter to counter + 1`.
+
+## Networking
+
+| Action | What it does |
+|---|---|
+| `http_get(url [, headers])` | `{status, body, headers}`. `http://` is built in; `https://` needs the `curl` program. |
+| `http_post(url, body [, headers])`, `http_request(method, url, body, headers)` | A list or map body is sent as JSON. |
+| `tcp_listen(port)`, `tcp_port(server)`, `tcp_accept`, `tcp_connect(host, port)` | Plain TCP. A connection is a number. |
+| `tcp_send`, `tcp_receive`, `tcp_receive_line`, `tcp_close` | |
+| `http_serve(server, handler [, how_many])` | A small web server: `handler` gets `{method, path, query, headers, body}` and gives back text, a list/map (sent as JSON), or `{status, body, headers}`. |
+| `url_encode`, `url_decode` | |
+
+## Packages
+
+A project can list what it needs in `plain.json`:
+
+```
+{ "name": "shop", "version": "1.0.0", "main": "main.plain",
+  "dependencies": { "greeter": "someone/plain-greeter#v1.2.0", "tools": "../tools" } }
+```
+
+| Command | Does |
+|---|---|
+| `plain init` | Writes `plain.json`. |
+| `plain install` | Installs everything `plain.json` lists, into `./plain_modules`, and writes `plain.lock`. |
+| `plain install user/repo[#version]` | Also: a git address, or a folder. Added to `plain.json`. `--as name` picks the name, `--global` installs for every project. |
+| `plain update [name]` | Fetches newer versions, ignoring `plain.lock`. |
+| `plain remove name`, `plain list` | |
+
+`plain.lock` pins each git package to the exact commit, so an install on another
+computer gets the same code. In a program, `use "greeter"` loads the package's
+`main` file (from its `plain.json`, or `main.plain`); `use "greeter/extra"` loads
+another file of it. A package that needs other packages gets them installed too.
+There is no central registry yet: `plain install name` looks the name up in a JSON
+file you maintain (`~/.plain/registry.json` or `PLAIN_REGISTRY`).
+`plain build` bundles the program and its packages into one executable.
+
