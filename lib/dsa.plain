@@ -1,0 +1,11 @@
+# Everything for data structures and algorithms in one line:   use "dsa"
+# Open any of these files to see how the structure is built:   plain lib stack
+
+use "stack"
+use "queue"
+use "deque"
+use "unique"
+use "heap"
+use "linkedlist"
+use "tree"
+use "graph"

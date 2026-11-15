@@ -997,7 +997,8 @@ private:
         if (!prog.used.insert(path).second) return;
         std::string source;
         auto it = prog.embedded.find(path);
-        if (it != prog.embedded.end()) source = it->second;
+        if (const char* lib = libSource(path)) source = lib;
+        else if (it != prog.embedded.end()) source = it->second;
         else if (!readFile(path, source)) err("I couldn't read the file '" + path + "'.", line);
         prog.sources.emplace_back(path, source);
         Compiler sub(prog, source, path, false);

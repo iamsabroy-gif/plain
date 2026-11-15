@@ -1,0 +1,113 @@
+# LinkedList - values joined one to the next.
+#
+# How it works: each value lives in its own little box (a map with a "value" and
+# a "next"). "next" points to the following box, or is nothing at the end. The
+# list only remembers the first box ("head"). Adding at the front is quick; to
+# find a value you must walk along the boxes one by one.
+#
+#   use "linkedlist"
+#   set chain to new LinkedList()
+#   chain's append(1)
+#   chain's append(2)
+#   chain's prepend(0)
+#   say chain's to_list()          # [0, 1, 2]
+
+class LinkedList
+    init
+        set me's head to nothing
+        set me's count to 0
+    end
+
+    # Add a value at the front.
+    define prepend with value
+        set me's head to {value: value, next: me's head}
+        increase me's count by 1
+    end
+
+    # Add a value at the end (walks to the last box first).
+    define append with value
+        set box to {value: value, next: nothing}
+        if me's head is nothing then
+            set me's head to box
+        otherwise
+            set current to me's head
+            while current's next is not nothing
+                set current to current's next
+            end
+            set current's next to box
+        end
+        increase me's count by 1
+    end
+
+    define has with value
+        set current to me's head
+        while current is not nothing
+            if current's value is value then
+                give back true
+            end
+            set current to current's next
+        end
+        give back false
+    end
+
+    # Take out the first box holding this value. Gives back true if one was found.
+    define drop with value
+        set previous to nothing
+        set current to me's head
+        while current is not nothing
+            if current's value is value then
+                if previous is nothing then
+                    set me's head to current's next
+                otherwise
+                    set previous's next to current's next
+                end
+                decrease me's count by 1
+                give back true
+            end
+            set previous to current
+            set current to current's next
+        end
+        give back false
+    end
+
+    # Turn the chain around by pointing every "next" backwards.
+    define reverse_in_place
+        set previous to nothing
+        set current to me's head
+        while current is not nothing
+            set following to current's next
+            set current's next to previous
+            set previous to current
+            set current to following
+        end
+        set me's head to previous
+    end
+
+    define to_list
+        set out to []
+        set current to me's head
+        while current is not nothing
+            add current's value to out
+            set current to current's next
+        end
+        give back out
+    end
+
+    define size
+        give back me's count
+    end
+
+    define is_empty
+        give back me's count is 0
+    end
+
+    define to_text
+        set out to ""
+        set current to me's head
+        while current is not nothing
+            set out to out + text(current's value) + " -> "
+            set current to current's next
+        end
+        give back out + "end"
+    end
+end

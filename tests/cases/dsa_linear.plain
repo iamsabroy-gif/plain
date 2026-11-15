@@ -1,0 +1,73 @@
+use "dsa"
+
+# Stack: balanced brackets
+define balanced with text_in
+    set pile to new Stack()
+    for each ch in text_in
+        if ch is "(" or ch is "[" then
+            pile's push(ch)
+        otherwise if ch is ")" or ch is "]" then
+            if pile's is_empty() then
+                give back false
+            end
+            set open_ch to pile's pop()
+            if open_ch is "(" and ch is not ")" then
+                give back false
+            end
+            if open_ch is "[" and ch is not "]" then
+                give back false
+            end
+        end
+    end
+    give back pile's is_empty()
+end
+say balanced("([])()"), balanced("(]"), balanced("(()")
+
+# Queue keeps order, also across many items (it trims itself)
+set line to new Queue()
+for i from 1 to 200
+    line's enqueue(i)
+end
+set got to []
+for i from 1 to 150
+    add line's dequeue() to got
+end
+say got[1], got[150], line's size(), line's front(), line's is_empty()
+say first(got) + last(got)
+
+# Deque from both ends
+set d to new Deque()
+d's push_back(2)
+d's push_back(3)
+d's push_front(1)
+say d, d's peek_front(), d's peek_back()
+say d's pop_front(), d's pop_back(), d's size()
+
+# Unique
+set a to new Unique()
+for each x in [1, 2, 2, 3, 3, 3]
+    a's put(x)
+end
+set b to new Unique()
+for each x in [3, 4]
+    b's put(x)
+end
+say a's size(), a's has(2), a's has(9)
+say a's combined_with(b)
+say a's shared_with(b)
+say a's without(b)
+a's drop(2)
+a's drop(99)
+say a
+
+# Empty structures explain themselves
+try
+    new Stack()'s pop()
+on error problem
+    say "caught:", problem
+end
+try
+    new Queue()'s dequeue()
+on error problem
+    say "caught:", problem
+end

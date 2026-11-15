@@ -1,0 +1,49 @@
+# Stack - last in, first out.
+#
+# How it works: the items live in a list. The top of the stack is the END of the
+# list, so push adds to the end and pop takes from the end. Both are quick.
+#
+#   use "stack"
+#   set pile to new Stack()
+#   pile's push(1)
+#   pile's push(2)
+#   say pile's pop()      # 2 - the last thing in is the first thing out
+
+class Stack
+    init
+        set me's items to []
+    end
+
+    # Put a value on top.
+    define push with value
+        add value to me's items
+    end
+
+    # Take the top value off and give it back.
+    define pop
+        if me's is_empty() then
+            fail with "This stack is empty, so there is nothing to pop. Check is_empty() first."
+        end
+        give back pop(me's items)
+    end
+
+    # Look at the top value without taking it.
+    define peek
+        if me's is_empty() then
+            fail with "This stack is empty, so there is no top value. Check is_empty() first."
+        end
+        give back last(me's items)
+    end
+
+    define is_empty
+        give back length of me's items is 0
+    end
+
+    define size
+        give back length of me's items
+    end
+
+    define to_text
+        give back "Stack(bottom to top: " + text(me's items) + ")"
+    end
+end

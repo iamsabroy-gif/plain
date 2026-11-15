@@ -1,0 +1,10 @@
+1 -> 2 -> 3 -> 4 -> end 4 true false
+true false [1, 2, 4]
+[4, 2, 1] 4 -> 2 -> 1 -> end
+size 7 height 3
+in order   [20, 30, 40, 50, 60, 70, 80]
+pre order  [50, 30, 20, 40, 70, 60, 80]
+post order [20, 40, 30, 60, 80, 70, 50]
+by level   [50, 30, 70, 20, 40, 60, 80]
+20 80 true false
+6 [1, 2, 3, 4, 5, 6]

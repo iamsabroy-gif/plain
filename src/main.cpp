@@ -170,6 +170,45 @@ static int runProgram(const std::string& src, const std::string& file, const std
     }
 }
 
+// plain lib [name [--copy]]: list the built-in library, show how a part is built, or copy it to edit.
+static int libCommand(const std::vector<std::string>& args) {
+    static const std::pair<const char*, const char*> about[] = {
+        {"stack", "last in, first out: push, pop, peek"},
+        {"queue", "first in, first out: enqueue, dequeue, front"},
+        {"deque", "a queue you can use from both ends"},
+        {"unique", "a group of values with no repeats (a set): put, has, drop"},
+        {"heap", "smallest (or biggest) first: Heap, MaxHeap, PriorityQueue"},
+        {"linkedlist", "values joined one to the next"},
+        {"tree", "a binary search tree: put, has, in_order, height ..."},
+        {"graph", "nodes and edges: bfs, dfs, shortest_path, distances"},
+        {"dsa", "all of the above:  use \"dsa\""},
+    };
+    if (args.size() < 2) {
+        printf("The built-in library. Load a part with:  use \"stack\"   (or everything: use \"dsa\")\n"
+               "Every part is written in Plain: read how one is built with   plain lib stack\n\n");
+        for (const auto& a : about) printf("  %-11s %s\n", a.first, a.second);
+        printf("\nTo change one, copy it next to your program with   plain lib stack --copy   (your copy is used instead).\n");
+        return 0;
+    }
+    const char* text = libSource("<lib>/" + args[1] + ".plain");
+    if (!text) {
+        fprintf(stderr, "There is no library part called '%s'. Try: plain lib\n", args[1].c_str());
+        return 2;
+    }
+    if (args.size() > 2 && args[2] == "--copy") {
+        std::string out = args[1] + ".plain";
+        if (fileExists(out)) { fprintf(stderr, "'%s' already exists here, so I did not overwrite it.\n", out.c_str()); return 2; }
+        FILE* f = fopen(out.c_str(), "wb");
+        if (!f) { fprintf(stderr, "I couldn't write to '%s'.\n", out.c_str()); return 2; }
+        fputs(text, f);
+        fclose(f);
+        printf("Copied to %s. Programs next to it that say use \"%s\" now use your copy.\n", out.c_str(), args[1].c_str());
+        return 0;
+    }
+    fputs(text, stdout);
+    return 0;
+}
+
 // plain format [--check] [--print] files...
 static int formatCommand(const std::vector<std::string>& args) {
     bool check = false, print = false;
@@ -326,6 +365,7 @@ static void usage() {
            "                                make a standalone program that runs without Plain installed\n"
            "  plain --explain program.plain show the tokens and bytecode, then run\n"
            "  plain -e \"say 1 + 2\"          run one line of code\n"
+           "  plain lib [name]              list the built-in data structures, or show how one is built\n"
            "  plain init                    start a project (writes plain.json)\n"
            "  plain install [address]       add a package: folder, git address or user/repo[#version]\n"
            "                                (no address: install what plain.json lists)\n"
@@ -377,6 +417,7 @@ int main(int argc, char** argv) {
             return build(argv[0], file, out);
         }
         if (cmd == "format") return formatCommand(args);
+        if (cmd == "lib") return libCommand(args);
         bool explain = false, check = false, beginner = false;
         size_t at = 0;
         if (cmd == "--explain") { explain = true; at = 1; }

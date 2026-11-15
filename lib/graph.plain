@@ -1,0 +1,214 @@
+# Graph - things (nodes) joined by connections (edges).
+#
+# How it works: a map from each node to the list of nodes it connects to (an
+# "adjacency list"). Asking "who are my neighbours?" is one lookup.
+#   bfs: visit the nearest nodes first, using a queue.
+#   dfs: follow one path as far as it goes, then back up, using a stack.
+#   shortest_path: bfs that remembers where each node was reached from.
+#   distances: Dijkstra's algorithm, for edges with weights.
+# Node names must be text or numbers.
+#
+#   use "graph"
+#   set g to new Graph()            # connections go both ways
+#   g's add_edge("A", "B")
+#   g's add_edge("B", "C")
+#   say g's shortest_path("A", "C") # ["A", "B", "C"]
+#   (new DirectedGraph() makes connections that go one way: A to B only)
+
+use "queue"
+use "stack"
+use "heap"
+
+class Graph
+    init
+        set me's edges to {}
+        set me's weights to {}
+    end
+
+    define add_node with node
+        if not has_key(me's edges, node) then
+            set me's edges[node] to []
+        end
+    end
+
+    define add_edge with from_node, to_node
+        me's add_weighted_edge(from_node, to_node, 1)
+    end
+
+    define add_weighted_edge with from_node, to_node, weight
+        me's add_node(from_node)
+        me's add_node(to_node)
+        me's connect(from_node, to_node, weight)
+        me's connect(to_node, from_node, weight)
+    end
+
+    # One connection from a to b (an undirected graph makes two of them).
+    define connect with a, b, weight
+        if not me's edges[a] contains b then
+            add b to me's edges[a]
+        end
+        set me's weights[text(a) + ">" + text(b)] to weight
+    end
+
+    define has_edge with a, b
+        give back has_key(me's edges, a) and me's edges[a] contains b
+    end
+
+    define neighbors with node
+        if not has_key(me's edges, node) then
+            fail with "This graph has no node called " + text(node) + ". Add it with add_node or add_edge first."
+        end
+        give back me's edges[node]
+    end
+
+    define nodes
+        give back keys(me's edges)
+    end
+
+    define weight_of with a, b
+        give back me's weights[text(a) + ">" + text(b)]
+    end
+
+    # Nodes in the order a breadth-first search reaches them.
+    define bfs with start
+        set seen to {}
+        set seen[start] to true
+        set order to []
+        set waiting to new Queue()
+        waiting's enqueue(start)
+        while not waiting's is_empty()
+            set node to waiting's dequeue()
+            add node to order
+            for each next_node in me's neighbors(node)
+                if not has_key(seen, next_node) then
+                    set seen[next_node] to true
+                    waiting's enqueue(next_node)
+                end
+            end
+        end
+        give back order
+    end
+
+    # Nodes in the order a depth-first search reaches them.
+    define dfs with start
+        set seen to {}
+        set order to []
+        set pending to new Stack()
+        pending's push(start)
+        while not pending's is_empty()
+            set node to pending's pop()
+            if not has_key(seen, node) then
+                set seen[node] to true
+                add node to order
+                set around to me's neighbors(node)
+                for i from length of around to 1 by -1
+                    if not has_key(seen, around[i]) then
+                        pending's push(around[i])
+                    end
+                end
+            end
+        end
+        give back order
+    end
+
+    # The path with the fewest edges from a to b, or [] if there is none.
+    define shortest_path with a, b
+        set came_from to {}
+        set came_from[a] to nothing
+        set waiting to new Queue()
+        waiting's enqueue(a)
+        while not waiting's is_empty()
+            set node to waiting's dequeue()
+            if node is b then
+                set path to []
+                set step_node to b
+                while step_node is not nothing
+                    insert(path, 1, step_node)
+                    set step_node to came_from[step_node]
+                end
+                give back path
+            end
+            for each next_node in me's neighbors(node)
+                if not has_key(came_from, next_node) then
+                    set came_from[next_node] to node
+                    waiting's enqueue(next_node)
+                end
+            end
+        end
+        give back []
+    end
+
+    define has_path with a, b
+        give back length of me's shortest_path(a, b) is greater than 0
+    end
+
+    # Cheapest total weight from start to every node that can be reached (Dijkstra).
+    define distances with start
+        set best to {}
+        set best[start] to 0
+        set waiting to new PriorityQueue()
+        waiting's put(start, 0)
+        set done to {}
+        while not waiting's is_empty()
+            set node to waiting's take()
+            if not has_key(done, node) then
+                set done[node] to true
+                for each next_node in me's neighbors(node)
+                    set cost to best[node] + me's weight_of(node, next_node)
+                    if not has_key(best, next_node) or cost is less than best[next_node] then
+                        set best[next_node] to cost
+                        waiting's put(next_node, cost)
+                    end
+                end
+            end
+        end
+        give back best
+    end
+end
+
+# A graph whose connections go one way only.
+class DirectedGraph extends Graph
+    init
+        parent's init()
+    end
+
+    define add_weighted_edge with from_node, to_node, weight
+        me's add_node(from_node)
+        me's add_node(to_node)
+        me's connect(from_node, to_node, weight)
+    end
+
+    # An order of the nodes in which every connection points forward (or [] if there is a cycle).
+    define topological_order
+        set incoming to {}
+        for each node in me's nodes()
+            set incoming[node] to 0
+        end
+        for each node in me's nodes()
+            for each next_node in me's neighbors(node)
+                increase incoming[next_node] by 1
+            end
+        end
+        set ready to new Queue()
+        for each node in me's nodes()
+            if incoming[node] is 0 then
+                ready's enqueue(node)
+            end
+        end
+        set order to []
+        while not ready's is_empty()
+            set node to ready's dequeue()
+            add node to order
+            for each next_node in me's neighbors(node)
+                decrease incoming[next_node] by 1
+                if incoming[next_node] is 0 then
+                    ready's enqueue(next_node)
+                end
+            end
+        end
+        if length of order is less than length of me's nodes() then
+            give back []
+        end
+        give back order
+    end
+end

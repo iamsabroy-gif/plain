@@ -1,0 +1,173 @@
+# Tree - a binary search tree.
+#
+# How it works: every value lives in a box (a map with "value", "left" and
+# "right"). Smaller values go to the left of a box, bigger ones to the right,
+# so finding a value means asking "smaller or bigger?" at every step and
+# ignoring half of what is left - when the tree is balanced.
+#
+#   use "tree"
+#   set t to new Tree()
+#   t's put(5)
+#   t's put(2)
+#   t's put(8)
+#   say t's in_order()             # [2, 5, 8] - always sorted
+#   say t's has(8), t's height()   # true 2
+
+use "queue"
+
+class Tree
+    init
+        set me's root to nothing
+        set me's count to 0
+    end
+
+    define put with value
+        set box to {value: value, left: nothing, right: nothing}
+        if me's root is nothing then
+            set me's root to box
+            set me's count to 1
+            give back nothing
+        end
+        set current to me's root
+        while true
+            if value is current's value then
+                give back nothing
+            end
+            if value is less than current's value then
+                if current's left is nothing then
+                    set current's left to box
+                    increase me's count by 1
+                    give back nothing
+                end
+                set current to current's left
+            otherwise
+                if current's right is nothing then
+                    set current's right to box
+                    increase me's count by 1
+                    give back nothing
+                end
+                set current to current's right
+            end
+        end
+    end
+
+    define has with value
+        set current to me's root
+        while current is not nothing
+            if value is current's value then
+                give back true
+            end
+            if value is less than current's value then
+                set current to current's left
+            otherwise
+                set current to current's right
+            end
+        end
+        give back false
+    end
+
+    define smallest
+        if me's root is nothing then
+            fail with "This tree is empty. Check is_empty() first."
+        end
+        set current to me's root
+        while current's left is not nothing
+            set current to current's left
+        end
+        give back current's value
+    end
+
+    define biggest
+        if me's root is nothing then
+            fail with "This tree is empty. Check is_empty() first."
+        end
+        set current to me's root
+        while current's right is not nothing
+            set current to current's right
+        end
+        give back current's value
+    end
+
+    # How many boxes there are from the root down to the deepest box.
+    define height
+        give back me's height_of(me's root)
+    end
+
+    define height_of with box
+        if box is nothing then
+            give back 0
+        end
+        give back 1 + max(me's height_of(box's left), me's height_of(box's right))
+    end
+
+    # Left, then this box, then right: gives the values sorted.
+    define in_order
+        set out to []
+        me's walk_in_order(me's root, out)
+        give back out
+    end
+    define walk_in_order with box, out
+        if box is not nothing then
+            me's walk_in_order(box's left, out)
+            add box's value to out
+            me's walk_in_order(box's right, out)
+        end
+    end
+
+    # This box first, then left, then right.
+    define pre_order
+        set out to []
+        me's walk_pre_order(me's root, out)
+        give back out
+    end
+    define walk_pre_order with box, out
+        if box is not nothing then
+            add box's value to out
+            me's walk_pre_order(box's left, out)
+            me's walk_pre_order(box's right, out)
+        end
+    end
+
+    # Left, then right, then this box.
+    define post_order
+        set out to []
+        me's walk_post_order(me's root, out)
+        give back out
+    end
+    define walk_post_order with box, out
+        if box is not nothing then
+            me's walk_post_order(box's left, out)
+            me's walk_post_order(box's right, out)
+            add box's value to out
+        end
+    end
+
+    # Row by row from the top, using a queue.
+    define level_order
+        set out to []
+        if me's root is nothing then
+            give back out
+        end
+        set waiting to new Queue()
+        waiting's enqueue(me's root)
+        while not waiting's is_empty()
+            set box to waiting's dequeue()
+            add box's value to out
+            if box's left is not nothing then
+                waiting's enqueue(box's left)
+            end
+            if box's right is not nothing then
+                waiting's enqueue(box's right)
+            end
+        end
+        give back out
+    end
+
+    define size
+        give back me's count
+    end
+
+    define is_empty
+        give back me's count is 0
+    end
+end

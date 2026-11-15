@@ -5,8 +5,20 @@
 #include <unordered_map>
 
 #include "json.hpp"
+#include "libfiles.hpp"
 
 namespace plain {
+
+// The built-in library (stack, queue, graph, ...) lives inside the plain command; its files have paths like "<lib>/stack.plain".
+inline const char* libSource(const std::string& path) {
+    static const std::string prefix = "<lib>/";
+    if (path.compare(0, prefix.size(), prefix) != 0) return nullptr;
+    std::string name = path.substr(prefix.size());
+    if (name.size() > 6 && name.compare(name.size() - 6, 6, ".plain") == 0) name.resize(name.size() - 6);
+    for (const LibFile* f = LIB_FILES; f->name; ++f)
+        if (name == f->name) return f->text;
+    return nullptr;
+}
 
 inline std::string plainHome() {
     const char* h = getenv("PLAIN_HOME");
@@ -52,7 +64,7 @@ inline std::string manifestMain(const std::string& dir) {
 // set for programs made by 'plain build', which carry their files with them.
 inline std::string resolveModule(const std::string& importer, const std::string& name,
                                  const std::unordered_map<std::string, std::string>* embedded) {
-    auto exists = [&](const std::string& p) { return embedded ? embedded->count(p) > 0 : fileExists(p); };
+    auto exists = [&](const std::string& p) { return libSource(p) || (embedded ? embedded->count(p) > 0 : fileExists(p)); };
     std::string dir = dirOf(importer);
     std::string direct = dir + withExtension(name);
     if (exists(direct)) return direct;
@@ -90,6 +102,7 @@ inline std::string resolveModule(const std::string& importer, const std::string&
         for (const std::string& p : entries)
             if (exists(p)) return p;
     }
+    if (rest.empty() && libSource("<lib>/" + pkg + ".plain")) return "<lib>/" + pkg + ".plain";  // the built-in library
     return "";
 }
 

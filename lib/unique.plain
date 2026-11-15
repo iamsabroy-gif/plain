@@ -1,0 +1,86 @@
+# Unique - a group of values with no repeats (what other languages call a "set").
+# ("set" is already a Plain word, so this one is called Unique.)
+#
+# How it works: a map is used as a "has this been seen?" table. Each value is a
+# key, and looking a key up is quick however many values there are. Values must
+# be text, numbers or true/false, because those are what maps accept as keys.
+#
+#   use "unique"
+#   set seen to new Unique()
+#   seen's put(3)
+#   seen's put(3)
+#   say seen's size()       # 1 - the second 3 changed nothing
+#   say seen's has(3)       # true
+
+class Unique
+    init
+        set me's table to {}
+    end
+
+    # Add a value (nothing happens if it is already there).
+    define put with value
+        set me's table[value] to true
+    end
+
+    define has with value
+        give back has_key(me's table, value)
+    end
+
+    # Take a value out (nothing happens if it is not there).
+    define drop with value
+        if me's has(value) then
+            remove value from me's table
+        end
+    end
+
+    define size
+        give back length of me's table
+    end
+
+    define is_empty
+        give back length of me's table is 0
+    end
+
+    # The values, as a list, in the order they were first added.
+    define items
+        give back keys(me's table)
+    end
+
+    # A new Unique with the values of both.
+    define combined_with with other
+        set result to new Unique()
+        for each value in me's items()
+            result's put(value)
+        end
+        for each value in other's items()
+            result's put(value)
+        end
+        give back result
+    end
+
+    # A new Unique with only the values both have.
+    define shared_with with other
+        set result to new Unique()
+        for each value in me's items()
+            if other's has(value) then
+                result's put(value)
+            end
+        end
+        give back result
+    end
+
+    # A new Unique with the values of this one that the other does not have.
+    define without with other
+        set result to new Unique()
+        for each value in me's items()
+            if not other's has(value) then
+                result's put(value)
+            end
+        end
+        give back result
+    end
+
+    define to_text
+        give back "Unique" + text(me's items())
+    end
+end

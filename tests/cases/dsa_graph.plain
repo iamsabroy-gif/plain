@@ -1,0 +1,39 @@
+use "graph"
+
+set g to new Graph()
+g's add_edge("A", "B")
+g's add_edge("A", "C")
+g's add_edge("B", "D")
+g's add_edge("C", "D")
+g's add_edge("D", "E")
+g's add_node("Z")
+say g's nodes()
+say "bfs", g's bfs("A")
+say "dfs", g's dfs("A")
+say g's shortest_path("A", "E")
+say g's shortest_path("A", "Z"), g's has_path("A", "Z"), g's has_path("E", "A")
+say g's has_edge("B", "A"), g's neighbors("D")
+
+set roads to new Graph()
+roads's add_weighted_edge("home", "shop", 4)
+roads's add_weighted_edge("home", "park", 1)
+roads's add_weighted_edge("park", "shop", 2)
+roads's add_weighted_edge("shop", "work", 5)
+roads's add_weighted_edge("park", "work", 10)
+say roads's distances("home")
+
+set tasks to new DirectedGraph()
+tasks's add_edge("wake", "dress")
+tasks's add_edge("dress", "leave")
+tasks's add_edge("wake", "eat")
+tasks's add_edge("eat", "leave")
+say tasks's topological_order()
+say tasks's has_edge("leave", "eat")
+tasks's add_edge("leave", "wake")
+say tasks's topological_order()
+
+try
+    g's neighbors("Q")
+on error problem
+    say problem
+end

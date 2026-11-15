@@ -1,0 +1,66 @@
+# Deque - a queue you can use from both ends ("deck").
+#
+# How it works: the values are kept in one list. Working at the back of the list
+# is quick. Working at the front slides the other items along, so it costs more
+# for a long deque (a production deque uses a ring buffer to avoid this, and
+# this one stays simple so you can read it).
+#
+#   use "deque"
+#   set d to new Deque()
+#   d's push_back(2)
+#   d's push_front(1)
+#   say d's pop_back(), d's pop_front()     # 2 1
+
+class Deque
+    init
+        set me's items to []
+    end
+
+    define push_back with value
+        add value to me's items
+    end
+
+    define push_front with value
+        insert(me's items, 1, value)
+    end
+
+    define pop_back
+        if me's is_empty() then
+            fail with "This deque is empty, so there is nothing to pop. Check is_empty() first."
+        end
+        give back pop(me's items)
+    end
+
+    define pop_front
+        if me's is_empty() then
+            fail with "This deque is empty, so there is nothing to pop. Check is_empty() first."
+        end
+        give back pop_at(me's items, 1)
+    end
+
+    define peek_back
+        if me's is_empty() then
+            fail with "This deque is empty. Check is_empty() first."
+        end
+        give back last(me's items)
+    end
+
+    define peek_front
+        if me's is_empty() then
+            fail with "This deque is empty. Check is_empty() first."
+        end
+        give back first(me's items)
+    end
+
+    define is_empty
+        give back length of me's items is 0
+    end
+
+    define size
+        give back length of me's items
+    end
+
+    define to_text
+        give back "Deque(front to back: " + text(me's items) + ")"
+    end
+end

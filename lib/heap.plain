@@ -1,0 +1,183 @@
+# Heap - always hands you the smallest (or biggest) value first.
+#
+# How it works: a heap is a list that is treated as a tree. Item 1 is the top;
+# the children of item i are items 2i and 2i+1. The rule is that a parent is never
+# bigger than its children (for Heap), so the smallest value is always item 1.
+#   put:      add at the end, then swap upwards while it is smaller than its parent.
+#   smallest: take item 1, move the last item to the top, then swap it downwards.
+# Both take about log2(n) swaps, so a heap of a million values needs only ~20.
+#
+#   use "heap"
+#   set h to new Heap()
+#   h's put(5)
+#   h's put(1)
+#   h's put(3)
+#   say h's smallest(), h's smallest()      # 1 3
+
+class Heap
+    init
+        set me's items to []
+    end
+
+    define put with value
+        add value to me's items
+        set i to length of me's items
+        while i is greater than 1 and me's items[quotient(i, 2)] is greater than me's items[i]
+            set parent_at to quotient(i, 2)
+            set held to me's items[i]
+            set me's items[i] to me's items[parent_at]
+            set me's items[parent_at] to held
+            set i to parent_at
+        end
+    end
+
+    # Remove the smallest value and give it back.
+    define smallest
+        if me's is_empty() then
+            fail with "This heap is empty, so there is no smallest value. Check is_empty() first."
+        end
+        set top to me's items[1]
+        set last_value to pop(me's items)
+        set count to length of me's items
+        if count is greater than 0 then
+            set me's items[1] to last_value
+            set i to 1
+            set going to true
+            while going
+                set child to i * 2
+                if child is greater than count then
+                    set going to false
+                otherwise
+                    if child is less than count and me's items[child + 1] is less than me's items[child] then
+                        increase child by 1
+                    end
+                    if me's items[child] is less than me's items[i] then
+                        set held to me's items[child]
+                        set me's items[child] to me's items[i]
+                        set me's items[i] to held
+                        set i to child
+                    otherwise
+                        set going to false
+                    end
+                end
+            end
+        end
+        give back top
+    end
+
+    define peek
+        if me's is_empty() then
+            fail with "This heap is empty. Check is_empty() first."
+        end
+        give back me's items[1]
+    end
+
+    define size
+        give back length of me's items
+    end
+
+    define is_empty
+        give back length of me's items is 0
+    end
+
+    define to_text
+        give back "Heap(as a list: " + text(me's items) + ")"
+    end
+end
+
+# The same idea with the rule turned around: the BIGGEST value comes out first.
+class MaxHeap
+    init
+        set me's inner to new Heap()
+    end
+
+    # Values are stored as their negatives, so the smallest negative is the biggest value.
+    define put with value
+        me's inner's put(0 - value)
+    end
+
+    define biggest
+        give back 0 - me's inner's smallest()
+    end
+
+    define peek
+        give back 0 - me's inner's peek()
+    end
+
+    define size
+        give back me's inner's size()
+    end
+
+    define is_empty
+        give back me's inner's is_empty()
+    end
+end
+
+# A heap of (value, priority) pairs: take() gives the value with the lowest priority number.
+class PriorityQueue
+    init
+        set me's priorities to []
+        set me's values to []
+    end
+
+    define put with value, priority
+        add priority to me's priorities
+        add value to me's values
+        set i to length of me's priorities
+        while i is greater than 1 and me's priorities[quotient(i, 2)] is greater than me's priorities[i]
+            set parent_at to quotient(i, 2)
+            me's swap(i, parent_at)
+            set i to parent_at
+        end
+    end
+
+    define swap with a, b
+        set held to me's priorities[a]
+        set me's priorities[a] to me's priorities[b]
+        set me's priorities[b] to held
+        set held to me's values[a]
+        set me's values[a] to me's values[b]
+        set me's values[b] to held
+    end
+
+    define take
+        if me's is_empty() then
+            fail with "This priority queue is empty. Check is_empty() first."
+        end
+        set top to me's values[1]
+        set last_priority to pop(me's priorities)
+        set last_value to pop(me's values)
+        set count to length of me's priorities
+        if count is greater than 0 then
+            set me's priorities[1] to last_priority
+            set me's values[1] to last_value
+            set i to 1
+            set going to true
+            while going
+                set child to i * 2
+                if child is greater than count then
+                    set going to false
+                otherwise
+                    if child is less than count and me's priorities[child + 1] is less than me's priorities[child] then
+                        increase child by 1
+                    end
+                    if me's priorities[child] is less than me's priorities[i] then
+                        me's swap(i, child)
+                        set i to child
+                    otherwise
+                        set going to false
+                    end
+                end
+            end
+        end
+        give back top
+    end
+
+    define size
+        give back length of me's values
+    end
+
+    define is_empty
+        give back length of me's values is 0
+    end
+end

@@ -1,0 +1,30 @@
+use "linkedlist"
+use "tree"
+
+set chain to new LinkedList()
+chain's append(2)
+chain's append(3)
+chain's prepend(1)
+chain's append(4)
+say chain, chain's size(), chain's has(3), chain's has(9)
+say chain's drop(3), chain's drop(42), chain's to_list()
+chain's reverse_in_place()
+say chain's to_list(), chain
+
+set t to new Tree()
+for each x in [50, 30, 70, 20, 40, 60, 80, 30]
+    t's put(x)
+end
+say "size", t's size(), "height", t's height()
+say "in order  ", t's in_order()
+say "pre order ", t's pre_order()
+say "post order", t's post_order()
+say "by level  ", t's level_order()
+say t's smallest(), t's biggest(), t's has(60), t's has(65)
+
+# a lopsided tree is tall
+set chainy to new Tree()
+for i from 1 to 6
+    chainy's put(i)
+end
+say chainy's height(), chainy's in_order()

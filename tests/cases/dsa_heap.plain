@@ -1,0 +1,44 @@
+use "heap"
+
+set h to new Heap()
+for each x in [9, 4, 7, 1, 8, 2, 2, 6, 3]
+    h's put(x)
+end
+say "size", h's size(), "peek", h's peek()
+set sorted_out to []
+while not h's is_empty()
+    add h's smallest() to sorted_out
+end
+say sorted_out
+
+set m to new MaxHeap()
+for each x in [5, 11, 3, 8]
+    m's put(x)
+end
+say m's biggest(), m's biggest(), m's peek(), m's size()
+
+set tasks to new PriorityQueue()
+tasks's put("sleep", 9)
+tasks's put("eat", 2)
+tasks's put("code", 5)
+tasks's put("wake", 1)
+tasks's put("also eat", 3)
+set order to []
+while not tasks's is_empty()
+    add tasks's take() to order
+end
+say order
+
+# a bigger check against the built-in sort
+set big to new Heap()
+set numbers to []
+for i from 1 to 300
+    set v to (i * 7919) % 1009
+    add v to numbers
+    big's put(v)
+end
+set from_heap to []
+while not big's is_empty()
+    add big's smallest() to from_heap
+end
+say from_heap is sort(numbers)

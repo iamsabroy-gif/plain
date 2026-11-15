@@ -1,0 +1,11 @@
+["A", "B", "C", "D", "E", "Z"]
+bfs ["A", "B", "C", "D", "E"]
+dfs ["A", "B", "D", "C", "E"]
+["A", "B", "D", "E"]
+[] false true
+true ["B", "C", "E"]
+{"home": 0, "shop": 3, "park": 1, "work": 8}
+["wake", "dress", "eat", "leave"]
+false
+[]
+This graph has no node called Q. Add it with add_node or add_edge first.

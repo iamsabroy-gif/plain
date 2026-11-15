@@ -1,0 +1,60 @@
+# Queue - first in, first out.
+#
+# How it works: values are added to the end of a list, and a number called
+# "head" remembers where the front is. Taking from the front just moves head
+# along, so dequeue is quick (a naive version that deletes item 1 every time
+# has to slide every other item down). When the dead space at the front grows
+# large, the list is trimmed in one go.
+#
+#   use "queue"
+#   set line to new Queue()
+#   line's enqueue("Asha")
+#   line's enqueue("Ravi")
+#   say line's dequeue()   # Asha - first in, first out
+
+class Queue
+    init
+        set me's items to []
+        set me's head to 1
+    end
+
+    # Join the back of the line.
+    define enqueue with value
+        add value to me's items
+    end
+
+    # Leave from the front of the line and give that value back.
+    define dequeue
+        if me's is_empty() then
+            fail with "This queue is empty, so there is nothing to dequeue. Check is_empty() first."
+        end
+        set value to me's items[me's head]
+        set me's items[me's head] to nothing
+        increase me's head by 1
+        if me's head is greater than 32 and me's head * 2 is greater than length of me's items then
+            set me's items to slice(me's items, me's head, length of me's items)
+            set me's head to 1
+        end
+        give back value
+    end
+
+    # Look at the front value without taking it.
+    define front
+        if me's is_empty() then
+            fail with "This queue is empty, so there is no front value. Check is_empty() first."
+        end
+        give back me's items[me's head]
+    end
+
+    define is_empty
+        give back me's size() is 0
+    end
+
+    define size
+        give back length of me's items - me's head + 1
+    end
+
+    define to_text
+        give back "Queue(front to back: " + text(slice(me's items, me's head, length of me's items)) + ")"
+    end
+end

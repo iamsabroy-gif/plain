@@ -6,6 +6,11 @@ CXX ?= c++
 CXXFLAGS ?= -O2 -std=c++17 -Wall -Wextra
 PREFIX ?= /usr/local
 
+all: build/plain
+
+src/libfiles.hpp: $(wildcard lib/*.plain lib/problems/*.plain)
+	sh tools/embed.sh
+
 build/plain: src/main.cpp src/*.hpp
 	@mkdir -p build
 	$(CXX) $(CXXFLAGS) -o $@ src/main.cpp
@@ -14,6 +19,7 @@ test: build/plain
 	@sh tests/run_tests.sh build/plain
 	@sh tests/pkg_test.sh build/plain
 	@sh tests/format_test.sh build/plain
+	@sh tests/lib_test.sh build/plain
 
 install: build/plain
 	install -d $(DESTDIR)$(PREFIX)/bin
@@ -25,4 +31,4 @@ uninstall:
 clean:
 	rm -rf build
 
-.PHONY: test install uninstall clean
+.PHONY: all test install uninstall clean
