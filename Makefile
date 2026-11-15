@@ -13,6 +13,7 @@ build/plain: src/main.cpp src/*.hpp
 test: build/plain
 	@sh tests/run_tests.sh build/plain
 	@sh tests/pkg_test.sh build/plain
+	@sh tests/format_test.sh build/plain
 
 install: build/plain
 	install -d $(DESTDIR)$(PREFIX)/bin

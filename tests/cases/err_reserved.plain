@@ -1,0 +1,4 @@
+set total to 0
+for each item in [1, 2]
+    increase total by item
+end

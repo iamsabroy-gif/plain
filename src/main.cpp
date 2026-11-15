@@ -4,6 +4,7 @@
 // Run:    plain program.plain
 #include <filesystem>
 
+#include "format.hpp"
 #include "pkg.hpp"
 
 #ifdef _WIN32
@@ -169,6 +170,64 @@ static int runProgram(const std::string& src, const std::string& file, const std
     }
 }
 
+// plain format [--check] [--print] files...
+static int formatCommand(const std::vector<std::string>& args) {
+    bool check = false, print = false;
+    std::vector<std::string> files;
+    for (size_t i = 1; i < args.size(); ++i) {
+        if (args[i] == "--check") check = true;
+        else if (args[i] == "--print") print = true;
+        else files.push_back(args[i]);
+    }
+    if (files.empty()) { fprintf(stderr, "Tell me which file to tidy, like: plain format program.plain\n"); return 2; }
+    int code = 0;
+    for (const std::string& f : files) {
+        std::string src;
+        if (!readFile(f, src)) { fprintf(stderr, "I couldn't open the file '%s'.\n", f.c_str()); return 2; }
+        FormatResult r = formatSource(src);
+        for (const std::string& w : r.warnings) fprintf(stderr, "%s: %s\n", f.c_str(), w.c_str());
+        if (print) { fputs(r.text.c_str(), stdout); continue; }
+        if (r.text == src) { if (!check) printf("%s is already tidy.\n", f.c_str()); continue; }
+        if (check) { printf("%s would change (%d line%s).\n", f.c_str(), r.changedLines, r.changedLines == 1 ? "" : "s"); code = 1; continue; }
+        FILE* out = fopen(f.c_str(), "wb");
+        if (!out) { fprintf(stderr, "I couldn't write to '%s'.\n", f.c_str()); return 2; }
+        fwrite(r.text.data(), 1, r.text.size(), out);
+        fclose(out);
+        printf("Tidied %s (%d line%s changed).\n", f.c_str(), r.changedLines, r.changedLines == 1 ? "" : "s");
+    }
+    return code;
+}
+
+// plain check --beginner: list the advanced features a program uses (lessons 1-7 only need the core).
+static int beginnerCheck(const std::string& file, const std::string& src) {
+    static const std::unordered_set<std::string> advKw = {"class", "extends", "new", "me", "parent", "action", "gives"};
+    static const std::unordered_set<std::string> advWord = {
+        "try", "fail", "use", "call", "start_task", "wait_for", "channel", "send", "receive", "close_channel", "lock", "acquire",
+        "release", "try_acquire", "http_get", "http_post", "http_request", "http_serve", "tcp_listen", "tcp_connect", "tcp_accept",
+        "tcp_send", "tcp_receive", "tcp_receive_line", "tcp_close", "tcp_port", "url_encode", "url_decode", "to_json", "from_json",
+        "read_file", "write_file", "append_file", "read_lines", "delete_file", "file_exists", "environment", "arguments", "map_each",
+        "keep_if", "find_first", "combine", "sort_by", "collect_garbage"};
+    int found = 0, lastLine = -1;
+    try {
+        for (const Token& t : tokenize(src)) {
+            bool adv = (t.k == Token::Kw && advKw.count(t.text)) || (t.k == Token::Word && advWord.count(t.text));
+            if (!adv) continue;
+            if (t.k == Token::Word && (t.text == "try" || t.text == "fail" || t.text == "use" || t.text == "call")) {
+                // only the statement forms count
+            }
+            ++found;
+            if (t.line != lastLine) printf("  line %d: '%s' is an advanced feature (not needed for lessons 1-7)\n", t.line, t.text.c_str());
+            lastLine = t.line;
+        }
+    } catch (const PlainError& e) {
+        report(e, file, src);
+        return 1;
+    }
+    if (!found) printf("%s uses only the beginner core.\n", file.c_str());
+    else printf("%d advanced feature%s in %s.\n", found, found == 1 ? "" : "s", file.c_str());
+    return found ? 1 : 0;
+}
+
 static int build(const char* argv0, const std::string& file, std::string out) {
     std::string src, exe;
     if (!readFile(file, src)) { fprintf(stderr, "I couldn't open the file '%s'.\n", file.c_str()); return 2; }
@@ -260,6 +319,9 @@ static void usage() {
            "  plain                         start an interactive session\n"
            "  plain program.plain [args]    run a program\n"
            "  plain check program.plain     look for mistakes without running\n"
+           "  plain check --beginner program.plain\n"
+           "                                list the advanced features a program uses\n"
+           "  plain format program.plain    rewrite a program in the standard style (--check, --print)\n"
            "  plain build program.plain [-o name]\n"
            "                                make a standalone program that runs without Plain installed\n"
            "  plain --explain program.plain show the tokens and bytecode, then run\n"
@@ -314,10 +376,15 @@ int main(int argc, char** argv) {
             if (file.empty()) { usage(); return 2; }
             return build(argv[0], file, out);
         }
-        bool explain = false, check = false;
+        if (cmd == "format") return formatCommand(args);
+        bool explain = false, check = false, beginner = false;
         size_t at = 0;
         if (cmd == "--explain") { explain = true; at = 1; }
-        else if (cmd == "check") { check = true; at = 1; }
+        else if (cmd == "check") {
+            check = true;
+            at = 1;
+            if (at < args.size() && args[at] == "--beginner") { beginner = true; at = 2; }
+        }
         else if (cmd == "run") { at = 1; }
         if (at >= args.size()) { usage(); return 2; }
         std::string src;
@@ -325,6 +392,7 @@ int main(int argc, char** argv) {
             fprintf(stderr, "I couldn't open the file '%s'.\n", args[at].c_str());
             return 2;
         }
+        if (beginner) return beginnerCheck(args[at], src);
         return finish(runProgram(src, args[at], {args.begin() + (long)at + 1, args.end()}, explain, check));
     } catch (const std::exception& e) {
         fflush(stdout);

@@ -1,0 +1,27 @@
+NOTE: every old spelling below should be rewritten
+print "hi"
+show 1+2
+set xs to [3,1,2]
+set p to {name:"Asha",age:30}
+if xs[1]>=2 and p["age"]!=31 then
+	print item 2 of xs
+	set item 1 of xs to -1
+	call greet with "Asha", 2
+	call tidy
+end
+if 3 is in xs or 4 is not in xs then
+say 5 plus 2 minus 1 multiplied by 3 divided by 4 modulo 5
+end
+
+
+
+while xs[1] < 10 and xs[2] == 1 and not (xs[3] = 2)
+increase xs[1] by 1 # trailing
+end
+define area with w,h
+give back w*h
+end
+set f to action with a, b
+give back a is equal to b
+end
+say (f)(1,1), f(1, 1)

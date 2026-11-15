@@ -1,0 +1,5 @@
+set n to 3
+repeat n times
+    say "x"
+end
+set times to 4

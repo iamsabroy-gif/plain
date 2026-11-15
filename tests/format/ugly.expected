@@ -1,0 +1,25 @@
+# every old spelling below should be rewritten
+say "hi"
+say 1 + 2
+set xs to [3, 1, 2]
+set p to {name: "Asha", age: 30}
+if xs[1] is at least 2 and p's age is not 31 then
+    say xs[2]
+    set xs[1] to -1
+    greet("Asha", 2)
+    tidy()
+end
+if xs contains 3 or not xs contains 4 then
+    say 5 + 2 - 1 * 3 / 4 % 5
+end
+
+while xs[1] is less than 10 and xs[2] is 1 and not (xs[3] is 2)
+    increase xs[1] by 1  # trailing
+end
+define area with w, h
+    give back w * h
+end
+set f to action with a, b
+    give back a is b
+end
+say (f)(1, 1), f(1, 1)
