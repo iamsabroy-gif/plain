@@ -405,7 +405,7 @@ Things that have already bitten people (and the library files):
 * Decimals do not mix with floats, and have no `sqrt` / `sin`; use `float(x)`.
 * `plain build` copies the interpreter plus your source: the result is standalone but contains
   the interpreter, not machine code made from your program.
-* `https` needs the `curl` program. Windows has no networking or `plain install` yet. The web
+* `https` uses OpenSSL, loaded with `dlopen` when first needed (`src/tls.hpp`), so a ready-made `plain` still starts without it; then `https` falls back to the `curl` program. Windows has no networking or `plain install` yet. The web
   playground has neither, nor tasks nor files.
 * `plain visualize` records at most 6,000 steps, shows at most 80 items of a list and about 600
   values per variable. Counts do not include the inside of `sort()` and other built-ins.

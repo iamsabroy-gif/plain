@@ -85,7 +85,7 @@ interleaved, such as `set counter to counter + 1`.
 
 | Action | What it does |
 |---|---|
-| `http_get(url [, headers])` | `{status, body, headers}`. `http://` is built in; `https://` needs the `curl` program. |
+| `http_get(url [, headers])` | `{status, body, headers}`. `http://` and `https://` are built in (https uses the computer's OpenSSL, checks the site's certificate and follows `HTTPS_PROXY`; without OpenSSL it uses the `curl` program, and `PLAIN_HTTPS=curl` asks for that). |
 | `http_post(url, body [, headers])`, `http_request(method, url, body, headers)` | A list or map body is sent as JSON. |
 | `tcp_listen(port)`, `tcp_port(server)`, `tcp_accept`, `tcp_connect(host, port)` | Plain TCP. A connection is a number. |
 | `tcp_send`, `tcp_receive`, `tcp_receive_line`, `tcp_close` | |

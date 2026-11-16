@@ -20,6 +20,8 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+#include "tls.hpp"
 #endif
 
 namespace plain {
@@ -542,12 +544,12 @@ inline int runProcess(const std::vector<std::string>& argv, const std::string& i
 }
 
 // http_request(method, url, body, headers) -> {status: 200, body: "..."}
-// Uses the 'curl' program, which handles https, redirects and proxies.
+// https uses OpenSSL when this computer has it, and otherwise the 'curl' program.
 static Value plainHttp(const std::string& method, std::string url, const std::string& payload, const std::string& contentType, const Value& headers, int redirects);
 static Value httpRequest(const std::string& method, const std::string& url, const Value& body, const Value& headers) {
     if (url.compare(0, 7, "http://") != 0 && url.compare(0, 8, "https://") != 0)
         fail("A web address must start with http:// or https://, but I got " + quote(url) + ".");
-    if (url.compare(0, 7, "http://") == 0) {
+    if (url.compare(0, 7, "http://") == 0 || nativeTlsAvailable()) {
         bool js = isMap(body) || isList(body) || isKind(body, Kind::Instance);
         std::string pl;
         if (body.tag != Value::Nothing) {
@@ -724,15 +726,15 @@ BUILTIN(b_tcp_port) {
     return Value::integer(ntohs(addr.sin_port));
 }
 
-// ---- a small built-in web client and server (plain http; https goes through curl)
+// ---- a small built-in web client (http, and https with OpenSSL) and web server
 static std::string lowerCopy(std::string s) {
     for (char& c : s) c = (char)tolower((unsigned char)c);
     return s;
 }
-static bool sendAll(int fd, const std::string& data) {
+static bool sendAll(const Conn& c, const std::string& data) {
     size_t sent = 0;
     while (sent < data.size()) {
-        ssize_t w = send(fd, data.data() + sent, data.size() - sent, 0);
+        long w = connSend(c, data.data() + sent, data.size() - sent);
         if (w <= 0) return false;
         sent += (size_t)w;
     }
@@ -744,7 +746,7 @@ struct HttpParts {
     bool complete = false;
 };
 // Read from fd until the blank line that ends the headers.
-static HttpParts readHead(int fd) {
+static HttpParts readHead(const Conn& c) {
     HttpParts p;
     std::string buf;
     char chunk[8192];
@@ -756,7 +758,7 @@ static HttpParts readHead(int fd) {
             p.complete = true;
             return p;
         }
-        ssize_t r = recv(fd, chunk, sizeof chunk, 0);
+        long r = connRecv(c, chunk, sizeof chunk);
         if (r <= 0) break;
         buf.append(chunk, (size_t)r);
     }
@@ -783,11 +785,11 @@ static std::string headerOf(const Value& headers, const char* name) {
     Value* v = asMap(headers)->find(mkstr(name));
     return v ? fmt(*v) : "";
 }
-static void readBody(int fd, const std::string& te, const std::string& cl, std::string& body, bool untilClose) {
+static void readBody(const Conn& c, const std::string& te, const std::string& cl, std::string& body, bool untilClose) {
     char chunk[65536];
     auto fill = [&](std::string& buf, size_t want) {  // make sure buf has at least 'want' bytes if possible
         while (buf.size() < want) {
-            ssize_t r = recv(fd, chunk, sizeof chunk, 0);
+            long r = connRecv(c, chunk, sizeof chunk);
             if (r <= 0) return false;
             buf.append(chunk, (size_t)r);
         }
@@ -799,7 +801,7 @@ static void readBody(int fd, const std::string& te, const std::string& cl, std::
         for (;;) {
             size_t eol;
             while ((eol = raw.find("\r\n")) == std::string::npos) {
-                ssize_t r = recv(fd, chunk, sizeof chunk, 0);
+                long r = connRecv(c, chunk, sizeof chunk);
                 if (r <= 0) { body = out; return; }
                 raw.append(chunk, (size_t)r);
             }
@@ -824,11 +826,14 @@ static void readBody(int fd, const std::string& te, const std::string& cl, std::
 
 static Value plainHttp(const std::string& method, std::string url, const std::string& payload, const std::string& contentType,
                        const Value& headers, int redirects) {
-    // http://host[:port][/path]
-    std::string rest = url.substr(7);
-    size_t slash = rest.find('/');
+    // http(s)://host[:port][/path]
+    bool tls = url.compare(0, 8, "https://") == 0;
+    std::string scheme = tls ? "https://" : "http://";
+    std::string rest = url.substr(scheme.size());
+    size_t slash = rest.find_first_of("/?");
     std::string hostport = rest.substr(0, slash), path = slash == std::string::npos ? "/" : rest.substr(slash);
-    std::string host = hostport, port = "80";
+    if (path[0] == '?') path = "/" + path;
+    std::string host = hostport, port = tls ? "443" : "80";
     size_t colon = hostport.rfind(':');
     if (colon != std::string::npos && hostport.find(']') == std::string::npos) {
         host = hostport.substr(0, colon);
@@ -848,7 +853,7 @@ static Value plainHttp(const std::string& method, std::string url, const std::st
     if (!payload.empty() || method == "POST" || method == "PUT") request += "Content-Length: " + std::to_string(payload.size()) + "\r\n";
     request += "\r\n" + payload;
 
-    int fd = -1;
+    Conn conn;
     HttpParts head;
     Value respHeaders;
     std::string body;
@@ -858,36 +863,20 @@ static Value plainHttp(const std::string& method, std::string url, const std::st
     {
         // Nothing in this block may touch Plain values except those it creates itself.
         Unlocked u;
-        struct addrinfo hints, *res = nullptr;
-        memset(&hints, 0, sizeof hints);
-        hints.ai_socktype = SOCK_STREAM;
-        if (getaddrinfo(host.c_str(), port.c_str(), &hints, &res) == 0) {
-            for (struct addrinfo* p = res; p; p = p->ai_next) {
-                fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-                if (fd < 0) continue;
-                struct timeval tv;
-                tv.tv_sec = 30;
-                tv.tv_usec = 0;
-                setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
-                if (connect(fd, p->ai_addr, p->ai_addrlen) == 0) break;
-                close(fd);
-                fd = -1;
-            }
-            freeaddrinfo(res);
-        }
+        problem = openConn(host, port, tls, conn);
     }
-    if (fd < 0) fail("I couldn't connect to " + host + " on port " + port + ".");
+    if (!problem.empty()) fail("I " + problem + ".");
     {
         Unlocked u;
-        if (sendAll(fd, request)) {
-            head = readHead(fd);
+        if (sendAll(conn, request)) {
+            head = readHead(conn);
             ok = head.complete;
         } else {
             problem = "I couldn't send the request.";
         }
     }
     if (!ok) {
-        close(fd);
+        connClose(conn);
         fail("I couldn't get a proper answer from " + url + (problem.empty() ? "." : ": " + problem));
     }
     size_t eol = head.head.find("\r\n");
@@ -899,15 +888,16 @@ static Value plainHttp(const std::string& method, std::string url, const std::st
     {
         std::string te = lowerCopy(headerOf(respHeaders, "transfer-encoding")), cl = headerOf(respHeaders, "content-length");
         Unlocked u;
-        readBody(fd, te, cl, body, true);
+        readBody(conn, te, cl, body, true);
+        connClose(conn);
     }
-    close(fd);
     if ((status == 301 || status == 302 || status == 303 || status == 307 || status == 308) && redirects < 5) {
         std::string loc = headerOf(respHeaders, "location");
         if (!loc.empty()) {
-            if (loc[0] == '/') loc = "http://" + hostport + loc;
+            if (loc[0] == '/') loc = scheme + hostport + loc;
             bool toGet = status == 303 || ((status == 301 || status == 302) && method == "POST");
-            if (loc.compare(0, 7, "http://") == 0)
+            bool canFollow = loc.compare(0, 7, "http://") == 0 || (loc.compare(0, 8, "https://") == 0 && nativeTlsAvailable());
+            if (canFollow)
                 return plainHttp(toGet ? "GET" : method, loc, toGet ? "" : payload, toGet ? "" : contentType, headers, redirects + 1);
             if (loc.compare(0, 8, "https://") == 0) fail("That web address moved to " + loc + ", which needs https. Use the https address directly.");
         }

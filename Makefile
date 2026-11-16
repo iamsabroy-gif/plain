@@ -5,6 +5,8 @@
 CXX ?= c++
 CXXFLAGS ?= -O2 -std=c++17 -Wall -Wextra
 PREFIX ?= /usr/local
+# https loads OpenSSL at run time (dlopen); older Linux C libraries keep dlopen in libdl.
+LDLIBS ?= $(if $(filter Linux,$(shell uname -s)),-ldl,)
 
 all: build/plain
 
@@ -13,11 +15,12 @@ src/libfiles.hpp: $(wildcard lib/*.plain lib/problems/*.plain lib/viz/*.html)
 
 build/plain: src/main.cpp src/*.hpp
 	@mkdir -p build
-	$(CXX) $(CXXFLAGS) -o $@ src/main.cpp
+	$(CXX) $(CXXFLAGS) -o $@ src/main.cpp $(LDLIBS)
 
 test: build/plain
 	@sh tests/run_tests.sh build/plain
 	@sh tests/pkg_test.sh build/plain
+	@sh tests/tls_test.sh build/plain
 	@sh tests/format_test.sh build/plain
 	@sh tests/lib_test.sh build/plain
 	@sh tests/viz_test.sh build/plain

@@ -14,8 +14,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - { os: ubuntu-22.04, name: plain-linux-x86_64, flags: "-static-libstdc++ -static-libgcc" }
-          - { os: ubuntu-22.04-arm, name: plain-linux-arm64, flags: "-static-libstdc++ -static-libgcc" }
+          - { os: ubuntu-22.04, name: plain-linux-x86_64, flags: "-static-libstdc++ -static-libgcc -ldl" }
+          - { os: ubuntu-22.04-arm, name: plain-linux-arm64, flags: "-static-libstdc++ -static-libgcc -ldl" }
           - { os: macos-13, name: plain-macos-x86_64, flags: "" }
           - { os: macos-14, name: plain-macos-arm64, flags: "" }
     runs-on: ${{ matrix.os }}
@@ -24,7 +24,7 @@ jobs:
       - name: Build
         run: |
           mkdir -p build
-          c++ -O2 -std=c++17 ${{ matrix.flags }} -o build/plain src/main.cpp
+          c++ -O2 -std=c++17 -o build/plain src/main.cpp ${{ matrix.flags }}
       - name: Test
         run: make test
       - name: Package
