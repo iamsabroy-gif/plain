@@ -17,22 +17,33 @@ tries, union-find, backtracking, intervals, weighted graphs); more data structur
 ring buffer, LRU cache, Fenwick and segment trees, AVL tree, counter, O(1) deque); `plain check --beginner`; a watched copy of the
 VM loop that costs nothing when it is not used.
 
-Candidates, largest effect first:
+2.2.0: simpler to learn, and the roadmap of 2.1. Text templates (`say "Hello {name}"`);
+clearer mistakes (`x = 5`, `sort(xs)` alone, `define f(x)`, `1 < x < 9`, names from other
+languages); an empty map is false and a `for` counter ends on its last value. `plain lesson`:
+ten lessons with 31 checked exercises, also as a picture-led path in the playground, whose
+editor now colours code and has clickable blocks, Tidy and saved programs. `# watch: xs as
+bars` picks how a value is drawn; `plain visualize a.plain b.plain` steps two programs side by
+side. A shared package index (`plain search`) and version ranges (`#^1.2`). https without curl
+(OpenSSL loaded at run time, with certificate checks and proxies). A VS Code extension and a
+Homebrew formula. Faster objects: method inline caches, small maps without hashing, and text
+that remembers its hash (about 20% less work for method-heavy code).
 
-0. Playground next: syntax colouring in the editor, a kid-sized lesson path with picture-led
-   exercises and clickable blocks, saving programs, and `plain format` in the page. Then:
+What is left, and why:
 
-0. Learning tools next: more problems (dynamic programming, heaps, tries), a lesson
-   runner that checks each lesson's exercises, side-by-side stepping of two
-   solutions in one page, a `# watch:` that can pick how a value is drawn, and a
-   check with real learners that the sorted-array and recursion-tree views are
-   understood before more views are added.
-
-1. A package registry (a hosted index, so `plain install name` works for everyone) and version ranges.
-2. Text templates: `say "Hello {name}"`.
-3. Tasks that run on several cores (needs per-task heaps or atomic reference counts instead of the global lock).
-4. Native TLS, so `https` does not need `curl`; Windows networking.
-5. Editor support: a VS Code extension with syntax colouring for `.plain` files.
-6. A Homebrew formula, so installing is `brew install plain`.
-7. Speed: direct-threaded dispatch, inline caches for method calls.
-8. Compiling to a standalone native binary (rather than bundling the interpreter).
+1. **A check with real learners** that the drawings, lessons and error messages are understood.
+   This needs people, not code: watch a few beginners use `plain lesson` and the playground.
+2. **Publishing**: the VS Code extension to the Marketplace (`editors/vscode`), a
+   `homebrew-plain` tap (see `packaging/homebrew/README.md`), and the first packages in
+   `registry/index.json`. Each needs an account owner to do it once.
+3. **The playground's wasm build in CI.** The page is tested with the native interpreter
+   standing in (`tests/web_ui_test.js`); the Pages workflow builds the real `plain.wasm`.
+4. **Windows networking** (sockets via Winsock, and https through Schannel or OpenSSL). It needs
+   a Windows machine or CI job to build and test against.
+5. **Tasks on several cores.** Every value is reference counted without atomics, and one lock
+   keeps tasks taking turns. Running them in parallel needs per-task heaps (copying or moving
+   values between tasks over channels) or atomic counts everywhere (slower for everyone).
+   Worth doing only once a real program needs it.
+6. **Direct-threaded dispatch.** Profiling showed the dispatch loop is not where the time goes
+   (it was map lookups, now fixed); expect around 10% for a large, risky change.
+7. **A real native compiler** (Plain to machine code instead of bundling the interpreter, as
+   `plain build` does now). A big project: a typed middle layer, or emitting C for each action.

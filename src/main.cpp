@@ -23,7 +23,7 @@
 
 using namespace plain;
 
-static const char* VERSION = "2.1.0";
+static const char* VERSION = "2.2.0";
 static const char MAGIC[8] = {'P', 'L', 'A', 'I', 'N', 'A', 'P', 'P'};
 
 // The text of one line of a source file, so an error can show where it happened.
