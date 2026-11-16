@@ -95,7 +95,12 @@ inline size_t hashValue(const Value& v) {
         case Value::Bool: return v.b ? 0x9e3779b9 : 0x7f4a7c15;
         default: break;
     }
-    if (isStr(v)) return std::hash<std::string>()(asStr(v));
+    if (isStr(v)) {
+        // Text never changes once made, so its hash is worked out once (0 means "not yet").
+        Str* s = static_cast<Str*>(v.o);
+        if (!s->hash) s->hash = std::hash<std::string>()(s->s) | 1;
+        return s->hash;
+    }
     if (isBig(v)) return hd(asBig(v).toDouble());
     if (isDec(v)) {
         int64_t w;

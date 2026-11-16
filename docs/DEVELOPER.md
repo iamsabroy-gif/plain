@@ -384,6 +384,14 @@ Things that have already bitten people (and the library files):
   (`plain format` will do it).
 * In `.plain` files under `lib/`, the first comment block is documentation for learners. Keep it
   true when you change the code.
+* **Text is never changed in place** (C++ side). `Str` remembers its hash, so code that edits
+  `asStr(v)` of a value that may already be a map key would break lookups: make a new string.
+* **Changing a class bumps `g_classVersion`.** Each `obj's action(...)` call site caches the method
+  it found for a class; anything new that adds or replaces methods (or a parent) must bump it.
+* Maps of up to `Map::SMALL` entries have no hash index (they are searched in order); always go
+  through `find` / `set` / `remove`, never `index` directly.
+* A line like `sort(xs)` that throws away a built-in's answer is a compile error; the lists of
+  such built-ins are in `Compiler::checkDiscarded`. Add new answer-only built-ins there.
 
 ## Troubleshooting
 

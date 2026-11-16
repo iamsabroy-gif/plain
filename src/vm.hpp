@@ -678,9 +678,21 @@ inline Value VM::executeT(Value* sp, uint32_t nargs, size_t stopDepth) {
                         const Value& key = consts[nameIdx];
                         if (isInstance(*recv)) {
                             Instance* in = asInstance(*recv);
-                            const Value* m = asClass(in->cls)->findMethod(asStr(key));
+                            const Class* cls = asClass(in->cls);
+                            size_t at = (size_t)(ip - 1 - code);
+                            if (fn->caches.size() < fn->code.size()) fn->caches.resize(fn->code.size());
+                            InlineCache& ic = fn->caches[at];
+                            if (ic.cls == cls && ic.version == g_classVersion) {
+                                Closure* c = ic.method;  // the class keeps it alive
+                                ENTER(c->fn, c, recv, n + 1, recv, false)
+                                break;
+                            }
+                            const Value* m = cls->findMethod(asStr(key));
                             if (m && m->tag == Value::Object && m->o->kind == Kind::Closure) {
                                 Closure* c = static_cast<Closure*>(m->o);
+                                ic.cls = cls;
+                                ic.method = c;
+                                ic.version = g_classVersion;
                                 ENTER(c->fn, c, recv, n + 1, recv, false)
                                 break;
                             }
@@ -727,7 +739,10 @@ inline Value VM::executeT(Value* sp, uint32_t nargs, size_t stopDepth) {
                         if (!openUps.empty()) closeRange(base + a, base + to);
                         break;
                     }
-                    case OP_CLASS: *sp++ = Value::obj(new Class(asStr(consts[a]))); break;
+                    case OP_CLASS:
+                        ++g_classVersion;
+                        *sp++ = Value::obj(new Class(asStr(consts[a])));
+                        break;
                     case OP_INHERIT: {
                         if (!isClass(sp[-1])) fail(std::string("A class can only extend another class, but I got ") + describe(sp[-1]) + ".");
                         Class* child = asClass(sp[-2]);
@@ -737,12 +752,14 @@ inline Value VM::executeT(Value* sp, uint32_t nargs, size_t stopDepth) {
                             p = asClass(p->parent);
                         }
                         child->parent = sp[-1];
+                        ++g_classVersion;
                         (--sp)->clear();
                         (--sp)->clear();
                         break;
                     }
                     case OP_DEFMETHOD: {
                         asClass(sp[-2])->methods[asStr(consts[a])] = sp[-1];
+                        ++g_classVersion;
                         (--sp)->clear();
                         (--sp)->clear();
                         break;

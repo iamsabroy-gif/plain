@@ -142,6 +142,7 @@ struct Value {
 
 struct Str : Obj {
     std::string s;
+    size_t hash = 0;  // remembered by hashValue; text is never changed in place
     explicit Str(std::string x) : Obj(Kind::Str), s(std::move(x)) {}
 };
 struct BigNum : Obj {
@@ -191,33 +192,53 @@ inline void checkKey(const Value& k) {
     fail("Only text, numbers and true/false can be used as names for entries in a map. Try using text, like to_json(x) or text(x), as the name.");
 }
 
-// A map keeps its entries in the order they were added.
+// A map keeps its entries in the order they were added. Small maps (most objects'
+// fields) are searched entry by entry, which is faster than hashing; the hash index
+// is only built once a map grows past SMALL entries.
 struct Map : GCObj {
+    static const size_t SMALL = 8;
     std::vector<std::pair<Value, Value>> entries;
-    std::unordered_map<Value, size_t, KeyHash, KeyEq> index;
+    std::unordered_map<Value, size_t, KeyHash, KeyEq> index;  // empty while the map is small
     Map() : GCObj(Kind::Map) {}
+    // Where key k is in entries, or -1.
+    long slotOf(const Value& k) {
+        if (entries.size() <= SMALL) {
+            for (size_t i = 0; i < entries.size(); ++i) {
+                const Value& e = entries[i].first;
+                if ((e.tag == Value::Object && k.tag == Value::Object && e.o == k.o) || equals(e, k)) return (long)i;
+            }
+            return -1;
+        }
+        auto it = index.find(k);
+        return it == index.end() ? -1 : (long)it->second;
+    }
+    void reindex() {
+        index.clear();
+        if (entries.size() > SMALL)
+            for (size_t i = 0; i < entries.size(); ++i) index.emplace(entries[i].first, i);
+    }
     Value* find(const Value& k) {
         checkKey(k);
-        auto it = index.find(k);
-        return it == index.end() ? nullptr : &entries[it->second].second;
+        long at = slotOf(k);
+        return at < 0 ? nullptr : &entries[(size_t)at].second;
     }
     void set(const Value& k, Value v) {
         checkKey(k);
-        auto it = index.find(k);
-        if (it != index.end()) {
-            entries[it->second].second = std::move(v);
-        } else {
-            index.emplace(k, entries.size());
-            entries.emplace_back(k, std::move(v));
+        long at = slotOf(k);
+        if (at >= 0) {
+            entries[(size_t)at].second = std::move(v);
+            return;
         }
+        entries.emplace_back(k, std::move(v));
+        if (entries.size() == SMALL + 1) reindex();  // just grew big: build the index
+        else if (entries.size() > SMALL + 1) index.emplace(k, entries.size() - 1);
     }
     bool remove(const Value& k) {
         checkKey(k);
-        auto it = index.find(k);
-        if (it == index.end()) return false;
-        entries.erase(entries.begin() + (long)it->second);
-        index.clear();
-        for (size_t i = 0; i < entries.size(); ++i) index.emplace(entries[i].first, i);
+        long at = slotOf(k);
+        if (at < 0) return false;
+        entries.erase(entries.begin() + at);
+        reindex();
         return true;
     }
     void traverse(Visitor& vis) override { for (const auto& e : entries) { vis.visit(e.first); vis.visit(e.second); } }
@@ -233,6 +254,16 @@ struct UpDesc {
     bool isLocal;
     uint32_t index;
 };
+// Remembers, at one "obj's action(...)" call, which action the object's class gave last
+// time. Every new or changed class bumps g_classVersion, which forgets all of them.
+struct Class;
+struct Closure;
+struct InlineCache {
+    const Class* cls = nullptr;
+    Closure* method = nullptr;
+    uint64_t version = 0;
+};
+inline uint64_t g_classVersion = 1;
 struct Func : Obj {
     std::string name, file;
     int nparams = 0, nlocals = 0;
@@ -242,6 +273,7 @@ struct Func : Obj {
     std::vector<Value> consts;
     std::vector<std::string> localNames;
     std::vector<UpDesc> upvals;
+    std::vector<InlineCache> caches;  // by code position, made on first use
     Func() : Obj(Kind::Func) {}
 };
 
