@@ -1,0 +1,18 @@
+set name to "Asha"
+set xs to [1, 2, 3]
+set person to {name: "Ravi", age: 9}
+say "Hello {name}!"
+say "{name} has {length of xs} items: {xs}"
+say "{person's name} is {person's age}, next year {person's age + 1}"
+say "Sum {sum(xs)} and joined {join(xs, \"-\")}"
+say "{value: ..., left: ...} stays, {} stays, \{name} stays"
+say "{1 + 2}{3}"
+define greet with who
+    give back "Hi {who}"
+end
+say greet("Mo")
+for each x in xs
+    say "item {x}"
+end
+set f to action with x gives "<{x}>"
+say f(5)

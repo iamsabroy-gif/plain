@@ -1200,11 +1200,78 @@ private:
             }
         }
     }
+    // "Hello {name}, you have {length of xs} items": each {…} that holds a value is
+    // worked out and joined in as text. Braces around anything else stay as they are,
+    // so text like "{value: ..., left: ...}" keeps working.
+    void templateText(const Token& s) {
+        std::string literal;
+        size_t from = 0;
+        bool started = false;
+        auto flush = [&]() {
+            if (!started) { emitStr(literal); started = true; }
+            else if (!literal.empty()) { emitStr(literal); emit(OP_ADD); }
+            literal.clear();
+        };
+        for (const auto& h : s.holes) {
+            literal += s.text.substr(from, h.first - from);
+            std::string inside = s.text.substr(h.first + 1, h.second - h.first - 1);
+            from = h.second + 1;
+            if (!holeExpression(inside, s.line, false)) {
+                literal += "{" + inside + "}";
+                continue;
+            }
+            flush();
+            holeExpression(inside, s.line, true);
+            emit(OP_ADD);
+        }
+        literal += s.text.substr(from);
+        flush();
+    }
+    // Compile the text inside a template's braces as one expression. With keep false
+    // this only tries, and leaves no trace: it says whether the text is a value.
+    bool holeExpression(const std::string& inside, int line, bool keep) {
+        size_t first = inside.find_first_not_of(" \t");
+        if (first == std::string::npos) return false;
+        char c = inside[first];
+        if (!(isIdStart(c) || c == '(' || c == '-' || isdigit((unsigned char)c) || c == '[')) return false;
+        std::vector<Token> sub;
+        try { sub = tokenize(inside); } catch (PlainError&) { return false; }
+        for (Token& t : sub) t.line = line;
+        std::swap(toks, sub);
+        size_t savedPos = pos, codeSize = fs->fn->code.size();
+        int savedDepth = depth, savedBase = nlBase, savedCall = lastCall, savedLine = curLine;
+        pos = 0;
+        nlBase = 0;
+        bool ok = true;
+        try {
+            expression();
+            if (peek().k != Token::NL && peek().k != Token::End) ok = false;
+        } catch (PlainError&) {
+            ok = false;
+        }
+        std::swap(toks, sub);
+        pos = savedPos;
+        depth = savedDepth;
+        nlBase = savedBase;
+        curLine = savedLine;
+        lastCall = savedCall;
+        if (!keep || !ok) {
+            fs->fn->code.resize(codeSize);
+            fs->fn->lines.resize(codeSize);
+        }
+        return ok;
+    }
+
     void primary() {
         const Token& t = peek();
         switch (t.k) {
             case Token::Num: { Token n = next(); emitNumber(n, false); return; }
-            case Token::Str: emitStr(next().text); return;
+            case Token::Str: {
+                Token s = next();
+                if (s.holes.empty()) emitStr(s.text);
+                else templateText(s);
+                return;
+            }
             case Token::Word: {
                 std::string name = next().text;
                 loadName(name, sym("("));
