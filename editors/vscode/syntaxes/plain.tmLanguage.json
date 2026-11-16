@@ -1,0 +1,62 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Plain",
+  "scopeName": "source.plain",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#define" },
+    { "include": "#class" },
+    { "include": "#value" }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        { "name": "comment.line.number-sign.plain", "match": "#.*$" },
+        { "name": "comment.line.note.plain", "match": "^\\s*(?i:note:).*$" }
+      ]
+    },
+    "define": {
+      "match": "\\b(define)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+      "captures": { "1": { "name": "keyword.control.define.plain" }, "2": { "name": "entity.name.function.plain" } }
+    },
+    "class": {
+      "match": "\\b(class)\\s+([A-Za-z_][A-Za-z0-9_]*)(?:\\s+(extends)\\s+([A-Za-z_][A-Za-z0-9_]*))?",
+      "captures": {
+        "1": { "name": "keyword.control.class.plain" }, "2": { "name": "entity.name.type.class.plain" },
+        "3": { "name": "keyword.control.extends.plain" }, "4": { "name": "entity.other.inherited-class.plain" }
+      }
+    },
+    "value": {
+      "patterns": [
+        { "include": "#string" },
+        { "name": "constant.numeric.plain", "match": "\\b\\d+(\\.\\d+)?([eE][+-]?\\d+)?d?\\b" },
+        { "name": "constant.language.plain", "match": "\\b(true|false|nothing)\\b" },
+        { "name": "variable.language.plain", "match": "\\b(me|parent)\\b" },
+        { "name": "keyword.control.plain", "match": "\\b(if|then|otherwise|end|repeat|times|while|for|each|in|from|to|by|stop|skip|give|back|try|on|error|fail|use|call|init|class|extends|new|action|gives|define|with)\\b" },
+        { "name": "keyword.other.instruction.plain", "match": "\\b(set|say|show|print|ask|into|add|remove|increase|decrease)\\b" },
+        { "name": "keyword.operator.word.plain", "match": "\\b(is|not|and|or|greater|less|than|at|least|most|equal|contains|plus|minus|multiplied|divided|modulo|length|of|item)\\b" },
+        { "name": "keyword.operator.plain", "match": "==|!=|<=|>=|[-+*/%^<>=]" },
+        { "name": "keyword.operator.possessive.plain", "match": "'s\\b" },
+        { "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()", "captures": { "1": { "name": "entity.name.function.call.plain" } } },
+        { "name": "variable.other.plain", "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b" }
+      ]
+    },
+    "string": {
+      "name": "string.quoted.double.plain",
+      "begin": "\"",
+      "end": "\"|$",
+      "patterns": [
+        { "name": "constant.character.escape.plain", "match": "\\\\[ntr\"\\\\{}]" },
+        {
+          "name": "meta.template.expression.plain",
+          "begin": "\\{(?=\\s*[A-Za-z_(\\[0-9-])",
+          "end": "\\}",
+          "beginCaptures": { "0": { "name": "punctuation.definition.template-expression.begin.plain" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.template-expression.end.plain" } },
+          "contentName": "meta.embedded.line.plain",
+          "patterns": [{ "include": "#value" }]
+        }
+      ]
+    }
+  }
+}

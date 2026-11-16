@@ -235,6 +235,11 @@ static int formatCommand(const std::vector<std::string>& args) {
     int code = 0;
     for (const std::string& f : files) {
         std::string src;
+        if (f == "-") {  // read the program from standard input and print the result (for editors)
+            src.assign(std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>());
+            fputs(formatSource(src).text.c_str(), stdout);
+            continue;
+        }
         if (!readFile(f, src)) { fprintf(stderr, "I couldn't open the file '%s'.\n", f.c_str()); return 2; }
         FormatResult r = formatSource(src);
         for (const std::string& w : r.warnings) fprintf(stderr, "%s: %s\n", f.c_str(), w.c_str());

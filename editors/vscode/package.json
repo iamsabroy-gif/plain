@@ -1,0 +1,41 @@
+{
+  "name": "plain-language",
+  "displayName": "Plain",
+  "description": "Colours, indenting, snippets, run, format and mistake-checking for the Plain programming language.",
+  "version": "0.1.0",
+  "publisher": "plain-language",
+  "repository": { "type": "git", "url": "https://github.com/iamsabroy-gif/plain" },
+  "engines": { "vscode": "^1.75.0" },
+  "categories": ["Programming Languages", "Snippets", "Formatters", "Linters"],
+  "main": "./extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "languages": [{
+      "id": "plain",
+      "aliases": ["Plain", "plain"],
+      "extensions": [".plain"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "plain",
+      "scopeName": "source.plain",
+      "path": "./syntaxes/plain.tmLanguage.json"
+    }],
+    "snippets": [{ "language": "plain", "path": "./snippets/plain.json" }],
+    "commands": [
+      { "command": "plain.run", "title": "Plain: Run this program", "icon": "$(play)" },
+      { "command": "plain.visualize", "title": "Plain: Watch this program run (visualize)" }
+    ],
+    "menus": {
+      "editor/title/run": [{ "command": "plain.run", "when": "editorLangId == plain" }]
+    },
+    "keybindings": [{ "command": "plain.run", "key": "f5", "when": "editorLangId == plain" }],
+    "configuration": {
+      "title": "Plain",
+      "properties": {
+        "plain.path": { "type": "string", "default": "plain", "description": "The plain command (or its full path)." },
+        "plain.checkOnSave": { "type": "boolean", "default": true, "description": "Run 'plain check' when a file is saved and underline mistakes." }
+      }
+    }
+  }
+}

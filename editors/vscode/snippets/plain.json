@@ -1,0 +1,12 @@
+{
+  "if": { "prefix": "if", "body": ["if ${1:condition} then", "\t$0", "end"], "description": "Decide" },
+  "if otherwise": { "prefix": "ifo", "body": ["if ${1:condition} then", "\t$2", "otherwise", "\t$0", "end"], "description": "Decide, with the other case" },
+  "repeat": { "prefix": "repeat", "body": ["repeat ${1:3} times", "\t$0", "end"], "description": "Do something a number of times" },
+  "while": { "prefix": "while", "body": ["while ${1:condition}", "\t$0", "end"], "description": "Loop while true" },
+  "for each": { "prefix": "foreach", "body": ["for each ${1:item} in ${2:items}", "\t$0", "end"], "description": "Go through a list, text or map" },
+  "for from": { "prefix": "for", "body": ["for ${1:i} from ${2:1} to ${3:10}", "\t$0", "end"], "description": "Count" },
+  "define": { "prefix": "define", "body": ["define ${1:name} with ${2:value}", "\t$0", "\tgive back ${3:value}", "end"], "description": "Make an action" },
+  "class": { "prefix": "class", "body": ["class ${1:Name}", "\tinit with ${2:value}", "\t\tset me's ${2:value} to ${2:value}", "\tend", "", "\tdefine ${3:action}", "\t\t$0", "\tend", "end"], "description": "Make a class" },
+  "try": { "prefix": "try", "body": ["try", "\t$1", "on error ${2:problem}", "\tsay ${2:problem}", "end"], "description": "Handle a problem" },
+  "say template": { "prefix": "say", "body": ["say \"${1:text} {${2:name}}\""], "description": "Show text with a value in it" }
+}
