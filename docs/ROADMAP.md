@@ -28,6 +28,12 @@ side. A shared package index (`plain search`) and version ranges (`#^1.2`). http
 Homebrew formula. Faster objects: method inline caches, small maps without hashing, and text
 that remembers its hash (about 20% less work for method-heavy code).
 
+2.3.0: apps. `use "web"` (routes with `:params`, forms, JSON, sessions, static files, safe
+HTML and `fill` templates, error pages, `try_request` for testing) and `use "desktop"` (a
+window of widgets drawn by the browser engine, with actions, timers and messages), both
+written in Plain. Underneath: `tcp_listen(port, "localhost")`, `http_serve` with `idle` and
+`done`, `open_url` (app windows) and `secure_token`.
+
 What is left, and why:
 
 1. **A check with real learners** that the drawings, lessons and error messages are understood.
@@ -38,7 +44,9 @@ What is left, and why:
 3. **The playground's wasm build in CI.** The page is tested with the native interpreter
    standing in (`tests/web_ui_test.js`); the Pages workflow builds the real `plain.wasm`.
 4. **Windows networking** (sockets via Winsock, and https through Schannel or OpenSSL). It needs
-   a Windows machine or CI job to build and test against.
+   a Windows machine or CI job to build and test against. Until then, web and desktop apps
+   run on Mac and Linux (and WSL), not in the Windows build.
+4b. **Web servers for many visitors at once**: `http_serve` answers one request at a time.
 5. **Tasks on several cores.** Every value is reference counted without atomics, and one lock
    keeps tasks taking turns. Running them in parallel needs per-task heaps (copying or moving
    values between tasks over channels) or atomic counts everywhere (slower for everyone).

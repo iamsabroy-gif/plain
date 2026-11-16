@@ -79,6 +79,9 @@ lib/
   problems/       the practice problems, one Plain file each
   lessons/        the beginner lessons, one text file each (format at the top of lessons.hpp)
   viz/            player.html (step viewer) and growth.html (chart): standalone pages
+  web.plain       use "web": WebApp, page, fill, escape_html, sessions, static files
+  desktop.plain   use "desktop": Window and its widgets (a local web server + a page)
+  ui/             what those send: page.css (the web style) and desktop.html (the window's page)
 web/              the browser playground: index.html, worker.js (plain.wasm and player.html are built)
 tools/            embed.sh (pack lib/ into src/libfiles.hpp), build-wasm.sh, update-formula.sh
 editors/vscode/   the VS Code extension (grammar, snippets, run/format/check)
@@ -371,7 +374,7 @@ for Linux x86_64 and arm64, macOS Intel and Apple Silicon, and Windows (MinGW, s
 is pushed:
 
 ```
-git tag -a v2.2.0 -m "Plain 2.2.0" && git push origin v2.2.0
+git tag -a v2.3.0 -m "Plain 2.3.0" && git push origin v2.3.0
 ```
 
 Afterwards: check the Actions tab, then run both installers on a clean machine. The Windows build

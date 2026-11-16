@@ -1,0 +1,56 @@
+# The web library: routes, forms, escaping, JSON, sessions, files, errors; then a real server.
+use "web"
+set app to new WebApp()
+set todos to []
+
+define home with request
+    set rows to ""
+    for each t in todos
+        set rows to rows + fill("<li>{{name}}</li>", {name: t})
+    end
+    give back page("Todos", "<h1>Todos</h1><ul>" + rows + "</ul>")
+end
+define hello with request
+    give back "Hello, {request's params's name}!"
+end
+define add_todo with request
+    add request's form's task to todos
+    give back redirect("/")
+end
+define api_todos with request
+    give back todos
+end
+define visit with request
+    set s to request's session
+    if not has_key(s, "visits") then
+        set s's visits to 0
+    end
+    increase s's visits by 1
+    give back "visits: {s's visits}"
+end
+define broken with request
+    give back 1 / 0
+end
+app's get("/", home)
+app's get("/hello/:name", hello)
+app's post("/todos", add_todo)
+app's get("/api/todos", api_todos)
+app's get("/visit", visit)
+app's get("/broken", broken)
+app's folder("/static", arguments()[1])
+
+# without a network
+set r to app's try_request("GET", "/hello/Asha", "")
+say r's status, r's body, r's headers["Content-Type"]
+set r to app's try_request("POST", "/todos", "task=Buy+milk+%26+<eggs>")
+say r's status, r's headers's Location
+set r to app's try_request("GET", "/", "")
+say find(r's body, "<li>Buy milk &amp; &lt;eggs&gt;</li>") is greater than 0, find(r's body, "/__plain/style.css") is greater than 0
+say app's try_request("GET", "/api/todos", "")'s body
+say app's try_request("DELETE", "/api/todos", "")'s status, app's try_request("GET", "/nope", "")'s status
+set r to app's try_request("GET", "/broken", "")
+say r's status, find(r's body, "divide by zero") is greater than 0
+say app's try_request("GET", "/static/three_lines.txt", "")'s body
+say app's try_request("GET", "/static/three_lines.txt", "")'s headers["Content-Type"]
+say app's try_request("GET", "/static/../web_app.plain", "")'s status, app's try_request("GET", "/static/nothing.txt", "")'s status
+say fill("{{a}} and {{!b}} and {{missing}} and {{ a }}!", {a: "<i>", b: "<b>"})

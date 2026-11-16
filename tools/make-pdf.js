@@ -21,6 +21,7 @@ const DOCS = [
   { file: "docs/CORE.md", slug: "core", title: "The beginner core" },
   { file: "docs/LANGUAGE.md", slug: "language", title: "The language" },
   { file: "docs/ADVANCED.md", slug: "advanced", title: "Advanced features" },
+  { file: "docs/APPS.md", slug: "apps", title: "Making apps" },
   { file: "docs/LEARNING.md", slug: "learning", title: "Learning data structures and algorithms" },
   { file: "docs/DEVELOPER.md", slug: "developer", title: "Developer guide" },
   { file: "docs/ROADMAP.md", slug: "roadmap", title: "Roadmap" },

@@ -16,7 +16,7 @@ for file in "$DIR"/cases/*.plain "$DIR"/../examples/*.plain "$DIR"/../lib/*.plai
     cp "$file" "$WORK/$name.plain"
     "$PLAIN" format "$WORK/$name.plain" >/dev/null 2>&1
     "$PLAIN" format --check "$WORK/$name.plain" >/dev/null 2>&1 || { echo "FAILED: format twice changed $name"; fail=1; }
-    case "$name" in network|threads|benchmark|files|report) continue ;; esac   # need network, timing or files
+    case "$name" in network|threads|web_server|benchmark|files|report|web_notes|desktop_todo) continue ;; esac   # need network, timing or files, or serve until stopped
     input=/dev/null
     [ -f "$DIR/cases/$name.in" ] && input="$DIR/cases/$name.in"
     (cd "$(dirname "$file")" && "$PLAIN" "$file" "$DIR/fixtures" < "$input" > "$WORK/a.out" 2>&1)

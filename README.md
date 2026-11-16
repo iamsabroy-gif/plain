@@ -92,6 +92,7 @@ ten lessons whose exercises Plain checks for you ([docs/CORE.md](docs/CORE.md) h
 | [docs/LANGUAGE.md](docs/LANGUAGE.md) | Values, instructions, expressions, numbers, built-in actions, errors, the standard style |
 | [docs/LEARNING.md](docs/LEARNING.md) | `visualize`, `count`, `growth`, `compare`, `practice` and the data-structure library |
 | [docs/ADVANCED.md](docs/ADVANCED.md) | Closures, classes, tasks, networking, packages |
+| [docs/APPS.md](docs/APPS.md) | **Making apps**: web sites and APIs (`use "web"`), programs with a window (`use "desktop"`) |
 | [docs/DEVELOPER.md](docs/DEVELOPER.md) | For contributors: how it works, how to add things, the trace format, tests, releasing, gotchas |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | What is done and what comes next |
 | [docs/pdf/](docs/pdf/) | All of the above as PDFs: `Plain-documentation.pdf` (everything) and `Plain-for-kids.pdf` (bigger type) |
@@ -104,6 +105,8 @@ ten lessons whose exercises Plain checks for you ([docs/CORE.md](docs/CORE.md) h
 - Tracing costs nothing when it is off: the virtual machine has a normal copy of its
   loop and a watched copy, and ordinary runs use the first.
 - Text can hold values: `say "Hello {name}, you have {length of xs} items"`.
+- Make web sites (`use "web"`) and programs with a window (`use "desktop"`): see
+  [docs/APPS.md](docs/APPS.md) and `examples/web_notes.plain`, `examples/desktop_todo.plain`.
 - Editor support: [editors/vscode](editors/vscode) (colours, run, format, mistakes underlined).
 - Windows has no networking or `plain install` yet; tasks run one at a time.
   The full list is in [docs/DEVELOPER.md](docs/DEVELOPER.md#limits).

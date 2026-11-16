@@ -1,0 +1,30 @@
+use "desktop"
+set win to new Window("Widgets", 500, 600)
+set big to win's checkbox("Big numbers")
+set size to win's slider("Size", 1, 10)
+set colour to win's choice("Colour", ["red", "green", "blue"])
+set age to win's number_input("Age")
+set out to win's label("nothing yet")
+set ticks to 0
+define report
+    out's set_text("big={big's value} size={size's value} colour={colour's value} age+1={age's value + 1}")
+end
+define tick
+    increase ticks by 1
+    if ticks is 2 then
+        win's set_title("Ticked twice")
+    end
+end
+define broken
+    say 1 / 0
+end
+define finish
+    win's close()
+end
+size's when_changed(report)
+win's button("Report", report)
+win's button("Break", broken)
+win's button("Quit", finish)
+win's every(0.2, tick)
+win's run()
+say "the program carried on after the window closed, ticks:", ticks

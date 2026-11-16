@@ -1,0 +1,60 @@
+# The web library over a real network: a server in a task, asked with http_get.
+use "web"
+set app to new WebApp()
+set todos to []
+
+define home with request
+    set rows to ""
+    for each t in todos
+        set rows to rows + fill("<li>{{name}}</li>", {name: t})
+    end
+    give back page("Todos", "<h1>Todos</h1><ul>" + rows + "</ul>")
+end
+define hello with request
+    give back "Hello, {request's params's name}!"
+end
+define add_todo with request
+    add request's form's task to todos
+    give back redirect("/")
+end
+define api_todos with request
+    give back todos
+end
+define visit with request
+    set s to request's session
+    if not has_key(s, "visits") then
+        set s's visits to 0
+    end
+    increase s's visits by 1
+    give back "visits: {s's visits}"
+end
+define broken with request
+    give back 1 / 0
+end
+app's get("/", home)
+app's get("/hello/:name", hello)
+app's post("/todos", add_todo)
+app's get("/api/todos", api_todos)
+app's get("/visit", visit)
+app's get("/broken", broken)
+app's folder("/static", arguments()[1])
+
+# a real server, in a task, asked with http_get
+set server to tcp_listen(0, "localhost")
+set base to "http://127.0.0.1:" + text(tcp_port(server))
+app's quietly()
+set srv to start_task(action
+        http_serve(server, app's handle, 7)
+end)
+set r to http_get(base + "/hello/World%20Wide")
+say r's status, r's body
+set r to http_get(base + "/visit")
+set cookie to split(r's headers["set-cookie"], ";")[1]
+say r's body, starts_with(cookie, "plain_session=")
+set r to http_get(base + "/visit", {Cookie: cookie})
+say r's body
+set r to http_post(base + "/todos", "task=Walk", {"Content-Type": "application/x-www-form-urlencoded"})
+say r's status
+say from_json(http_get(base + "/api/todos")'s body)
+say http_get(base + "/__plain/style.css")'s headers["content-type"]
+wait_for(srv)

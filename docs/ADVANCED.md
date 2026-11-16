@@ -87,9 +87,11 @@ interleaved, such as `set counter to counter + 1`.
 |---|---|
 | `http_get(url [, headers])` | `{status, body, headers}`. `http://` and `https://` are built in (https uses the computer's OpenSSL, checks the site's certificate and follows `HTTPS_PROXY`; without OpenSSL it uses the `curl` program, and `PLAIN_HTTPS=curl` asks for that). |
 | `http_post(url, body [, headers])`, `http_request(method, url, body, headers)` | A list or map body is sent as JSON. |
-| `tcp_listen(port)`, `tcp_port(server)`, `tcp_accept`, `tcp_connect(host, port)` | Plain TCP. A connection is a number. |
+| `tcp_listen(port [, "localhost"])`, `tcp_port(server)`, `tcp_accept`, `tcp_connect(host, port)` | Plain TCP. A connection is a number. With `"localhost"`, only this computer can connect. |
 | `tcp_send`, `tcp_receive`, `tcp_receive_line`, `tcp_close` | |
-| `http_serve(server, handler [, how_many])` | A small web server: `handler` gets `{method, path, query, headers, body}` and gives back text, a list/map (sent as JSON), or `{status, body, headers}`. |
+| `http_serve(server, handler [, how_many or {how_many, idle}])` | A small web server: `handler` gets `{method, path, query, headers, body}` and gives back text, a list/map (sent as JSON), or `{status, body, headers}` (`done: true` stops the server after that reply; a header given a list is sent once per item). `idle`: stop when no request came for that many seconds. Gives back how many requests it answered. For whole sites, see `use "web"` in [APPS.md](APPS.md). |
+| `open_url(address [, {app, width, height}])` | Opens a browser, or with `app: true` a window of its own. `PLAIN_NO_BROWSER=1` only prints the address. |
+| `secure_token([bytes])` | Random text from the operating system, for secrets and session ids. |
 | `url_encode`, `url_decode` | |
 
 ## Packages
