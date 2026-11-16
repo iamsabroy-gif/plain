@@ -61,7 +61,7 @@ inline Spec parseSpec(const std::string& text) {
         else if (std::count(t.begin(), t.end(), '/') == 1) t = "https://github.com/" + t;
         else {
             std::string found = registryLookup(t);
-            if (found.empty()) fail("I don't know a package called '" + t + "'. Give a folder, a git address or user/repo, or add it to your registry file.");
+            if (found.empty()) fail("I don't know a package called '" + t + "'. Look for one with: plain search " + t + "  (or give a folder, a git address or user/repo).");
             Spec r = parseSpec(found);
             if (s.ref.empty()) s.ref = r.ref;
             return r.ref.empty() ? Spec{r.local, r.where, s.ref} : r;
@@ -73,30 +73,192 @@ inline Spec parseSpec(const std::string& text) {
 
 inline std::string specText(const Spec& s) { return s.local ? s.where : s.where + (s.ref.empty() ? "" : "#" + s.ref); }
 
-// The registry is a JSON map of package name -> address (or {"spec": address}).
-// It is the file named by PLAIN_REGISTRY (a path or an http/https address), or ~/.plain/registry.json.
-inline std::string registryLookup(const std::string& name) {
-    std::string where = getenv("PLAIN_REGISTRY") ? getenv("PLAIN_REGISTRY") : plainHome() + "/registry.json";
+// ------------------------------------------------------------ versions
+// A version is "1.2.3" (a leading "v" is fine). A range picks the newest tagged version
+// that fits: "^1.2" (1.2 or newer, below 2), "~1.2.3" (below 1.3), "1.x", "*",
+// ">=1.0 <2.0" (both must hold), "^1 || ^2" (either).
+struct Ver {
+    long n[3] = {0, 0, 0};
+    int parts = 0;     // how many numbers were written ("1.2" has 2)
+    bool ok = false;
+};
+inline Ver parseVer(std::string s, bool allowWild = false) {
+    Ver v;
+    if (!s.empty() && (s[0] == 'v' || s[0] == 'V')) s.erase(0, 1);
+    size_t i = 0;
+    while (v.parts < 3) {
+        if (i < s.size() && allowWild && (s[i] == 'x' || s[i] == 'X' || s[i] == '*')) { ++i; break; }
+        if (i >= s.size() || !isdigit((unsigned char)s[i])) return v;
+        long x = 0;
+        while (i < s.size() && isdigit((unsigned char)s[i])) x = x * 10 + (s[i++] - '0');
+        v.n[v.parts++] = x;
+        if (i < s.size() && s[i] == '.') ++i;
+        else break;
+    }
+    v.ok = i == s.size();  // anything left over (like "-beta") is not a plain release
+    return v;
+}
+inline int cmpVer(const Ver& a, const Ver& b) {
+    for (int k = 0; k < 3; ++k)
+        if (a.n[k] != b.n[k]) return a.n[k] < b.n[k] ? -1 : 1;
+    return 0;
+}
+inline bool isRange(const std::string& r) {
+    if (r.empty()) return false;
+    if (strchr("^~<>=*", r[0]) || r.find("||") != std::string::npos || r.find(' ') != std::string::npos) return true;
+    return isdigit((unsigned char)r[0]) && parseVer(r, true).ok;  // "1.2", "1.x" (but not "v1.2.0" or "main")
+}
+// Does version v fit one comparator like "^1.2", ">=2", "1.x" or "1.2.3"?
+inline bool fitsOne(const Ver& v, std::string c) {
+    std::string op;
+    while (!c.empty() && strchr("^~<>=", c[0])) { op += c[0]; c.erase(0, 1); }
+    if (c.empty() || c == "*" || c == "x") return op.empty() || op == "=" || op == ">=";
+    Ver b = parseVer(c, true);
+    if (!b.ok && b.parts == 0) fail("'" + op + c + "' isn't a version I understand. Try something like ^1.2 or >=1.0 <2.0.");
+    int k = cmpVer(v, b);
+    if (op == ">") return k > 0;
+    if (op == ">=") return k >= 0;
+    if (op == "<") return k < 0;
+    if (op == "<=") return k <= 0;
+    // Upper bound for ^, ~ and partial versions like "1.2" (which means 1.2.anything).
+    Ver hi = b;
+    int bump;
+    if (op == "^") {
+        bump = 0;
+        while (bump < b.parts - 1 && b.n[bump] == 0) ++bump;  // ^0.2 stays below 0.3
+    } else if (op == "~") {
+        bump = b.parts > 1 ? 1 : 0;
+    } else {
+        if (b.parts == 3) return k == 0;  // an exact version
+        bump = b.parts - 1;
+    }
+    hi.n[bump] += 1;
+    for (int j = bump + 1; j < 3; ++j) hi.n[j] = 0;
+    return k >= 0 && cmpVer(v, hi) < 0;
+}
+inline bool fitsRange(const Ver& v, const std::string& range) {
+    size_t start = 0;
+    for (;;) {  // alternatives split by "||"; inside one, every comparator must hold
+        size_t bar = range.find("||", start);
+        std::string alt = range.substr(start, bar == std::string::npos ? std::string::npos : bar - start);
+        bool all = true, any = false;
+        std::string word;
+        std::vector<std::string> words;
+        for (char ch : alt + " ") {
+            if (ch == ' ') { if (!word.empty()) words.push_back(word); word.clear(); }
+            else word += ch;
+        }
+        // ">= 1.0" written with a space: join the operator to its version
+        for (size_t i = 0; i + 1 < words.size(); ++i)
+            if (strspn(words[i].c_str(), "^~<>=") == words[i].size()) { words[i] += words[i + 1]; words.erase(words.begin() + (long)i + 1); }
+        for (const std::string& w : words) { any = true; if (!fitsOne(v, w)) { all = false; break; } }
+        if (any && all) return true;
+        if (bar == std::string::npos) return false;
+        start = bar + 2;
+    }
+}
+// The newest tag of a git repository that fits the range, like "v1.4.2".
+inline std::string resolveRange(const std::string& where, const std::string& range) {
+    std::string out, err;
+    int code = runProcess({"git", "-c", "protocol.ext.allow=never", "ls-remote", "--tags", "--refs", "--", where}, "", out, err);
+    if (code == 127) fail("Installing from a git address needs the 'git' program, and I couldn't find it.");
+    if (code != 0) fail("I couldn't look up the versions of '" + where + "':\n" + err);
+    std::string best;
+    Ver bestV;
+    size_t i = 0;
+    while (i < out.size()) {
+        size_t nl = out.find('\n', i);
+        std::string line = out.substr(i, nl == std::string::npos ? std::string::npos : nl - i);
+        i = nl == std::string::npos ? out.size() : nl + 1;
+        size_t at = line.find("refs/tags/");
+        if (at == std::string::npos) continue;
+        std::string tag = line.substr(at + 10);
+        Ver v = parseVer(tag);
+        if (!v.ok || !fitsRange(v, range)) continue;
+        if (best.empty() || cmpVer(v, bestV) > 0) { best = tag; bestV = v; }
+    }
+    if (best.empty()) fail("'" + where + "' has no tagged version that fits '" + range + "'.");
+    return best;
+}
+
+// ------------------------------------------------------------ registry
+// The registry is a JSON map of package name -> address (or {"spec": address, "description": ...}).
+// Plain looks in the file named by PLAIN_REGISTRY (a path or an http/https address), or
+// ~/.plain/registry.json if there is one, and then in the shared index everyone can add to.
+inline const char* sharedRegistry() {
+    const char* over = getenv("PLAIN_SHARED_REGISTRY");  // tests and mirrors; "off" turns it off
+    return over ? over : "https://raw.githubusercontent.com/iamsabroy-gif/plain/main/registry/index.json";
+}
+inline Value loadRegistry(const std::string& where) {
     std::string text;
+    if (where.empty() || where == "off") return Value();
     if (where.compare(0, 7, "http://") == 0 || where.compare(0, 8, "https://") == 0) {
         std::string err;
-        if (runProcess({"curl", "-sSfL", "--max-time", "30", "--", where}, "", text, err) != 0) return "";
+        if (runProcess({"curl", "-sSfL", "--max-time", "30", "--", where}, "", text, err) != 0) return Value();
     } else if (!readFile(where, text)) {
-        return "";
+        return Value();
     }
     try {
         Value v = jsonParse(text);
-        if (!isMap(v)) return "";
-        Value* e = asMap(v)->find(mkstr(name));
-        if (!e) return "";
-        if (isStr(*e)) return asStr(*e);
-        if (isMap(*e)) {
-            Value* sp = asMap(*e)->find(mkstr("spec"));
-            if (sp && isStr(*sp)) return asStr(*sp);
-        }
+        return isMap(v) ? v : Value();
     } catch (PlainError&) {
+        return Value();
+    }
+}
+inline std::vector<std::string> registryPlaces() {
+    std::vector<std::string> places;
+    if (getenv("PLAIN_REGISTRY")) places.push_back(getenv("PLAIN_REGISTRY"));
+    else places.push_back(plainHome() + "/registry.json");
+    places.push_back(sharedRegistry());
+    return places;
+}
+inline std::string entrySpec(const Value& e) {
+    if (isStr(e)) return asStr(e);
+    if (isMap(e)) {
+        Value* sp = asMap(e)->find(mkstr("spec"));
+        if (sp && isStr(*sp)) return asStr(*sp);
     }
     return "";
+}
+inline std::string registryLookup(const std::string& name) {
+    for (const std::string& where : registryPlaces()) {
+        Value reg = loadRegistry(where);
+        if (!isMap(reg)) continue;
+        Value* e = asMap(reg)->find(mkstr(name));
+        if (e && !entrySpec(*e).empty()) return entrySpec(*e);
+    }
+    return "";
+}
+
+// plain search [words]: the packages in the registries whose name or description mentions the words.
+inline int pkgSearch(const std::vector<std::string>& args) {
+    std::string words;
+    for (size_t i = 1; i < args.size(); ++i) words += (words.empty() ? "" : " ") + args[i];
+    std::string low = words;
+    for (char& c : low) c = (char)tolower((unsigned char)c);
+    int found = 0;
+    std::unordered_set<std::string> seen;
+    for (const std::string& where : registryPlaces()) {
+        Value reg = loadRegistry(where);
+        if (!isMap(reg)) continue;
+        for (const auto& e : asMap(reg)->entries) {
+            std::string name = fmt(e.first);
+            if (!seen.insert(name).second) continue;
+            std::string desc;
+            if (isMap(e.second)) {
+                Value* d = asMap(e.second)->find(mkstr("description"));
+                if (d && isStr(*d)) desc = asStr(*d);
+            }
+            std::string hay = name + " " + desc;
+            for (char& c : hay) c = (char)tolower((unsigned char)c);
+            if (!low.empty() && hay.find(low) == std::string::npos) continue;
+            printf("%-20s %s\n", name.c_str(), desc.empty() ? entrySpec(e.second).c_str() : desc.c_str());
+            ++found;
+        }
+    }
+    if (found == 0) printf("No packages found%s. Anyone can add one: see registry/README.md in the Plain repository.\n",
+                           words.empty() ? "" : (" for '" + words + "'").c_str());
+    return 0;
 }
 
 inline Value readJsonFile(const std::string& path, bool& exists) {
@@ -153,6 +315,7 @@ struct Installer {
         pkgfs::remove_all(tmp, ec);
         pkgfs::create_directories(root, ec);
         std::string commit = "local";
+        std::string chosenTag;  // the version a range picked
         if (spec.local) {
             pkgfs::path src = pkgfs::absolute(spec.where, ec).lexically_normal();
             if (!pkgfs::is_directory(src, ec)) fail("'" + spec.where + "' isn't a folder I can install from.");
@@ -167,6 +330,10 @@ struct Installer {
         } else {
             std::vector<std::string> argv = {"git", "-c", "protocol.ext.allow=never", "clone", "--quiet"};
             std::string ref = pinned.empty() ? spec.ref : "";
+            if (!ref.empty() && isRange(ref)) {
+                ref = resolveRange(spec.where, ref);
+                chosenTag = ref;
+            }
             if (pinned.empty()) {
                 argv.push_back("--depth");
                 argv.push_back("1");
@@ -233,8 +400,9 @@ struct Installer {
         Value entry = Value::obj(new Map);
         asMap(entry)->set(mkstr("spec"), mkstr(specText(spec)));
         asMap(entry)->set(mkstr("commit"), mkstr(commit));
+        if (!chosenTag.empty()) asMap(entry)->set(mkstr("version"), mkstr(chosenTag));
         asMap(newLock)->set(mkstr(name), entry);
-        printf("Installed %s (%s)\n", name.c_str(), specText(spec).c_str());
+        printf("Installed %s (%s%s)\n", name.c_str(), specText(spec).c_str(), chosenTag.empty() ? "" : (" -> " + chosenTag).c_str());
         // packages it needs
         Value deps = hasManifest ? (asMap(manifest)->find(mkstr("dependencies")) ? *asMap(manifest)->find(mkstr("dependencies")) : Value()) : Value();
         if (isMap(deps))
@@ -396,6 +564,7 @@ inline int packageCommand(const std::vector<std::string>& args) {
         if (cmd == "update") return pkgInstall(args, true);
         if (cmd == "remove" || cmd == "uninstall") return pkgRemove(args);
         if (cmd == "list" || cmd == "packages") return pkgList(args);
+        if (cmd == "search") return pkgSearch(args);
     } catch (const PlainError& e) {
         fflush(stdout);
         fprintf(stderr, "Oops! %s\n", e.msg.c_str());
@@ -408,7 +577,7 @@ inline int packageCommand(const std::vector<std::string>& args) {
 // Packages need git and a POSIX shell-free process launcher, which the Windows build doesn't have yet.
 inline int packageCommand(const std::vector<std::string>& args) {
     const std::string& c = args[0];
-    if (c == "init" || c == "install" || c == "add" || c == "update" || c == "remove" || c == "uninstall" || c == "list" || c == "packages") {
+    if (c == "init" || c == "install" || c == "add" || c == "update" || c == "remove" || c == "uninstall" || c == "list" || c == "packages" || c == "search") {
         fprintf(stderr, "The package manager is not available in this build of Plain (the Windows build and the web playground).\n");
         return 2;
     }

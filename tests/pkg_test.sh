@@ -35,4 +35,36 @@ mkdir ../elsewhere && cp built ../elsewhere/ && [ "$(cd ../elsewhere && ./built)
 [ ! -d plain_modules/greeter ] || fail "remove left the package"
 "$PLAIN" install "ext::sh -c touch $W/pwned" > /dev/null 2>&1 && fail "dangerous address accepted"
 [ ! -e "$W/pwned" ] || fail "dangerous address ran a command"
+
+# Version ranges and the registry: a package with tags v1.0.0, v1.2.0, v1.10.1 and v2.0.0.
+if command -v git >/dev/null 2>&1; then
+    mkdir -p "$W/colors" && cd "$W/colors" || exit 1
+    git init -q
+    for v in 1.0.0 1.2.0 1.10.1 2.0.0; do
+        printf '{"name": "colors", "version": "%s"}\n' "$v" > plain.json
+        printf 'define colors_version\n    give back "%s"\nend\n' "$v" > main.plain
+        git add . && git -c user.email=t@t -c user.name=t commit -qm "v$v" && git tag "v$v"
+    done
+    printf '{"colors": {"spec": "file://%s/colors", "description": "Colour names for drawing"}}\n' "$W" > "$W/registry.json"
+    export PLAIN_REGISTRY="$W/registry.json" PLAIN_SHARED_REGISTRY=off
+    mkdir -p "$W/app2" && cd "$W/app2" || exit 1
+    printf 'use "colors"\nsay colors_version()\n' > main.plain
+    check_range() {
+        rm -rf plain_modules plain.lock plain.json
+        "$PLAIN" install "$1" > /dev/null || fail "install $1"
+        got=$("$PLAIN" main.plain)
+        [ "$got" = "$2" ] || fail "range $1 gave $got, expected $2"
+    }
+    check_range "colors#^1.2" 1.10.1
+    check_range "colors#~1.2.0" 1.2.0
+    check_range "colors#1.x" 1.10.1
+    check_range "colors#>=1.0 <1.5" 1.2.0
+    check_range "colors#^1.0 || ^2.0" 2.0.0
+    check_range "colors#v1.0.0" 1.0.0
+    check_range "colors" 2.0.0
+    rm -rf plain_modules plain.lock plain.json
+    "$PLAIN" install "colors#^3.0" > /dev/null 2>&1 && fail "a range nothing fits was accepted"
+    "$PLAIN" search colour | grep -q "^colors " || fail "search by description"
+    "$PLAIN" search nothing-like-this | grep -q "No packages found" || fail "search with no match"
+fi
 echo "packages: ok"

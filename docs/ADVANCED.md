@@ -105,7 +105,8 @@ A project can list what it needs in `plain.json`:
 |---|---|
 | `plain init` | Writes `plain.json`. |
 | `plain install` | Installs everything `plain.json` lists, into `./plain_modules`, and writes `plain.lock`. |
-| `plain install user/repo[#version]` | Also: a git address, or a folder. Added to `plain.json`. `--as name` picks the name, `--global` installs for every project. |
+| `plain install name[#version]` | A package from the index, or `user/repo`, a git address, or a folder. Added to `plain.json`. `--as name` picks the name, `--global` installs for every project. |
+| `plain search [words]` | Lists packages in the index whose name or description has the words. |
 | `plain update [name]` | Fetches newer versions, ignoring `plain.lock`. |
 | `plain remove name`, `plain list` | |
 
@@ -113,7 +114,12 @@ A project can list what it needs in `plain.json`:
 computer gets the same code. In a program, `use "greeter"` loads the package's
 `main` file (from its `plain.json`, or `main.plain`); `use "greeter/extra"` loads
 another file of it. A package that needs other packages gets them installed too.
-There is no central registry yet: `plain install name` looks the name up in a JSON
-file you maintain (`~/.plain/registry.json` or `PLAIN_REGISTRY`).
+`plain install name` looks the name up in your own index (`PLAIN_REGISTRY` or
+`~/.plain/registry.json`) if you have one, then in the shared index
+([registry/](../registry/README.md)), which anyone can add a package to.
+
+The version after `#` can be a tag (`#v1.4.0`) or a range, and Plain picks the newest
+tagged version that fits: `#^1.2` (1.2 or newer, below 2), `#~1.2.3` (below 1.3),
+`#1.x`, `#>=1.0 <3.0`, `#^1 || ^2`.
 `plain build` bundles the program and its packages into one executable.
 
