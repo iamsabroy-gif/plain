@@ -280,6 +280,19 @@ struct VM {
         for (const std::string& n : fn->localNames) names.push_back(n);
         const std::string& name = prog.gnames[slot];
         std::string c = closest(name, names);
+        if (action && c.empty()) {
+            // Names other languages use, and what Plain calls them.
+            static const std::unordered_map<std::string, const char*> elsewhere = {
+                {"len", "length of xs"}, {"size", "length of xs"}, {"count", "length of xs"},
+                {"append", "add x to xs"}, {"push", "add x to xs"}, {"str", "text(x)"}, {"string", "text(x)"},
+                {"int", "integer(x)"}, {"num", "number(x)"}, {"input", "ask \"Question?\" into answer"},
+                {"upper", "uppercase(t)"}, {"lower", "lowercase(t)"}, {"strip", "trim(t)"},
+                {"sorted", "sort(xs)"}, {"reversed", "reverse(xs)"},
+                {"type", "type_of(x)"}, {"filter", "keep_if(xs, test)"}, {"map", "map_each(xs, change)"},
+            };
+            auto it = elsewhere.find(name);
+            if (it != elsewhere.end()) fail("Plain has no '" + name + "' action. Write: " + it->second);
+        }
         if (action)
             fail("I don't know an action called '" + name + "'." + (c.empty() ? " Create it with 'define'." : " Did you mean '" + c + "'?"));
         fail("I don't know anything called '" + name + "'." +
@@ -850,20 +863,22 @@ inline Value VM::executeT(Value* sp, uint32_t nargs, size_t stopDepth) {
                         Value& v = (ins & 0xFF) == OP_FORL ? base[a] : globals[a];
                         const Value& limit = base[w & 0xFF];
                         const Value& step = base[(w & 0xFF) + 1];
+                        // The counter only moves on if there is another round, so after the loop
+                        // it holds the last number counted ('for i from 1 to 3' leaves i at 3).
                         bool again;
                         int64_t nv;
                         if (v.tag == Value::Int && step.tag == Value::Int && limit.tag == Value::Int &&
                             !__builtin_add_overflow(v.i, step.i, &nv)) {
-                            v.i = nv;
                             again = step.i > 0 ? nv <= limit.i : nv >= limit.i;
+                            if (again) v.i = nv;
                         } else {
                             if (!isNumber(v))
                                 fail(std::string("The counter of a 'for' loop must stay a number, but it became ") + describe(v) + ".");
                             Value next = numAdd(v, step);
-                            v = std::move(next);
-                            int c = numCompare(v, limit);
+                            int c = numCompare(next, limit);
                             bool up = numCompare(step, Value::integer(0)) > 0;
                             again = c != 2 && (up ? c <= 0 : c >= 0);
+                            if (again) v = std::move(next);
                         }
                         if (again) {
                             TICK()

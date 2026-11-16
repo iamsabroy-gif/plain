@@ -1,0 +1,3 @@
+
+Oops! Line 2: Compare two values at a time, and join the comparisons with 'and', like: a is less than b and b is less than c
+     2 | if 1 is less than age is less than 12 then

@@ -1,0 +1,3 @@
+
+Oops! Line 2: 'uppercase' gives back a new value and leaves word as it was, so this line changes nothing. Keep the answer: set word to uppercase(word)
+     2 | uppercase(word)

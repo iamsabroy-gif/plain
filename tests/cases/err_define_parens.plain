@@ -1,0 +1,3 @@
+define area(w, h)
+    give back w * h
+end

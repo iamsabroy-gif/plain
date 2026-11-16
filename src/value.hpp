@@ -436,6 +436,7 @@ inline bool truthy(const Value& v) {
         case Value::Object:
             if (v.o->kind == Kind::Str) return !asStr(v).empty();
             if (v.o->kind == Kind::List) return !asList(v)->items.empty();
+            if (v.o->kind == Kind::Map) return !asMap(v)->entries.empty();
             if (v.o->kind == Kind::Decimal) return !asDec(v).u.isZero();
             return true;
         default: return false;

@@ -86,6 +86,12 @@ read are left as they are, with a warning.
   top-level variable created above, if one has that name; otherwise it creates
   a variable that exists only inside that action.
 - Actions can be called from anywhere in the file, even above their `define`.
+- After `for i from 1 to 10`, `i` is `10`: the last number the loop counted.
+- `if` and `while` treat `false`, `nothing`, `0`, and an empty list, text or map as
+  false; every other value is true.
+- Built-in actions like `sort`, `reverse`, `uppercase` and `replace` give back a new
+  value and leave the old one as it was, so keep the answer: `set xs to sort(xs)`.
+  A line that calls one and throws the answer away is reported as a mistake.
 - A reserved word (`item`, `times`, `length`, `action`, `to` …) can't be a name,
   and the error says what the word is for and suggests another name.
 

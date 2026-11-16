@@ -1,0 +1,4 @@
+set age to 9
+if 1 is less than age is less than 12 then
+    say "child"
+end
