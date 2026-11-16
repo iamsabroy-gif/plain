@@ -26,7 +26,7 @@ struct LessonExercise {
 struct Lesson {
     std::string id;  // the file name, like "03-loops"
     int number = 0;
-    std::string title, teach;
+    std::string title, teach, picture;  // picture: an emoji for the lesson path
     std::vector<LessonExercise> exercises;
 };
 
@@ -95,6 +95,7 @@ static Lesson parseLesson(const std::string& id, const std::string& text) {
             continue;
         }
         first = false;
+        if (!ex && line.compare(0, 9, "picture: ") == 0) { L.picture = trimEnds(line.substr(9)); continue; }
         if (line.compare(0, 4, "=== ") == 0) {
             flush();
             L.exercises.emplace_back();
@@ -321,26 +322,88 @@ static int lessonSelftest(const std::vector<Lesson>& all) {
     return bad ? 1 : 0;
 }
 
-// plain lesson [n] [--hint] [--solution] [--show] [--selftest]
+// Every lesson as JSON, for the web playground's lesson path.
+static std::string lessonsJson(const std::vector<Lesson>& all) {
+    std::string o = "{\"lessons\":[";
+    auto str = [&](const char* key, const std::string& v) { o += std::string("\"") + key + "\":"; Observer::jsonString(o, v); o += ","; };
+    auto list = [&](const char* key, const std::vector<std::string>& v) {
+        o += std::string("\"") + key + "\":[";
+        for (size_t i = 0; i < v.size(); ++i) { if (i) o += ","; Observer::jsonString(o, v[i]); }
+        o += "]";
+    };
+    for (size_t l = 0; l < all.size(); ++l) {
+        const Lesson& L = all[l];
+        if (l) o += ",";
+        o += "{\"number\":" + std::to_string(L.number) + ",";
+        str("title", L.title);
+        str("picture", L.picture);
+        str("teach", L.teach);
+        o += "\"exercises\":[";
+        for (size_t i = 0; i < L.exercises.size(); ++i) {
+            const LessonExercise& ex = L.exercises[i];
+            if (i) o += ",";
+            o += "{";
+            str("title", ex.title);
+            str("task", ex.task);
+            str("input", ex.input);
+            str("output", ex.output);
+            str("solution", ex.solution);
+            str("starter", exerciseStarter(L, i));
+            list("uses", ex.uses);
+            o += ",";
+            list("hints", ex.hints);
+            o += "}";
+        }
+        o += "]}";
+    }
+    return o + "]}";
+}
+
+// plain lesson [n] [--hint] [--solution] [--show] [--selftest] [--json] [--check N.M file|-]
 static int lessonCommand(const std::vector<std::string>& args) {
     int number = 0;
-    bool hint = false, solution = false, show = false, selftest = false;
+    bool hint = false, solution = false, show = false, selftest = false, json = false;
+    std::string checkKey, checkFile;
     for (size_t i = 1; i < args.size(); ++i) {
         if (args[i] == "--hint") hint = true;
         else if (args[i] == "--solution") solution = true;
         else if (args[i] == "--show") show = true;
         else if (args[i] == "--selftest") selftest = true;
+        else if (args[i] == "--json") json = true;
+        else if (args[i] == "--check" && i + 2 < args.size()) { checkKey = args[++i]; checkFile = args[++i]; }
         else number = atoi(args[i].c_str());
     }
     std::vector<Lesson> all = allLessons();
     if (selftest) return lessonSelftest(all);
+    if (json) { printf("%s\n", lessonsJson(all).c_str()); return 0; }
+    if (!checkKey.empty()) {
+        // Check one exercise ("3.2") against a program (a file, or - for standard input),
+        // and say the result as JSON: {"passed": true/false, "message": "...", "said": "..."}
+        int ln = atoi(checkKey.c_str()), en = 0;
+        size_t dot = checkKey.find('.');
+        if (dot != std::string::npos) en = atoi(checkKey.c_str() + dot + 1);
+        const LessonExercise* ex = nullptr;
+        for (const Lesson& L : all)
+            if (L.number == ln && en >= 1 && en <= (int)L.exercises.size()) ex = &L.exercises[(size_t)en - 1];
+        if (!ex) { fprintf(stderr, "There is no exercise %s. They are numbered like 3.2 (lesson 3, exercise 2).\n", checkKey.c_str()); return 2; }
+        std::string src;
+        if (checkFile == "-") src.assign(std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>());
+        else if (!readFile(checkFile, src)) { fprintf(stderr, "I couldn't open '%s'.\n", checkFile.c_str()); return 2; }
+        std::string said, why = checkExercise(*ex, src, "program.plain", &said);
+        std::string o = std::string("{\"passed\":") + (why.empty() ? "true" : "false") + ",\"message\":";
+        Observer::jsonString(o, why);
+        o += ",\"said\":";
+        Observer::jsonString(o, said);
+        printf("%s}\n", o.c_str());
+        return why.empty() ? 0 : 1;
+    }
     std::map<std::string, int> done = readLessonProgress();
     if (number == 0) {
         printf("\nLessons. Start with:  plain lesson 1\n\n");
         for (const Lesson& L : all) {
             size_t solved = 0;
             for (size_t i = 0; i < L.exercises.size(); ++i) solved += exSolved(done, exKey(L, i));
-            printf("  %2d  %-28s %zu of %zu exercises done%s\n", L.number, L.title.c_str(), solved, L.exercises.size(),
+            printf("  %2d  %s %-26s %zu of %zu exercises done%s\n", L.number, L.picture.empty() ? " " : L.picture.c_str(), L.title.c_str(), solved, L.exercises.size(),
                    solved == L.exercises.size() && solved ? "  \xE2\x9C\x93" : "");
         }
         printf("\nAfter the lessons:  plain practice  (50 problems with hidden tests)\n\n");

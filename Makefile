@@ -28,7 +28,7 @@ test: build/plain
 	@sh tests/lesson_test.sh build/plain
 	@sh tests/webmode_test.sh
 	@sh tests/docs_test.sh build/plain
-	@if command -v node >/dev/null 2>&1; then node tests/wasm_test.js && node tests/web_e2e.js; fi
+	@if command -v node >/dev/null 2>&1; then node tests/web_ui_test.js && node tests/wasm_test.js && node tests/web_e2e.js; fi
 
 install: build/plain
 	install -d $(DESTDIR)$(PREFIX)/bin

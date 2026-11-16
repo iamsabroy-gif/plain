@@ -1,4 +1,5 @@
 # 7. Thinking in steps
+picture: 🪜
 An action can call itself. Each call works on a smaller piece of the problem, until
 the piece is so small the answer is obvious. That obvious case must come first, or
 the calls never stop.

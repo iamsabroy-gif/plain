@@ -1,4 +1,5 @@
 # 4. Lists
+picture: 📋
 A list keeps many values in order, between square brackets. Items are counted from 1.
 
     set fruits to ["mango", "banana", "lychee"]

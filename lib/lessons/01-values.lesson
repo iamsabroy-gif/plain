@@ -1,4 +1,5 @@
 # 1. Values
+picture: 👋
 A program is a list of instructions, one per line, done from top to bottom.
 `say` shows a value. `set` keeps a value under a name, so you can use it later.
 

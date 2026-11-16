@@ -4155,6 +4155,7 @@ end
 # --- end solution ---
 )PLAINLIB"},
 {"lessons/01-values", R"PLAINLIB(# 1. Values
+picture: 👋
 A program is a list of instructions, one per line, done from top to bottom.
 `say` shows a value. `set` keeps a value under a name, so you can use it later.
 
@@ -4228,6 +4229,7 @@ ask "How old are you?" into age
 say "In 10 years you will be {age + 10}"
 )PLAINLIB"},
 {"lessons/02-decisions", R"PLAINLIB(# 2. Decisions
+picture: 🔀
 `if` runs some lines only when something is true. `otherwise` runs other lines when
 it is not. Every `if` is closed with `end`.
 
@@ -4310,6 +4312,7 @@ otherwise
 end
 )PLAINLIB"},
 {"lessons/03-loops", R"PLAINLIB(# 3. Loops
+picture: 🔁
 A loop runs the same lines again and again.
 
     repeat 3 times
@@ -4415,6 +4418,7 @@ while n is less than 1000
 end
 )PLAINLIB"},
 {"lessons/04-lists", R"PLAINLIB(# 4. Lists
+picture: 📋
 A list keeps many values in order, between square brackets. Items are counted from 1.
 
     set fruits to ["mango", "banana", "lychee"]
@@ -4497,6 +4501,7 @@ say xs
 say "smallest", xs[1], "biggest", xs[length of xs]
 )PLAINLIB"},
 {"lessons/05-actions", R"PLAINLIB(# 5. Actions
+picture: 🛠️
 An action is your own instruction. `define` makes one; `give back` is its answer.
 
     define area with width, height
@@ -4562,6 +4567,7 @@ end
 say vowels("banana"), vowels("sky")
 )PLAINLIB"},
 {"lessons/06-maps-and-text", R"PLAINLIB(# 6. Maps and text
+picture: 🗺️
 A map keeps values under names, between curly brackets:
 
     set pet to {name: "Rex", legs: 4}
@@ -4620,6 +4626,7 @@ ask "Say something" into words
 say uppercase(join(reverse(split(words, " ")), " "))
 )PLAINLIB"},
 {"lessons/07-thinking-in-steps", R"PLAINLIB(# 7. Thinking in steps
+picture: 🪜
 An action can call itself. Each call works on a smaller piece of the problem, until
 the piece is so small the answer is obvious. That obvious case must come first, or
 the calls never stop.
@@ -4703,6 +4710,7 @@ end
 say linear_search([4, 8, 15, 16, 23, 42], 16), linear_search([1, 2], 9)
 )PLAINLIB"},
 {"lessons/08-data-structures", R"PLAINLIB(# 8. Data structures
+picture: 🧱
 A data structure is a way of keeping values so that some jobs become easy. Plain
 comes with a library of them, written in Plain:
 
@@ -4799,6 +4807,7 @@ repeat 5 times
 end
 )PLAINLIB"},
 {"lessons/09-cost", R"PLAINLIB(# 9. Cost
+picture: ⏱️
 Two programs can give the same answer while one does far more work. Counting the
 steps tells them apart better than a stopwatch:
 
@@ -4869,6 +4878,7 @@ for each n in [10, 20, 40]
 end
 )PLAINLIB"},
 {"lessons/10-under-the-hood", R"PLAINLIB(# 10. Under the hood
+picture: 🔧
 The library's data structures are ordinary Plain classes. A class describes a
 kind of object: `init` sets up a new one, and its actions use `me` for the object
 itself.

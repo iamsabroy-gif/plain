@@ -1,4 +1,5 @@
 # 5. Actions
+picture: 🛠️
 An action is your own instruction. `define` makes one; `give back` is its answer.
 
     define area with width, height

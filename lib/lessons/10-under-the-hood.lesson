@@ -1,4 +1,5 @@
 # 10. Under the hood
+picture: 🔧
 The library's data structures are ordinary Plain classes. A class describes a
 kind of object: `init` sets up a new one, and its actions use `me` for the object
 itself.

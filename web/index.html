@@ -39,8 +39,10 @@ button.stop { background: var(--stop); border-color: var(--stop); color: #fff; f
 button[disabled] { opacity: .45; cursor: not-allowed; }
 .spacer { flex: 1; }
 .editor { display: grid; grid-template-columns: 46px minmax(0, 1fr); background: var(--code-bg); }
-.gutter { margin: 0; padding: 12px 8px 12px 0; text-align: right; color: var(--muted); font: 15px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; user-select: none; overflow: hidden; border-right: 1px solid var(--line); white-space: pre; }
-textarea#code { width: 100%; height: 56vh; min-height: 280px; resize: vertical; border: 0; padding: 12px 14px; background: transparent; color: var(--ink); font: 15px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; tab-size: 4; white-space: pre; overflow: auto; }
+/* the line numbers and the colouring are pinned to the textarea's size, so they scroll with it */
+.gutterbox { position: relative; border-right: 1px solid var(--line); }
+.gutter { position: absolute; inset: 0; margin: 0; padding: 12px 8px 12px 0; text-align: right; color: var(--muted); font: 15px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; user-select: none; overflow: hidden; white-space: pre; }
+textarea#code { display: block; width: 100%; height: 56vh; min-height: 280px; resize: vertical; border: 0; outline-offset: -2px; overflow: auto; }
 #output { margin: 0; padding: 12px 14px; min-height: 120px; max-height: 44vh; overflow: auto; white-space: pre-wrap; word-break: break-word; font: 15px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
 #output .err { display: block; background: var(--err-bg); color: var(--err-ink); border-radius: 8px; padding: 8px 10px; margin-top: 6px; }
 #output .hint { color: var(--muted); font-family: system-ui, sans-serif; }
@@ -51,6 +53,64 @@ details textarea { width: calc(100% - 28px); margin: 0 14px 12px; height: 70px; 
 #vizCard { grid-column: 1 / -1; }
 #vizFrame { width: 100%; height: 78vh; border: 0; background: var(--bg); display: block; }
 .note { color: var(--muted); font-size: 13px; padding: 8px 14px 12px; }
+/* the editor: a coloured copy of the text sits exactly under a see-through textarea */
+.area { position: relative; }
+#hl, textarea#code { margin: 0; padding: 12px 14px; font: 15px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; tab-size: 4; white-space: pre; letter-spacing: 0; word-spacing: 0; }
+#hl { position: absolute; inset: 0; overflow: hidden; pointer-events: none; color: var(--ink); }
+textarea#code { position: relative; color: transparent; caret-color: var(--ink); background: transparent; }
+textarea#code::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); color: transparent; }
+.t-kw { color: var(--accent); font-weight: 600; }
+.t-ins { color: #b4489a; font-weight: 600; }
+.t-op { color: #7a5c00; }
+.t-str { color: #1f8a4c; }
+.t-hole { color: var(--ink); background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 3px; }
+.t-num, .t-lit { color: #c2560f; }
+.t-com { color: var(--muted); font-style: italic; }
+.t-fn { color: #0f7a8a; }
+.t-me { color: #8a3ffc; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .t-ins { color: #f08bd4; }
+  :root:not([data-theme="light"]) .t-op { color: #e8c76a; }
+  :root:not([data-theme="light"]) .t-str { color: #6fd39b; }
+  :root:not([data-theme="light"]) .t-num, :root:not([data-theme="light"]) .t-lit { color: #ffa36b; }
+  :root:not([data-theme="light"]) .t-fn { color: #5fd0e0; }
+  :root:not([data-theme="light"]) .t-me { color: #c3a0ff; }
+}
+/* blocks: click to put a line of code where the cursor is */
+.blocks { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); align-items: center; }
+.blocks .label { font-size: 13px; color: var(--muted); margin-right: 2px; }
+.blocks button { padding: 4px 10px; font-size: 14px; border-radius: 999px; }
+.blocks button[data-kind="ins"] { border-color: color-mix(in srgb, #b4489a 45%, var(--line)); }
+.blocks button[data-kind="kw"] { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+/* lessons */
+#lessonsCard { grid-column: 1 / -1; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 14px; }
+.tile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px; border-radius: 14px; background: var(--chip); border: 1px solid var(--line); text-align: center; }
+.tile .pic { font-size: 40px; line-height: 1.1; }
+.tile .num { font-size: 12px; color: var(--muted); }
+.tile .name { font-weight: 700; }
+.tile .done { font-size: 12px; color: var(--muted); }
+.tile.complete { border-color: var(--go); }
+.lesson { padding: 6px 18px 16px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; }
+@media (max-width: 860px) { .lesson { grid-template-columns: minmax(0, 1fr); } }
+.lesson h3 { font-size: 22px; margin: 10px 0 6px; display: flex; gap: 10px; align-items: center; }
+.lesson h3 .pic { font-size: 34px; }
+.lesson p { margin: 8px 0; }
+.lesson p code { font: 14px ui-monospace, Menlo, Consolas, monospace; background: var(--chip); border-radius: 4px; padding: 1px 5px; }
+.lesson pre.snippet { position: relative; margin: 8px 0; padding: 10px 12px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; font: 14px/1.55 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; }
+.lesson pre.snippet button { position: absolute; top: 6px; right: 6px; padding: 2px 10px; font-size: 12px; font-family: system-ui, sans-serif; }
+.exercise { background: var(--chip); border-radius: 14px; padding: 12px 16px; align-self: start; }
+.exercise h4 { margin: 4px 0 8px; font-size: 17px; }
+.exercise .expect { white-space: pre-wrap; font: 14px/1.5 ui-monospace, Menlo, Consolas, monospace; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 6px 0 10px; }
+.exercise .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.exercise .result { margin-top: 10px; border-radius: 10px; padding: 8px 12px; white-space: pre-wrap; }
+.exercise .result.good { background: color-mix(in srgb, var(--go) 18%, var(--panel)); }
+.exercise .result.bad { background: var(--err-bg); color: var(--err-ink); }
+.exercise .hints p { background: var(--panel); border-left: 4px solid var(--accent); padding: 6px 10px; border-radius: 6px; }
+.dots { display: flex; gap: 6px; margin: 4px 0 8px; }
+.dots span { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); }
+.dots span.on { background: var(--go); border-color: var(--go); }
+.dots span.cur { border-color: var(--accent); }
 footer { padding: 14px 18px 22px; color: var(--muted); font-size: 13px; text-align: center; }
 footer a { color: var(--accent); }
 #loading { padding: 40px 18px; text-align: center; color: var(--muted); }
@@ -61,12 +121,17 @@ footer a { color: var(--accent); }
 <header>
   <h1>Plain</h1>
   <span class="tag">Write a program, press Run. Nothing to install.</span>
+  <button id="lessonsBtn" title="Lessons with exercises that are checked">&#128218; Lessons</button>
   <a href="https://github.com/iamsabroy-gif/plain#install">Install on your computer</a>
   <a href="https://github.com/iamsabroy-gif/plain/blob/main/docs/KIDS.md">Guide for kids</a>
   <a href="https://github.com/iamsabroy-gif/plain/blob/main/docs/CORE.md">Learn the first words</a>
 </header>
 <div id="unsupported"></div>
 <main id="app">
+  <section class="card" id="lessonsCard" hidden>
+    <h2><span id="lessonsTitle">Lessons</span><span><button id="lessonsBack" style="padding:2px 10px;font-size:12px" hidden>All lessons</button> <button id="lessonsClose" style="padding:2px 10px;font-size:12px">Close</button></span></h2>
+    <div id="lessonsBody"></div>
+  </section>
   <section class="card">
     <h2><span>Your program</span><span id="status" role="status">Loading Plain...</span></h2>
     <div class="toolbar">
@@ -74,20 +139,31 @@ footer a { color: var(--accent); }
       <button id="stop" class="stop" hidden>&#9632; Stop</button>
       <button id="watch" disabled title="Run slowly and watch every step">&#128064; Watch it run</button>
       <button id="count" disabled title="Count how much work it does">&#128290; Count the work</button>
+      <button id="tidy" disabled title="Rewrite it in the standard style (plain format)">&#10024; Tidy</button>
       <span class="spacer"></span>
       <label for="examples" class="note" style="padding:0">Examples</label>
       <select id="examples" aria-label="Choose an example"></select>
     </div>
+    <div class="blocks" id="blocks" aria-label="Blocks: click one to add it to your program"><span class="label">Blocks:</span></div>
     <div class="editor">
-      <pre class="gutter" id="gutter" aria-hidden="true">1</pre>
-      <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your program"></textarea>
+      <div class="gutterbox"><pre class="gutter" id="gutter" aria-hidden="true">1</pre></div>
+      <div class="area">
+        <pre id="hl" aria-hidden="true"></pre>
+        <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your program"></textarea>
+      </div>
     </div>
     <details>
       <summary>Typed answers for <code>ask</code> (one per line)</summary>
       <textarea id="stdin" spellcheck="false" aria-label="Typed answers, one per line" placeholder="If your program uses  ask ... into name  put the answers here, one per line."></textarea>
     </details>
     <div class="toolbar" style="border-top:1px solid var(--line);border-bottom:0">
-      <button id="share">&#128279; Copy a link to this program</button>
+      <button id="save" title="Keep this program in this browser">&#128190; Save</button>
+      <select id="programs" aria-label="Open a saved program"></select>
+      <button id="remove" hidden title="Forget this saved program">&#128465; Delete</button>
+      <button id="download" title="Save it as a .plain file">&#11015; Download</button>
+      <button id="openFile" title="Open a .plain file">&#11014; Open file</button>
+      <input type="file" id="fileInput" accept=".plain,.txt,text/plain" hidden>
+      <button id="share">&#128279; Copy a link</button>
       <span id="shareNote" class="note" style="padding:0"></span>
     </div>
   </section>
@@ -121,7 +197,7 @@ const EXAMPLES = {
 const DEFAULT = "Say hello";
 
 const editor = $("code"), gutter = $("gutter"), out = $("output"), statusEl = $("status");
-let worker = null, busy = false, stopTimer = null, playerHtml = null;
+let worker = null, busy = false, stopTimer = null, playerHtml = null, ready = false;
 
 // ---------------------------------------------------------------- the editor
 function updateGutter() {
@@ -131,8 +207,99 @@ function updateGutter() {
   gutter.textContent = s;
   gutter.scrollTop = editor.scrollTop;
 }
-editor.addEventListener("input", () => { updateGutter(); remember(); });
-editor.addEventListener("scroll", () => { gutter.scrollTop = editor.scrollTop; });
+editor.addEventListener("input", () => { updateGutter(); paint(); remember(); });
+editor.addEventListener("scroll", () => { gutter.scrollTop = editor.scrollTop; syncScroll(); });
+
+// ------------------------------------------------------------- colouring
+const KW = new Set("if then otherwise end repeat times while for each in from to by stop skip give back try on error fail use call init class extends new action gives define with".split(" "));
+const INS = new Set("set say show print ask into add remove increase decrease".split(" "));
+const OPW = new Set("is not and or greater less than at least most equal contains plus minus multiplied divided modulo length of item".split(" "));
+const LIT = new Set(["true", "false", "nothing"]);
+const ME = new Set(["me", "parent"]);
+const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const span = (cls, t) => '<span class="' + cls + '">' + esc(t) + "</span>";
+// Colour one piece of code (no strings or comments inside: those are found first).
+function paintCode(code) {
+  return code.replace(/(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?d?)|([A-Za-z_\u0080-\uFFFF][A-Za-z0-9_\u0080-\uFFFF]*)(\s*\()?|('s\b)|([^A-Za-z0-9_\u0080-\uFFFF']+|')/g,
+    (m, num, word, call, poss, other) => {
+      if (num) return span("t-num", num);
+      if (poss) return span("t-op", poss);
+      if (other !== undefined) return esc(other);
+      const w = word.toLowerCase(), rest = call ? esc(call) : "";
+      if (KW.has(w)) return span("t-kw", word) + rest;
+      if (INS.has(w)) return span("t-ins", word) + rest;
+      if (OPW.has(w)) return span("t-op", word) + rest;
+      if (LIT.has(w)) return span("t-lit", word) + rest;
+      if (ME.has(w)) return span("t-me", word) + rest;
+      if (call) return span("t-fn", word) + rest;
+      return esc(word);
+    });
+}
+// Text, with the {values} inside it coloured as code.
+function paintText(t) {
+  let out = "", i = 0;
+  while (i < t.length) {
+    if (t[i] === "\\" && i + 1 < t.length) { out += esc(t.slice(i, i + 2)); i += 2; continue; }
+    if (t[i] === "{" && /[A-Za-z_(\[0-9-]/.test(t[i + 1] || "")) {
+      const close = t.indexOf("}", i);
+      if (close > 0) { out += '</span><span class="t-hole">{' + paintCode(t.slice(i + 1, close)) + '}</span><span class="t-str">'; i = close + 1; continue; }
+    }
+    out += esc(t[i]); i++;
+  }
+  return '<span class="t-str">' + out + "</span>";
+}
+function paintLine(line) {
+  if (/^\s*note:/i.test(line)) return span("t-com", line);
+  let out = "", i = 0, start = 0;
+  while (i < line.length) {
+    const c = line[i];
+    if (c === "#") { out += paintCode(line.slice(start, i)) + span("t-com", line.slice(i)); return out; }
+    if (c === '"') {
+      out += paintCode(line.slice(start, i));
+      let j = i + 1;
+      while (j < line.length && line[j] !== '"') j += line[j] === "\\" ? 2 : 1;
+      out += paintText(line.slice(i, Math.min(j + 1, line.length)));
+      i = start = Math.min(j + 1, line.length);
+      continue;
+    }
+    i++;
+  }
+  return out + paintCode(line.slice(start));
+}
+function paint() {
+  $("hl").innerHTML = editor.value.split("\n").map(paintLine).join("\n") + "\n ";
+  syncScroll();
+}
+function syncScroll() { const hl = $("hl"); hl.scrollTop = editor.scrollTop; hl.scrollLeft = editor.scrollLeft; }
+
+// ----------------------------------------------------------------- blocks
+const BLOCKS = [
+  ["say", "ins", 'say "Hello!"'], ["set", "ins", "set score to 0"], ["ask", "ins", 'ask "What is your name?" into name'],
+  ["say {name}", "ins", 'say "Hello, {name}!"'], ["add", "ins", "add 1 to score"],
+  ["if", "kw", "if score is greater than 10 then\n    say \"Well done!\"\nend"],
+  ["if / otherwise", "kw", "if score is greater than 10 then\n    say \"Well done!\"\notherwise\n    say \"Keep going!\"\nend"],
+  ["repeat", "kw", "repeat 3 times\n    say \"Hip hip hooray!\"\nend"], ["count", "kw", "for i from 1 to 10\n    say i\nend"],
+  ["for each", "kw", "for each fruit in [\"mango\", \"banana\"]\n    say fruit\nend"], ["while", "kw", "while score is less than 5\n    increase score by 1\nend"],
+  ["list", "ins", "set fruits to [\"mango\", \"banana\", \"lychee\"]"], ["define", "kw", "define double with n\n    give back n * 2\nend"],
+];
+// Put a block on its own line at the cursor, indented like the line it goes into.
+function insertBlock(text) {
+  editor.focus();
+  const v = editor.value, at = editor.selectionStart;
+  const lineStart = v.lastIndexOf("\n", at - 1) + 1;
+  let lineEnd = v.indexOf("\n", at); if (lineEnd < 0) lineEnd = v.length;
+  const line = v.slice(lineStart, lineEnd);
+  const indent = line.match(/^ */)[0];
+  const body = text.split("\n").map((l, k) => (k ? indent : "") + l).join("\n");
+  if (line.trim() === "") { editor.setSelectionRange(lineStart + indent.length, lineEnd); document.execCommand("insertText", false, body); }
+  else { editor.setSelectionRange(lineEnd, lineEnd); document.execCommand("insertText", false, "\n" + indent + body); }
+}
+BLOCKS.forEach(([label, kind, text]) => {
+  const b = document.createElement("button");
+  b.textContent = label; b.dataset.kind = kind; b.title = text.split("\n")[0];
+  b.onclick = () => insertBlock(text);
+  $("blocks").append(b);
+});
 editor.addEventListener("keydown", (e) => {
   if (e.key === "Tab") {
     e.preventDefault();
@@ -150,8 +317,14 @@ editor.addEventListener("keydown", (e) => {
     if (!busy) runProgram();
   }
 });
-function remember() { try { localStorage.setItem("plain-code", editor.value); } catch (e) { /* private window: fine */ } }
-function setCode(text) { editor.value = text; updateGutter(); remember(); }
+const store = {  // localStorage, which may be missing (private windows): then nothing is kept
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* fine */ } },
+  json(k, d) { try { return JSON.parse(store.get(k, "")) || d; } catch (e) { return d; } },
+};
+let lessonKey = null;   // while doing a lesson exercise, like "3.2": its code is kept separately
+function remember() { store.set(lessonKey ? "plain-lesson-code-" + lessonKey : "plain-code", editor.value); }
+function setCode(text) { editor.value = text; updateGutter(); paint(); remember(); }
 
 // -------------------------------------------------------------- running it
 const MAX_OUTPUT = 300000;   // characters; a program that says more than this is almost certainly stuck
@@ -175,7 +348,8 @@ function append(text, cls) {
 function setBusy(on, message) {
   if (on) { outChars = 0; tooMuch = false; }
   busy = on;
-  for (const id of ["run", "watch", "count"]) $(id).disabled = on;
+  for (const id of ["run", "watch", "count", "tidy"]) $(id).disabled = on;
+  document.querySelectorAll(".needs-plain").forEach((b) => (b.disabled = on));
   $("stop").hidden = !on;
   statusEl.textContent = message || "";
 }
@@ -184,7 +358,7 @@ function startWorker() {
   worker = new Worker("worker.js");
 }
 // Run the interpreter with these arguments. Resolves with everything it wrote.
-function runPlain(args, { live } = {}) {
+function runPlain(args, { live, stdin: given } = {}) {
   return new Promise((resolve, reject) => {
     startWorker();
     const result = { stdout: "", stderr: "", code: 0 };
@@ -194,11 +368,11 @@ function runPlain(args, { live } = {}) {
       if (m.type === "out") {
         if (m.fd === 1) { result.stdout += m.text; if (live) say(m.text); }
         else { result.stderr += m.text; if (live) say(m.text.replace(/^\n/, ""), "err"); }
-      } else if (m.type === "done") { clearTimeout(stopTimer); resolve(result); }
+      } else if (m.type === "done") { clearTimeout(stopTimer); result.code = m.code; resolve(result); }
       else if (m.type === "failed") { clearTimeout(stopTimer); reject(new Error(m.message)); }
     };
     w.onerror = (ev) => { clearTimeout(stopTimer); reject(new Error(ev.message || "The worker stopped.")); };
-    let stdin = $("stdin").value;
+    let stdin = given !== undefined ? given : $("stdin").value;
     if (stdin && !stdin.endsWith("\n")) stdin += "\n";
     w.postMessage({ args, stdin, wasmUrl: "plain.wasm" });
     clearTimeout(stopTimer);
@@ -249,6 +423,210 @@ function watchRun() {
   });
 }
 
+// plain format, in the page
+function tidy() {
+  return guarded("Tidying...", async () => {
+    const r = await runPlain(["format", "-"], { stdin: editor.value });
+    if (r.code === 0 && r.stdout) {
+      const changed = r.stdout !== editor.value;
+      editor.select();
+      document.execCommand("insertText", false, r.stdout);   // so Undo (Ctrl+Z) brings the old text back
+      updateGutter(); paint(); remember();
+      $("shareNote").textContent = changed ? "Tidied. (Ctrl+Z to undo.)" : "It was already tidy.";
+      setTimeout(() => ($("shareNote").textContent = ""), 3000);
+    }
+    if (r.stderr) { out.textContent = ""; say(r.stderr.replace(/^\n/, ""), "err"); }
+  });
+}
+
+// ------------------------------------------------------------- my programs
+let currentName = null;
+function savedPrograms() { return store.json("plain-programs", {}); }
+function refreshPrograms() {
+  const sel = $("programs"), all = savedPrograms(), names = Object.keys(all).sort((a, b) => a.localeCompare(b));
+  sel.textContent = "";
+  sel.append(new Option(names.length ? "My programs (" + names.length + ")..." : "No saved programs yet", ""));
+  names.forEach((n) => sel.append(new Option(n, n)));
+  sel.disabled = !names.length;
+  $("remove").hidden = !currentName || !(currentName in all);
+}
+function saveProgram() {
+  const first = (editor.value.match(/^#\s*(.+)$/m) || [])[1];
+  const name = prompt("Save as:", currentName || (first ? first.slice(0, 40) : "My program"));
+  if (!name || !name.trim()) return;
+  const all = savedPrograms();
+  all[name.trim()] = editor.value;
+  store.set("plain-programs", JSON.stringify(all));
+  currentName = name.trim();
+  refreshPrograms();
+  $("shareNote").textContent = "Saved as \u201C" + currentName + "\u201D in this browser.";
+  setTimeout(() => ($("shareNote").textContent = ""), 3000);
+}
+$("programs").onchange = () => {
+  const n = $("programs").value, all = savedPrograms();
+  if (n && n in all) { currentName = n; setCode(all[n]); }
+  $("programs").value = "";
+  refreshPrograms();
+};
+$("remove").onclick = () => {
+  if (!currentName || !confirm("Forget the saved program \u201C" + currentName + "\u201D? (What is in the editor stays.)")) return;
+  const all = savedPrograms();
+  delete all[currentName];
+  store.set("plain-programs", JSON.stringify(all));
+  currentName = null;
+  refreshPrograms();
+};
+$("download").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([editor.value], { type: "text/plain" }));
+  a.download = (currentName || "program").replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-|-$/g, "").toLowerCase() + ".plain";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$("openFile").onclick = () => $("fileInput").click();
+$("fileInput").onchange = async () => {
+  const f = $("fileInput").files[0];
+  if (!f) return;
+  setCode(await f.text());
+  currentName = f.name.replace(/\.plain$/, "");
+  refreshPrograms();
+  $("fileInput").value = "";
+};
+$("save").onclick = saveProgram;
+$("tidy").onclick = tidy;
+
+// ----------------------------------------------------------------- lessons
+let LESSONS = null, openLesson = null;
+const progress = () => store.json("plain-lesson-progress", {});
+function markDone(key) { const p = progress(); p[key] = true; store.set("plain-lesson-progress", JSON.stringify(p)); }
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const k in attrs || {}) { if (k === "text") e.textContent = attrs[k]; else if (k === "html") e.innerHTML = attrs[k]; else if (k.startsWith("on")) e[k] = attrs[k]; else e.setAttribute(k, attrs[k]); }
+  kids.forEach((c) => c && e.append(c));
+  return e;
+}
+async function showLessons() {
+  $("lessonsCard").hidden = false;
+  $("lessonsCard").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!LESSONS) {
+    if (!ready) { $("lessonsBody").textContent = ""; $("lessonsBody").append(el("p", { class: "note", text: "Plain is still loading. Try again in a moment." })); return; }
+    const r = await runPlain(["lesson", "--json"]).catch(() => null);
+    try { LESSONS = JSON.parse(r.stdout).lessons; } catch (e) { $("lessonsBody").textContent = "I could not load the lessons."; return; }
+  }
+  leaveExercise();
+  $("lessonsTitle").textContent = "Lessons";
+  $("lessonsBack").hidden = true;
+  const body = $("lessonsBody"), p = progress();
+  body.textContent = "";
+  body.append(el("p", { class: "note", text: "Ten lessons, from your first line to how a stack is built. Each has exercises that Plain checks for you." }));
+  const tiles = el("div", { class: "tiles" });
+  LESSONS.forEach((L) => {
+    const n = L.exercises.length, done = L.exercises.filter((_, i) => p[L.number + "." + (i + 1)]).length;
+    tiles.append(el("button", { class: "tile" + (done === n ? " complete" : ""), onclick: () => showLesson(L), "aria-label": "Lesson " + L.number + ": " + L.title },
+      el("span", { class: "pic", text: L.picture || "\u2B50" }), el("span", { class: "num", text: "Lesson " + L.number }),
+      el("span", { class: "name", text: L.title }), el("span", { class: "done", text: done === n ? "\u2713 all done" : done + " of " + n + " done" })));
+  });
+  body.append(tiles);
+}
+// Teaching text: paragraphs, and code (lines indented by four spaces) you can try.
+function teachingNodes(text) {
+  const nodes = [];
+  let para = [], code = [];
+  // a paragraph, with `code` shown as code
+  const paraNode = (t) => el("p", { html: esc(t).replace(/`([^`]+)`/g, (m, c) => "<code>" + c + "</code>") });
+  const flush = () => {
+    if (para.length) nodes.push(paraNode(para.join(" ")));
+    if (code.length) {
+      const src = code.join("\n") + "\n";
+      nodes.push(el("pre", { class: "snippet", html: src.split("\n").map(paintLine).join("\n") },
+        el("button", { class: "needs-plain", text: "\u25B6 Try it", onclick: () => { out.textContent = ""; guarded("Running...", () => runPlain(["-e", src], { live: true, stdin: "Asha\n9\n" })); } })));
+    }
+    para = []; code = [];
+  };
+  text.split("\n").forEach((line) => {
+    if (line.startsWith("    ")) { if (para.length) { nodes.push(paraNode(para.join(" "))); para = []; } code.push(line.slice(4)); }
+    else if (!line.trim()) flush();
+    else { if (code.length) flush(); para.push(line.trim()); }
+  });
+  flush();
+  return nodes;
+}
+function showLesson(L, exIndex) {
+  openLesson = L;
+  const p = progress();
+  let i = exIndex !== undefined ? exIndex : L.exercises.findIndex((_, k) => !p[L.number + "." + (k + 1)]);
+  if (i < 0) i = L.exercises.length - 1;
+  const ex = L.exercises[i], key = L.number + "." + (i + 1);
+  $("lessonsTitle").textContent = "Lesson " + L.number;
+  $("lessonsBack").hidden = false;
+  const body = $("lessonsBody");
+  body.textContent = "";
+  const teach = el("div", null, el("h3", null, el("span", { class: "pic", text: L.picture || "" }), el("span", { text: L.title })), ...teachingNodes(L.teach));
+  const dots = el("div", { class: "dots", "aria-label": "Exercises" });
+  L.exercises.forEach((_, k) => dots.append(el("span", { class: (p[L.number + "." + (k + 1)] ? "on" : "") + (k === i ? " cur" : ""), title: "Exercise " + (k + 1) })));
+  const result = el("div", { class: "result", role: "status", hidden: "" });
+  const hints = el("div", { class: "hints" });
+  let shown = 0;
+  const hintBtn = el("button", { text: "\uD83D\uDCA1 A hint", onclick: () => {
+    if (shown < ex.hints.length) { hints.append(el("p", { text: ex.hints[shown++] })); }
+    if (shown >= ex.hints.length) { hintBtn.hidden = true; solBtn.hidden = false; }
+  } });
+  const solBtn = el("button", { text: "Show a program that works", hidden: "", onclick: () => {
+    hints.append(el("pre", { class: "expect", html: ex.solution.split("\n").map(paintLine).join("\n") }));
+    solBtn.hidden = true;
+  } });
+  const nextBtn = el("button", { text: i + 1 < L.exercises.length ? "Next exercise \u2192" : "Back to all lessons",
+    onclick: () => (i + 1 < L.exercises.length ? showLesson(L, i + 1) : showLessons()) });
+  nextBtn.hidden = !p[key];
+  const checkBtn = el("button", { class: "run needs-plain", text: "\u2713 Check my program", onclick: () => checkExercise(key, ex, result, nextBtn, dots, i) });
+  const exBox = el("div", { class: "exercise" },
+    el("div", { class: "note", style: "padding:0", text: "Exercise " + (i + 1) + " of " + L.exercises.length }), dots,
+    el("h4", { text: ex.title }), el("p", { text: ex.task }),
+    ex.input ? el("p", { class: "note", style: "padding:0", text: "When it is checked, this is typed in: " + ex.input.trim().replace(/\n/g, ", ") }) : null,
+    el("div", { class: "note", style: "padding:0", text: "It should say:" }), el("div", { class: "expect", text: ex.output }),
+    el("div", { class: "row" }, checkBtn, hintBtn, solBtn, nextBtn), result, hints);
+  body.append(el("div", { class: "lesson" }, teach, exBox));
+  enterExercise(key, ex.starter);
+}
+function enterExercise(key, starter) {
+  if (!lessonKey) remember();   // keep the free-play program as it was
+  lessonKey = key;
+  setCode(store.get("plain-lesson-code-" + key, starter));
+  if (ex2stdin(key)) $("stdin").value = ex2stdin(key);
+}
+function ex2stdin(key) {
+  if (!openLesson) return "";
+  const ex = openLesson.exercises[Number(key.split(".")[1]) - 1];
+  return ex && ex.input ? ex.input : "";
+}
+function leaveExercise() {
+  if (!lessonKey) return;
+  remember();
+  lessonKey = null;
+  openLesson = null;
+  setCode(store.get("plain-code", EXAMPLES[DEFAULT]));
+}
+function checkExercise(key, ex, result, nextBtn, dots, i) {
+  out.textContent = "";
+  return guarded("Checking...", async () => {
+    const r = await runPlain(["lesson", "--check", key, "-"], { stdin: editor.value });
+    let v;
+    try { v = JSON.parse(r.stdout); } catch (e) { v = { passed: false, message: r.stderr || "I could not check it." }; }
+    result.hidden = false;
+    result.className = "result " + (v.passed ? "good" : "bad");
+    result.textContent = v.passed ? "\u2713 Well done! That's right." : "\u2717 " + v.message;
+    if (v.said) say(v.said);
+    if (v.passed) {
+      markDone(key);
+      nextBtn.hidden = false;
+      dots.children[i].classList.add("on");
+    }
+  });
+}
+$("lessonsBtn").onclick = showLessons;
+$("lessonsBack").onclick = showLessons;
+$("lessonsClose").onclick = () => { leaveExercise(); $("lessonsCard").hidden = true; };
+
 // ------------------------------------------------------------------ the rest
 function shareLink() {
   const bytes = new TextEncoder().encode(editor.value);
@@ -285,6 +663,8 @@ picker.onchange = () => { if (picker.value) { setCode(EXAMPLES[picker.value]); o
   let first = codeFromLink();
   if (first === null) { try { first = localStorage.getItem("plain-code"); } catch (e) { first = null; } }
   setCode(first || EXAMPLES[DEFAULT]);
+  refreshPrograms();
+  document.fonts && document.fonts.ready.then(paint);
   if (typeof WebAssembly !== "object" || typeof Worker !== "function") {
     const u = $("unsupported");
     u.style.display = "block";
@@ -297,7 +677,8 @@ picker.onchange = () => { if (picker.value) { setCode(EXAMPLES[picker.value]); o
   probe.onmessage = (ev) => {
     if (ev.data.type === "done") {
       statusEl.textContent = "Ready";
-      for (const id of ["run", "watch", "count"]) $(id).disabled = false;
+      for (const id of ["run", "watch", "count", "tidy"]) $(id).disabled = false;
+      ready = true;
       probe.terminate();
     } else if (ev.data.type === "failed") {
       statusEl.textContent = "Could not start";

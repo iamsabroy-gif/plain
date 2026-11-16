@@ -1,4 +1,5 @@
 # 2. Decisions
+picture: 🔀
 `if` runs some lines only when something is true. `otherwise` runs other lines when
 it is not. Every `if` is closed with `end`.
 
