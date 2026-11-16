@@ -1,0 +1,3 @@
+
+Oops! Line 2: To keep a value in 'total', start the line with 'set', like: set total to 5
+     2 | total is 5

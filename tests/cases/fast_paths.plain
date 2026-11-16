@@ -1,0 +1,54 @@
+# The speed-ups must never change answers.
+
+# One call site, many classes (the method cache must notice the class changing).
+class Cat
+    define speak
+        give back "meow"
+    end
+end
+class Dog
+    define speak
+        give back "woof"
+    end
+end
+class Puppy extends Dog
+    define speak
+        give back "yip"
+    end
+end
+for each pet in [new Cat(), new Dog(), new Puppy(), new Cat()]
+    say pet's speak()
+end
+
+# A class made again (in a loop) with a different action under the same name.
+for i from 1 to 2
+    class Changing
+        define who
+            give back "round " + text(i)
+        end
+    end
+    say new Changing()'s who()
+end
+
+# An action kept in a map entry is not a method.
+set tools to {greet: action with name gives "hi " + name}
+say tools's greet("Asha")
+
+# Maps that grow past the small size, shrink back, and mix kinds of keys.
+set m to {}
+for i from 1 to 12
+    set m["k{i}"] to i
+end
+say length of m, m["k9"], m["k12"]
+for i from 1 to 10
+    remove "k{i}" from m
+end
+say m
+set m[1] to "one"
+say m[1.0], has_key(m, "k11"), has_key(m, "k3")
+set big to {}
+for i from 1 to 20
+    set big[i] to i * i
+end
+remove 5 from big
+say big[4], big[6], length of big, keys(big)[5]

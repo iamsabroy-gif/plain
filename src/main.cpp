@@ -23,7 +23,7 @@
 
 using namespace plain;
 
-static const char* VERSION = "2.1.0";
+static const char* VERSION = "2.2.0";
 static const char MAGIC[8] = {'P', 'L', 'A', 'I', 'N', 'A', 'P', 'P'};
 
 // The text of one line of a source file, so an error can show where it happened.
@@ -174,6 +174,7 @@ static int runProgram(const std::string& src, const std::string& file, const std
 static void setUp(Program& prog);
 #include "tools.hpp"
 #include "practice.hpp"
+#include "lessons.hpp"
 
 // plain lib [name [--copy]]: list the built-in library, show how a part is built, or copy it to edit.
 static int libCommand(const std::vector<std::string>& args) {
@@ -235,6 +236,11 @@ static int formatCommand(const std::vector<std::string>& args) {
     int code = 0;
     for (const std::string& f : files) {
         std::string src;
+        if (f == "-") {  // read the program from standard input and print the result (for editors)
+            src.assign(std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>());
+            fputs(formatSource(src).text.c_str(), stdout);
+            continue;
+        }
         if (!readFile(f, src)) { fprintf(stderr, "I couldn't open the file '%s'.\n", f.c_str()); return 2; }
         FormatResult r = formatSource(src);
         for (const std::string& w : r.warnings) fprintf(stderr, "%s: %s\n", f.c_str(), w.c_str());
@@ -384,10 +390,12 @@ static void usage() {
            "                                run an action at n = 10, 100, 1000, 10000 and show how the work grows (--html chart.html)\n"
            "  plain compare program.plain a b\n"
            "                                run two actions on the same data, side by side\n"
+           "  plain lesson [number]         ten beginner lessons, each with exercises that are checked\n"
            "  plain practice [problem]      classic problems with hidden tests, hints and reference solutions\n"
            "  plain lib [name]              list the built-in data structures, or show how one is built\n"
            "  plain init                    start a project (writes plain.json)\n"
-           "  plain install [address]       add a package: folder, git address or user/repo[#version]\n"
+           "  plain install [address]       add a package: a name from the index, folder, git address or user/repo[#version]\n"
+           "  plain search [words]          find packages in the index\n"
            "                                (no address: install what plain.json lists)\n"
            "  plain update [name]           get newer versions, ignoring plain.lock\n"
            "  plain remove <name>           remove a package\n"
@@ -441,6 +449,7 @@ int main(int argc, char** argv) {
         if (cmd == "visualize" || cmd == "visualise") return visualizeCommand(args);
         if (cmd == "count") return countCommand(args);
         if (cmd == "practice") return practiceCommand(args);
+        if (cmd == "lesson" || cmd == "lessons") return lessonCommand(args);
         if (cmd == "growth") return growthCommand(args);
         if (cmd == "compare") return compareCommand(args);
         bool explain = false, check = false, beginner = false;

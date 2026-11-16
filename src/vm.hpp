@@ -280,6 +280,19 @@ struct VM {
         for (const std::string& n : fn->localNames) names.push_back(n);
         const std::string& name = prog.gnames[slot];
         std::string c = closest(name, names);
+        if (action && c.empty()) {
+            // Names other languages use, and what Plain calls them.
+            static const std::unordered_map<std::string, const char*> elsewhere = {
+                {"len", "length of xs"}, {"size", "length of xs"}, {"count", "length of xs"},
+                {"append", "add x to xs"}, {"push", "add x to xs"}, {"str", "text(x)"}, {"string", "text(x)"},
+                {"int", "integer(x)"}, {"num", "number(x)"}, {"input", "ask \"Question?\" into answer"},
+                {"upper", "uppercase(t)"}, {"lower", "lowercase(t)"}, {"strip", "trim(t)"},
+                {"sorted", "sort(xs)"}, {"reversed", "reverse(xs)"},
+                {"type", "type_of(x)"}, {"filter", "keep_if(xs, test)"}, {"map", "map_each(xs, change)"},
+            };
+            auto it = elsewhere.find(name);
+            if (it != elsewhere.end()) fail("Plain has no '" + name + "' action. Write: " + it->second);
+        }
         if (action)
             fail("I don't know an action called '" + name + "'." + (c.empty() ? " Create it with 'define'." : " Did you mean '" + c + "'?"));
         fail("I don't know anything called '" + name + "'." +
@@ -665,9 +678,21 @@ inline Value VM::executeT(Value* sp, uint32_t nargs, size_t stopDepth) {
                         const Value& key = consts[nameIdx];
                         if (isInstance(*recv)) {
                             Instance* in = asInstance(*recv);
-                            const Value* m = asClass(in->cls)->findMethod(asStr(key));
+                            const Class* cls = asClass(in->cls);
+                            size_t at = (size_t)(ip - 1 - code);
+                            if (fn->caches.size() < fn->code.size()) fn->caches.resize(fn->code.size());
+                            InlineCache& ic = fn->caches[at];
+                            if (ic.cls == cls && ic.version == g_classVersion) {
+                                Closure* c = ic.method;  // the class keeps it alive
+                                ENTER(c->fn, c, recv, n + 1, recv, false)
+                                break;
+                            }
+                            const Value* m = cls->findMethod(asStr(key));
                             if (m && m->tag == Value::Object && m->o->kind == Kind::Closure) {
                                 Closure* c = static_cast<Closure*>(m->o);
+                                ic.cls = cls;
+                                ic.method = c;
+                                ic.version = g_classVersion;
                                 ENTER(c->fn, c, recv, n + 1, recv, false)
                                 break;
                             }
@@ -714,7 +739,10 @@ inline Value VM::executeT(Value* sp, uint32_t nargs, size_t stopDepth) {
                         if (!openUps.empty()) closeRange(base + a, base + to);
                         break;
                     }
-                    case OP_CLASS: *sp++ = Value::obj(new Class(asStr(consts[a]))); break;
+                    case OP_CLASS:
+                        ++g_classVersion;
+                        *sp++ = Value::obj(new Class(asStr(consts[a])));
+                        break;
                     case OP_INHERIT: {
                         if (!isClass(sp[-1])) fail(std::string("A class can only extend another class, but I got ") + describe(sp[-1]) + ".");
                         Class* child = asClass(sp[-2]);
@@ -724,12 +752,14 @@ inline Value VM::executeT(Value* sp, uint32_t nargs, size_t stopDepth) {
                             p = asClass(p->parent);
                         }
                         child->parent = sp[-1];
+                        ++g_classVersion;
                         (--sp)->clear();
                         (--sp)->clear();
                         break;
                     }
                     case OP_DEFMETHOD: {
                         asClass(sp[-2])->methods[asStr(consts[a])] = sp[-1];
+                        ++g_classVersion;
                         (--sp)->clear();
                         (--sp)->clear();
                         break;
@@ -786,7 +816,7 @@ inline Value VM::executeT(Value* sp, uint32_t nargs, size_t stopDepth) {
                         std::string prompt = fmt(sp[-1]);
                         if (!prompt.empty()) {
                             if constexpr (OBS) {
-                                if (obs->capture) obs->output(prompt + " ");
+                                if (obs->capture) { if (!obs->quietPrompts) obs->output(prompt + " "); }
                                 else { fputs(prompt.c_str(), stdout); fputc(' ', stdout); }
                             } else {
                                 fputs(prompt.c_str(), stdout);
@@ -850,20 +880,22 @@ inline Value VM::executeT(Value* sp, uint32_t nargs, size_t stopDepth) {
                         Value& v = (ins & 0xFF) == OP_FORL ? base[a] : globals[a];
                         const Value& limit = base[w & 0xFF];
                         const Value& step = base[(w & 0xFF) + 1];
+                        // The counter only moves on if there is another round, so after the loop
+                        // it holds the last number counted ('for i from 1 to 3' leaves i at 3).
                         bool again;
                         int64_t nv;
                         if (v.tag == Value::Int && step.tag == Value::Int && limit.tag == Value::Int &&
                             !__builtin_add_overflow(v.i, step.i, &nv)) {
-                            v.i = nv;
                             again = step.i > 0 ? nv <= limit.i : nv >= limit.i;
+                            if (again) v.i = nv;
                         } else {
                             if (!isNumber(v))
                                 fail(std::string("The counter of a 'for' loop must stay a number, but it became ") + describe(v) + ".");
                             Value next = numAdd(v, step);
-                            v = std::move(next);
-                            int c = numCompare(v, limit);
+                            int c = numCompare(next, limit);
                             bool up = numCompare(step, Value::integer(0)) > 0;
                             again = c != 2 && (up ? c <= 0 : c >= 0);
+                            if (again) v = std::move(next);
                         }
                         if (again) {
                             TICK()

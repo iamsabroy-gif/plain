@@ -1,0 +1,83 @@
+# 7. Thinking in steps
+picture: 🪜
+An action can call itself. Each call works on a smaller piece of the problem, until
+the piece is so small the answer is obvious. That obvious case must come first, or
+the calls never stop.
+
+    define factorial with n
+        if n is at most 1 then
+            give back 1
+        end
+        give back n * factorial(n - 1)
+    end
+
+Searching and sorting by hand show how much work a computer does. Watch it:
+plain visualize examples/sorting.plain
+=== Count down
+Make an action countdown with n that says n, then calls itself with n - 1, and
+stops after saying 1. Then say "Lift off!". Call countdown(5).
+--- output
+5
+4
+3
+2
+1
+Lift off!
+--- uses
+define
+--- avoid
+for, while, repeat
+--- hint
+Inside: if n is less than 1 then give back (stop). Otherwise say n, then countdown(n - 1).
+--- solution
+define countdown with n
+    if n is less than 1 then
+        give back nothing
+    end
+    say n
+    countdown(n - 1)
+end
+countdown(5)
+say "Lift off!"
+=== Sum of digits
+Make an action digit_sum with n that adds up the digits of a whole number by
+calling itself: the last digit is n % 10, and the rest is quotient(n, 10). Say
+digit_sum(4096).
+--- output
+19
+--- uses
+define, quotient
+--- hint
+When n is less than 10, the answer is n itself.
+
+Otherwise give back n % 10 + digit_sum(quotient(n, 10)).
+--- solution
+define digit_sum with n
+    if n is less than 10 then
+        give back n
+    end
+    give back n % 10 + digit_sum(quotient(n, 10))
+end
+say digit_sum(4096)
+=== Find it
+Write linear_search with items and target that gives back the position (counting
+from 1) of target in items, or 0 if it isn't there. Say
+linear_search([4, 8, 15, 16, 23, 42], 16) and linear_search([1, 2], 9).
+--- output
+4 0
+--- uses
+define, for
+--- avoid
+index_of, contains
+--- hint
+for i from 1 to length of items: if items[i] is target then give back i. After the loop, give back 0.
+--- solution
+define linear_search with items, target
+    for i from 1 to length of items
+        if items[i] is target then
+            give back i
+        end
+    end
+    give back 0
+end
+say linear_search([4, 8, 15, 16, 23, 42], 16), linear_search([1, 2], 9)

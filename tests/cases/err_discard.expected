@@ -1,0 +1,3 @@
+
+Oops! Line 2: 'sort' gives back a new value and leaves scores as it was, so this line changes nothing. Keep the answer: set scores to sort(scores)
+     2 | sort(scores)

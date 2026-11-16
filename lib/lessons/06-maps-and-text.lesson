@@ -1,0 +1,58 @@
+# 6. Maps and text
+picture: 🗺️
+A map keeps values under names, between curly brackets:
+
+    set pet to {name: "Rex", legs: 4}
+    say pet's name
+    set pet's legs to 3
+
+Use `map[key]` when the name is in a variable, and `has_key(map, key)` to check.
+Text can be split into a list of words, and a list joined back into text:
+
+    set words to split("the quick brown fox", " ")
+    say join(words, "-")
+=== A person
+Make a map for a person with name Asha and age 30. Then say
+"Asha is 30" using the map's entries (not typing Asha or 30 again).
+--- output
+Asha is 30
+--- uses
+'s
+--- hint
+set person to {name: "Asha", age: 30}, then say "{person's name} is {person's age}"
+--- solution
+set person to {name: "Asha", age: 30}
+say "{person's name} is {person's age}"
+=== Count the words
+Count how many times each word appears in "the cat and the hat and the bat" and
+say the map.
+--- output
+{"the": 3, "cat": 1, "and": 2, "hat": 1, "bat": 1}
+--- uses
+split, has_key
+--- hint
+set counts to {}. For each word in split(text, " "): if has_key(counts, word) increase counts[word] by 1, otherwise set counts[word] to 1.
+--- solution
+set counts to {}
+for each word in split("the cat and the hat and the bat", " ")
+    if has_key(counts, word) then
+        increase counts[word] by 1
+    otherwise
+        set counts[word] to 1
+    end
+end
+say counts
+=== Shout it
+Ask "Say something" into words. Say it back in capital letters with the words in
+reverse order, joined by spaces. "hello big world" becomes WORLD BIG HELLO.
+--- input
+hello big world
+--- output
+WORLD BIG HELLO
+--- uses
+split, join
+--- hint
+split(words, " ") gives a list; reverse(list) turns it around; join(list, " ") makes text; uppercase(text) shouts.
+--- solution
+ask "Say something" into words
+say uppercase(join(reverse(split(words, " ")), " "))

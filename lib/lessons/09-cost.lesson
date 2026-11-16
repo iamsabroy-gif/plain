@@ -1,0 +1,70 @@
+# 9. Cost
+picture: ⏱️
+Two programs can give the same answer while one does far more work. Counting the
+steps tells them apart better than a stopwatch:
+
+    plain count examples/sorting.plain
+    plain compare examples/sorting.plain bubble_sort merge_sort
+    plain growth examples/sorting.plain bubble_sort merge_sort
+
+If doubling the data doubles the work, the work grows like n (written O(n)). If
+it quadruples, it grows like n squared (O(n^2)): fine for 100 items, painful for a
+million. Halving the problem at every step (like guessing a number with "higher"
+or "lower") grows like log n: about 20 steps for a million items.
+=== Count the guesses
+Write binary search on the sorted list range(1, 1000) to find 777, counting how
+many items you look at. Look at the middle item; if it is too small, keep the
+upper half, otherwise the lower half. Say "found 777 in" and the count, and
+"steps".
+--- output
+found 777 in 8 steps
+--- uses
+while
+--- avoid
+index_of, contains
+--- hint
+set low to 1 and high to length of items. While low is at most high: set mid to quotient(low + high, 2) and count one step.
+
+If items[mid] is the target, stop. If it is less, set low to mid + 1, otherwise set high to mid - 1.
+--- solution
+set items to range(1, 1000)
+set target to 777
+set low to 1
+set high to length of items
+set steps to 0
+while low is at most high
+    set mid to quotient(low + high, 2)
+    increase steps by 1
+    if items[mid] is target then
+        stop
+    otherwise if items[mid] is less than target then
+        set low to mid + 1
+    otherwise
+        set high to mid - 1
+    end
+end
+say "found {target} in {steps} steps"
+=== Pairs
+Counting pairs shows quadratic growth. For n = 10, 20 and 40, count the pairs
+(i, j) with 1 <= i < j <= n using two loops, one inside the other, and say
+"n = 10: 45 pairs" and so on. Notice: twice the n, about four times the work.
+--- output
+n = 10: 45 pairs
+n = 20: 190 pairs
+n = 40: 780 pairs
+--- uses
+for
+--- hint
+for each n in [10, 20, 40]: set count to 0; for i from 1 to n, for j from i + 1 to n: increase count by 1.
+
+Careful: when i is n, j would go from n + 1 to n. A 'for' that starts past its end does not run.
+--- solution
+for each n in [10, 20, 40]
+    set count to 0
+    for i from 1 to n - 1
+        for j from i + 1 to n
+            increase count by 1
+        end
+    end
+    say "n = {n}: {count} pairs"
+end

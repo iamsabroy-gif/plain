@@ -14,6 +14,9 @@ struct Token {
     int line = 0;
     int depth = 0;    // for NL: how many brackets are open here
     size_t pos = 0, end = 0;  // where the token sits in the source text
+    // For Str: places in the text that may be templates, like {name}: the positions of
+    // the '{' and its matching '}' (braces written as \{ never start one).
+    std::vector<std::pair<size_t, size_t>> holes;
 };
 
 inline const std::unordered_set<std::string>& keywords() {
@@ -108,6 +111,8 @@ inline std::vector<Token> tokenize(const std::string& src) {
         }
         if (c == '"') {
             std::string s;
+            std::vector<std::pair<size_t, size_t>> holes;
+            std::vector<size_t> open;  // unescaped '{' not yet matched
             size_t j = i + 1;
             for (;; ++j) {
                 if (j >= n || src[j] == '\n') fail("This text starts with a \" but never closes it.", line);
@@ -119,12 +124,20 @@ inline std::vector<Token> tokenize(const std::string& src) {
                     else if (e == 'r') s += '\r';
                     else if (e == '"') s += '"';
                     else if (e == '\\') s += '\\';
+                    else if (e == '{' || e == '}') s += e;  // a brace that is only a brace
                     else { s += '\\'; s += e; }
                     continue;
+                }
+                if (src[j] == '{') open.push_back(s.size());
+                if (src[j] == '}' && !open.empty()) {
+                    size_t at = open.back();
+                    open.pop_back();
+                    if (open.empty()) holes.emplace_back(at, s.size());
                 }
                 s += src[j];
             }
             push(Token::Str, s);
+            toks.back().holes = std::move(holes);
             i = j + 1;
             continue;
         }

@@ -98,6 +98,7 @@ public:
             }
             emit(OP_NOTHING);
             emit(OP_RETURN);
+            checkDiscarded();
             return Value::obj(new Closure(fn));
         } catch (PlainError& e) {
             if (e.file.empty()) e.file = file;
@@ -138,6 +139,11 @@ private:
     int nlBase = 0;     // newlines inside more brackets than this don't end a statement
     int lastCall = -1;  // code index of the most recent call instruction
     FS* fs = nullptr;
+    // Lines like "sort(xs)" whose answer is thrown away. Checked once the whole program
+    // is known, because the program may define its own action with that name further down.
+    struct Discarded { std::string name, arg; int line; };
+    std::vector<Discarded> discarded;
+    std::vector<Discarded> templateNames;  // {name} in text, with a name that may not exist
 
     // ------------------------------------------------------------ tokens
     bool soft(const Token& t) const { return t.k == Token::NL && t.depth > nlBase; }
@@ -179,6 +185,14 @@ private:
         e.msg = msg;
         e.line = line ? line : peek().line;
         e.incomplete = peek().k == Token::End;  // ran out of program: the interactive session can ask for more
+        throw e;
+    }
+    [[noreturn]] void neverClosed(const char* what, int openLine) {
+        PlainError e;
+        e.msg = std::string("The '") + what + "' that starts on line " + std::to_string(openLine) +
+                " is never closed. Add 'end' after its last line.";
+        e.line = openLine;
+        e.incomplete = true;
         throw e;
     }
 
@@ -342,11 +356,7 @@ private:
         emit(OP_SETL, newLocal(name));
     }
 
-    bool inMethod() const {
-        for (FS* f = fs; f; f = f->enclosing)
-            if (f->isMethod) return true;
-        return false;
-    }
+    bool inMethod() const { return methodContext() != nullptr; }
     FS* methodContext() const {
         for (FS* f = fs; f; f = f->enclosing)
             if (f->isMethod) return f;
@@ -437,6 +447,10 @@ private:
             if (w == "call" && peek(1).k == Token::Word) return callStmt();
             if (w == "on" && word("error", 1)) err("'on error' only works inside a 'try'.");
             const Token& n = peek(1);
+            bool looksLikeStore = (n.k == Token::Sym && n.text == "=") ||
+                                  (!repl && n.k == Token::Kw && n.text == "is" && peek(2).k != Token::Kw);
+            if (looksLikeStore)
+                err("To keep a value in '" + w + "', start the line with 'set', like: set " + w + " to 5");
             bool exprLike = (n.k == Token::Sym && n.text != "{") || n.k == Token::Poss ||
                             (repl && (n.k == Token::NL || n.k == Token::End || n.k == Token::Kw));
             if (!exprLike) unknownInstruction(w);
@@ -465,15 +479,74 @@ private:
 
     void exprStatement() {
         int line = peek().line;
+        size_t start = at(0);
         expression();
         if (repl && fs->isMain) {
             emit(OP_ECHO);
         } else {
             if (lastCall != here() - 1)
                 err("This line works out a value but does nothing with it. Start it with 'say' to show it, or 'set ... to' to keep it.", line);
+            noteDiscardedCall(start, line);
             emit(OP_POP);
         }
         endOfStatement();
+    }
+
+    // The whole line is "name(...)" with a global name: remember it, in case that is a
+    // built-in action that only gives back an answer (like sort), which would be lost.
+    void noteDiscardedCall(size_t start, int line) {
+        if (toks[start].k != Token::Word || !(toks[start + 1].k == Token::Sym && toks[start + 1].text == "(")) return;
+        const std::string& name = toks[start].text;
+        if (fs->locals.count(name) || resolveUpvalue(fs, name) >= 0) return;
+        size_t i = start + 1;
+        for (int open = 0; i < toks.size(); ++i) {
+            const Token& t = toks[i];
+            if (t.k == Token::Sym && (t.text == "(" || t.text == "[" || t.text == "{")) ++open;
+            else if (t.k == Token::Sym && (t.text == ")" || t.text == "]" || t.text == "}") && --open == 0) break;
+        }
+        if (at(0) != i + 1) return;  // more follows the ')', like sort(xs)[1]
+        bool simpleArg = toks[start + 2].k == Token::Word && toks[start + 3].k == Token::Sym &&
+                         (toks[start + 3].text == ")" || toks[start + 3].text == ",");
+        discarded.push_back({name, simpleArg ? toks[start + 2].text : "", line});
+    }
+
+    // Built-in actions that only give back an answer. Calling one on a line of its own does nothing.
+    void checkDiscarded() {
+        static const std::unordered_set<std::string> oneValue = {"sort", "reverse", "copy", "uppercase", "lowercase", "trim"};
+        static const std::unordered_set<std::string> changers = {
+            "sort", "reverse", "sort_by", "map_each", "keep_if", "copy", "slice",
+            "uppercase", "lowercase", "trim", "replace",
+        };
+        static const std::unordered_set<std::string> answers = {
+            "sqrt", "abs", "floor", "ceiling", "round", "power", "sin", "cos", "tan", "exp", "log", "pi",
+            "min", "max", "sum", "text", "number", "split", "join", "find", "starts_with", "ends_with",
+            "range", "first", "last", "index_of", "keys", "values", "has_key", "type_of", "fraction", "whole",
+            "integer", "float", "decimal", "quotient", "fixed", "is_integer", "is_float", "is_decimal",
+            "is_a", "to_json", "from_json", "find_first", "combine", "url_encode", "url_decode",
+        };
+        for (const Discarded& t : templateNames) {
+            auto g = prog.gslot.find(t.name);
+            if (g != prog.gslot.end() && (prog.gdeclared[(size_t)g->second] || prog.gvals[(size_t)g->second].tag != Value::Undef)) continue;
+            PlainError e;
+            e.line = t.line;
+            e.msg = "The text has {" + t.name + "}, which puts the value of '" + t.name + "' into it, but nothing is called '" + t.name +
+                    "'. To show the braces themselves, write \\{" + t.name + "}.";
+            throw e;
+        }
+        for (const Discarded& d : discarded) {
+            auto g = prog.gslot.find(d.name);
+            if (g == prog.gslot.end() || prog.gdeclared[(size_t)g->second]) continue;  // the program's own action
+            bool changer = changers.count(d.name) > 0;
+            if (!changer && !answers.count(d.name)) continue;
+            PlainError e;
+            e.line = d.line;
+            if (changer && !d.arg.empty())
+                e.msg = "'" + d.name + "' gives back a new value and leaves " + d.arg + " as it was, so this line changes nothing. "
+                        "Keep the answer: set " + d.arg + " to " + d.name + "(" + d.arg + (oneValue.count(d.name) ? "" : ", ...") + ")";
+            else
+                e.msg = "'" + d.name + "' gives back an answer, but this line does nothing with it. Show it with 'say', or keep it with 'set ... to'.";
+            throw e;
+        }
     }
 
     void setStmt() {
@@ -494,6 +567,7 @@ private:
                 ++n;
             } while (acceptSym(","));
         }
+        if (!atEnd()) err("Put a comma between the values to say, like: say \"Total:\", total");
         emit(OP_SAY, n);
         endOfStatement();
     }
@@ -545,14 +619,7 @@ private:
     void block(int openLine, const char* what) {
         for (;;) {
             skipNL();
-            if (peek().k == Token::End) {
-                PlainError e;
-                e.msg = std::string("The '") + what + "' that starts on line " + std::to_string(openLine) +
-                        " is never closed. Add 'end' after its last line.";
-                e.line = openLine;
-                e.incomplete = true;
-                throw e;
-            }
+            if (peek().k == Token::End) neverClosed(what, openLine);
             if (kw("end") || kw("otherwise")) return;
             if (fs->tryDepth > 0 && word("on") && word("error", 1)) return;
             statement();
@@ -722,18 +789,13 @@ private:
         std::string name = expectName("for the counter");
         expectKw("from", "in 'for ... from ... to ...'");
         expression();
-        size_t afterHeader = pos;  // (the body is found after the header line, below)
-        (void)afterHeader;
         LoopVar lv;
-        bool scoped = false;
-        {
-            // Look ahead past this header line to see whether the body makes actions.
-            size_t savedPos = pos;
-            while (toks[pos].k != Token::NL && toks[pos].k != Token::End) ++pos;
-            if (toks[pos].k == Token::NL) ++pos;
-            scoped = bodyHasClosure();
-            pos = savedPos;
-        }
+        // Look ahead past this header line to see whether the body makes actions.
+        size_t savedPos = pos;
+        while (toks[pos].k != Token::NL && toks[pos].k != Token::End) ++pos;
+        if (toks[pos].k == Token::NL) ++pos;
+        bool scoped = bodyHasClosure();
+        pos = savedPos;
         if (scoped) {
             lv = scopeLoopVar(name);
             emit(OP_SETL, lv.slot);
@@ -761,9 +823,9 @@ private:
         block(line, "for");
         Loop& loop = fs->loops.back();
         curLine = line;
-        if (scoped) emitWide(OP_FRESH, slot), fs->fn->code[(size_t)here() - 1] = (uint32_t)fs->fn->nlocals;
-        if (scoped) { int fa = here() - 2; for (int c : loop.conts) fs->fn->code[(size_t)c] = (fs->fn->code[(size_t)c] & 0xFF) | ((uint32_t)fa << 8); }
-        else for (int c : loop.conts) patch(c);
+        // 'skip' jumps here: to the fresh-variables step if there is one, then the counting step.
+        for (int c : loop.conts) patch(c);
+        if (scoped) patchFresh(emitFresh(slot));
         // Fused "add the step, test, jump back" instruction.
         int nextAt = emitWide(local ? OP_FORL : OP_FORG, slot);
         if (h > 255) err("This action has too many loops.");
@@ -805,6 +867,8 @@ private:
         FS* saved = fs;
         fs = &nf;
         if (isMethod) newLocal("me");
+        if (statementForm && sym("("))
+            err("Plain names the values of an action after 'with', like: define " + (name.empty() ? std::string("area") : name) + " with a, b");
         if (acceptKw("with")) {
             do {
                 std::string p = expectName("for a value the action needs");
@@ -832,8 +896,7 @@ private:
             block(line, what);
             emit(OP_NOTHING);
             emit(OP_RETURN);
-            if (statementForm) expectEnd(line, what);
-            else { expectEnd(line, what, false); nlBase = savedBase; }
+            expectEnd(line, what, statementForm);
             nlBase = savedBase;
         }
         fs = saved;
@@ -891,13 +954,7 @@ private:
         endOfStatement();
         for (;;) {
             skipNL();
-            if (peek().k == Token::End) {
-                PlainError e;
-                e.msg = "The 'class' that starts on line " + std::to_string(line) + " is never closed. Add 'end' after its last line.";
-                e.line = line;
-                e.incomplete = true;
-                throw e;
-            }
+            if (peek().k == Token::End) neverClosed("class", line);
             if (kw("end")) break;
             int mline = peek().line;
             std::string mname;
@@ -1063,6 +1120,9 @@ private:
         else if (acceptSym(">=")) { additive(); emit(OP_GE); }
         else if (acceptSym("<")) { additive(); emit(OP_LT); }
         else if (acceptSym(">")) { additive(); emit(OP_GT); }
+        else return;
+        if (kw("is") || kw("contains") || sym("==") || sym("=") || sym("!=") || sym("<=") || sym(">=") || sym("<") || sym(">"))
+            err("Compare two values at a time, and join the comparisons with 'and', like: a is less than b and b is less than c");
     }
     void additive() {
         multiplicative();
@@ -1150,11 +1210,90 @@ private:
             }
         }
     }
+    // "Hello {name}, you have {length of xs} items": each {…} that holds a value is
+    // worked out and joined in as text. Braces around anything else stay as they are,
+    // so text like "{value: ..., left: ...}" keeps working.
+    void templateText(const Token& s) {
+        std::string literal;
+        size_t from = 0;
+        bool started = false;
+        auto flush = [&]() {
+            if (!started) { emitStr(literal); started = true; }
+            else if (!literal.empty()) { emitStr(literal); emit(OP_ADD); }
+            literal.clear();
+        };
+        for (const auto& h : s.holes) {
+            literal += s.text.substr(from, h.first - from);
+            std::string inside = s.text.substr(h.first + 1, h.second - h.first - 1);
+            from = h.second + 1;
+            if (!holeExpression(inside, s.line, false)) {
+                literal += "{" + inside + "}";
+                continue;
+            }
+            flush();
+            holeExpression(inside, s.line, true);
+            emit(OP_ADD);
+            noteTemplateName(inside, s.line);
+        }
+        literal += s.text.substr(from);
+        flush();
+    }
+    // "{c}" with a name nothing in the program defines is probably meant as text: say so
+    // once the whole program is known (the name may be set further down).
+    void noteTemplateName(const std::string& inside, int line) {
+        std::string name = inside;
+        size_t a = name.find_first_not_of(" \t"), b = name.find_last_not_of(" \t");
+        name = name.substr(a, b - a + 1);
+        if (name.empty() || !isIdStart(name[0])) return;
+        for (char c : name) if (!isIdChar(c)) return;
+        if (keywords().count(name) || fs->locals.count(name) || resolveUpvalue(fs, name) >= 0) return;
+        templateNames.push_back({name, "", line});
+    }
+    // Compile the text inside a template's braces as one expression. With keep false
+    // this only tries, and leaves no trace: it says whether the text is a value.
+    bool holeExpression(const std::string& inside, int line, bool keep) {
+        size_t first = inside.find_first_not_of(" \t");
+        if (first == std::string::npos) return false;
+        char c = inside[first];
+        if (!(isIdStart(c) || c == '(' || c == '-' || isdigit((unsigned char)c) || c == '[')) return false;
+        std::vector<Token> sub;
+        try { sub = tokenize(inside); } catch (PlainError&) { return false; }
+        for (Token& t : sub) t.line = line;
+        std::swap(toks, sub);
+        size_t savedPos = pos, codeSize = fs->fn->code.size();
+        int savedDepth = depth, savedBase = nlBase, savedCall = lastCall, savedLine = curLine;
+        pos = 0;
+        nlBase = 0;
+        bool ok = true;
+        try {
+            expression();
+            if (peek().k != Token::NL && peek().k != Token::End) ok = false;
+        } catch (PlainError&) {
+            ok = false;
+        }
+        std::swap(toks, sub);
+        pos = savedPos;
+        depth = savedDepth;
+        nlBase = savedBase;
+        curLine = savedLine;
+        lastCall = savedCall;
+        if (!keep || !ok) {
+            fs->fn->code.resize(codeSize);
+            fs->fn->lines.resize(codeSize);
+        }
+        return ok;
+    }
+
     void primary() {
         const Token& t = peek();
         switch (t.k) {
             case Token::Num: { Token n = next(); emitNumber(n, false); return; }
-            case Token::Str: emitStr(next().text); return;
+            case Token::Str: {
+                Token s = next();
+                if (s.holes.empty()) emitStr(s.text);
+                else templateText(s);
+                return;
+            }
             case Token::Word: {
                 std::string name = next().text;
                 loadName(name, sym("("));

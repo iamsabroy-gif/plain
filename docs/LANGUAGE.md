@@ -12,7 +12,7 @@ Each instruction goes on its own line. Blocks close with `end`. Lines that start
 | Integer | `42`, `-7`, `2 ^ 100` (any size; never overflows) |
 | Float | `3.14`, `1e-3` (64-bit, fast) |
 | Decimal | `19.99d`, `0.1d` (exact; for money) |
-| Text | `"hello"` (use `\n` for a new line, `\"` for a quote) |
+| Text | `"hello"`, `"Hello {name}"` (use `\n` for a new line, `\"` for a quote, `\{` for a brace) |
 | True/false | `true`, `false` |
 | Nothing | `nothing` |
 | List | `[1, 2, 3]` (items are counted from 1) |
@@ -77,6 +77,7 @@ read are left as they are, with a warning.
 | Logic | `and`, `or`, `not` |
 | Size | `length of fruits` |
 | Item | `item 2 of fruits`, `fruits[2]`, `person's name`, `person["name"]` |
+| Put values in text | `"Hello {name}, you have {length of xs} items"` |
 | Join text | `"Hello, " + name` (text plus anything gives text) |
 
 ## Variables and actions
@@ -86,6 +87,12 @@ read are left as they are, with a warning.
   top-level variable created above, if one has that name; otherwise it creates
   a variable that exists only inside that action.
 - Actions can be called from anywhere in the file, even above their `define`.
+- After `for i from 1 to 10`, `i` is `10`: the last number the loop counted.
+- `if` and `while` treat `false`, `nothing`, `0`, and an empty list, text or map as
+  false; every other value is true.
+- Built-in actions like `sort`, `reverse`, `uppercase` and `replace` give back a new
+  value and leave the old one as it was, so keep the answer: `set xs to sort(xs)`.
+  A line that calls one and throws the answer away is reported as a mistake.
 - A reserved word (`item`, `times`, `length`, `action`, `to` …) can't be a name,
   and the error says what the word is for and suggests another name.
 
@@ -119,6 +126,14 @@ divides rounding down; `fixed(x, 2)` gives text with exactly 2 digits after the 
 | JSON | `to_json(value [, indent])`, `from_json(text)` (whole numbers stay integers) |
 | Files | `read_file read_lines write_file append_file file_exists delete_file` |
 | System | `clock() time_now() date_text() wait(seconds) arguments() environment(name) exit(code) type_of(value)` |
+
+## Text templates
+
+Any value can go inside text between `{` and `}`: `say "{name} is {age + 1} next year"`.
+What is inside can be a name, `person's age`, a calculation or a call like
+`{join(xs, ", ")}`. Braces around anything that is not a value, like
+`"{value: ..., left: ...}"` or `"{}"`, stay as they are. Write `\{` to get a brace
+that is only a brace, even before a name: `"\{name}"` shows `{name}`.
 
 ## Error messages
 

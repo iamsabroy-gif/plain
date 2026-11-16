@@ -1,0 +1,2 @@
+set scores to [3, 1, 2]
+sort(scores)

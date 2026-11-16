@@ -4,7 +4,9 @@ Plain is built so that a learner can see what their own code does, with no drawi
 code and no special syntax.
 
 ```
+plain lesson 1                               # the beginner lessons, with checked exercises
 plain visualize examples/sorting.plain       # writes sorting.html: open it in a browser
+plain visualize bubble.plain insertion.plain # two programs side by side, stepped together
 plain count     examples/sorting.plain       # comparisons, swaps, calls
 plain compare   examples/sorting.plain bubble_sort merge_sort
 plain growth    examples/sorting.plain bubble_sort merge_sort --html growth.html
@@ -26,7 +28,16 @@ just run, and draws what the variables hold *from the values themselves*:
 | `Stack`, `Queue`, `Deque`, `RingBuffer`, `Heap` from the library | The live items only (a queue starts at its front; a ring shows its used slots); a heap as a tree |
 
 To see only some variables, add a comment line `# watch: xs, total`: comments
-are not code, so the language does not change. Steps inside the built-in library
+are not code, so the language does not change. A watched name can also say how
+it is drawn: `# watch: xs as bars, heap as tree, scores as table`. The drawings are
+`bars`, `boxes`, `grid` (a list of lists), `table` (a map), `tree` (a list drawn as a
+heap, or maps with `value`/`left`/`right` or `children`), `chain` (`value`/`next`),
+`graph` and `text`. If a value can't be drawn that way, it is drawn as usual with a
+note saying why.
+
+**Side by side.** `plain visualize a.plain b.plain` records both programs into one
+page (`a-and-b.html`): two players next to each other, with one set of controls that
+steps both, so two solutions to the same problem can be watched together. Steps inside the built-in library
 are folded into the line that called them (`--into-library` shows them). Very long
 runs are cut at 6,000 steps (`--max-steps`).
 
@@ -45,6 +56,16 @@ would take more than 200 million steps is skipped and estimated from the smaller
 sizes (hollow points in the chart). `--html chart.html` draws the curves, with a
 straight/log switch. `plain compare file a b` runs actions on identical data, checks
 that they give the same answer, and shows their work side by side.
+
+**Lessons.** `plain lesson` lists the ten lessons of the [beginner path](CORE.md#lessons).
+`plain lesson 1` explains the lesson and writes `lesson1-1.plain` with the first
+exercise as comments; write the program and run `plain lesson 1` again to check it.
+A program is checked by what it says (with any `ask` answers typed in for it), and
+some exercises also ask for a word to be used ("use a loop") or avoided ("without
+`max`"). When it is right, the next exercise's file is made. `--hint` gives hints one
+at a time, then `--solution` shows a working program. Progress is kept in
+`.plain-lessons`. Each lesson is a text file in `lib/lessons`, and `plain lesson
+--selftest` checks every exercise's solution.
 
 **Practice.** `plain practice` lists 50 problems (arrays, strings, recursion,
 sorting, searching, stacks, queues, trees, graphs, then dynamic programming, heaps, tries,

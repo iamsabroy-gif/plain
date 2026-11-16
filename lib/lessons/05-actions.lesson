@@ -1,0 +1,65 @@
+# 5. Actions
+picture: 🛠️
+An action is your own instruction. `define` makes one; `give back` is its answer.
+
+    define area with width, height
+        give back width * height
+    end
+
+    say area(3, 4)
+
+The values in brackets are given to the names after `with`. An action can be used
+again and again, with different values each time.
+=== Double it
+Make an action called double that gives back its number times 2. Then say
+double(21).
+--- output
+42
+--- uses
+define, give
+--- hint
+define double with n ... give back n * 2 ... end, then say double(21)
+--- solution
+define double with n
+    give back n * 2
+end
+say double(21)
+=== Biggest of two
+Make an action bigger with a and b that gives back the bigger one. Say
+bigger(3, 9) and bigger(10, 4) on one line.
+--- output
+9 10
+--- uses
+define, if
+--- avoid
+max
+--- hint
+Inside: if a is greater than b then give back a ... end, then give back b.
+--- solution
+define bigger with a, b
+    if a is greater than b then
+        give back a
+    end
+    give back b
+end
+say bigger(3, 9), bigger(10, 4)
+=== Count the vowels
+Make an action vowels with word that gives back how many of its letters are
+a, e, i, o or u. Say vowels("banana") and vowels("sky").
+--- output
+3 0
+--- uses
+define, each
+--- hint
+for each letter in word goes through the letters. "aeiou" contains letter tells you if it is a vowel.
+--- solution
+define vowels with word
+    set count to 0
+    for each letter in word
+        if "aeiou" contains letter then
+            increase count by 1
+        end
+    end
+    give back count
+end
+say vowels("banana"), vowels("sky")

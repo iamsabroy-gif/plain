@@ -54,14 +54,15 @@ Run, or press "Watch it run" to step through it. Once it is published (see
 
 ```
 plain -e "say 6 * 7"            # run one line
+plain lesson 1                  # the first lesson, with exercises that are checked
 plain                           # type lines and see results
 plain examples/tour.plain       # a tour of the language
 plain visualize examples/sorting.plain     # watch a sort run, in a web page
 plain practice two-sum          # a problem with hidden tests and hints
 ```
 
-A child? Start with [Plain for kids](docs/KIDS.md). New to programming? [docs/CORE.md](docs/CORE.md)
-shows the fifteen words that are enough for the first seven lessons.
+A child? Start with [Plain for kids](docs/KIDS.md). New to programming? `plain lesson 1` starts
+ten lessons whose exercises Plain checks for you ([docs/CORE.md](docs/CORE.md) has the map).
 
 ## Commands
 
@@ -71,7 +72,8 @@ shows the fifteen words that are enough for the first seven lessons.
 | `plain` | Interactive session |
 | `plain check program.plain` | Look for mistakes without running (`--beginner` lists advanced features) |
 | `plain format program.plain` | Rewrite it in the standard style |
-| `plain visualize program.plain` | Make one web page that steps through the run and draws lists, recursion, trees and graphs |
+| `plain lesson [number]` | Ten beginner lessons, each with exercises that Plain checks |
+| `plain visualize program.plain` | Make one web page that steps through the run and draws lists, recursion, trees and graphs (give two programs to step them side by side) |
 | `plain count program.plain` | Report comparisons, swaps and calls |
 | `plain growth program.plain action …` | Show how the work grows as the data grows (O(n), O(n²) …) |
 | `plain compare program.plain a b` | Run two actions on the same data, side by side |
@@ -79,7 +81,7 @@ shows the fifteen words that are enough for the first seven lessons.
 | `plain lib [name]` | The built-in stack, queue, heap, tree, graph …, and how each is built |
 | `plain build program.plain -o app` | Make a standalone program that runs without Plain installed |
 | `plain --explain program.plain` | Show the tokens and bytecode, then run |
-| `plain init`, `install`, `update`, `remove`, `list` | Packages |
+| `plain init`, `install`, `update`, `remove`, `list`, `search` | Packages, from the [shared index](registry/README.md), git or a folder, with version ranges like `#^1.2` |
 
 ## Read more
 
@@ -101,5 +103,7 @@ shows the fifteen words that are enough for the first seven lessons.
   standard style, and never changes what a program does.
 - Tracing costs nothing when it is off: the virtual machine has a normal copy of its
   loop and a watched copy, and ordinary runs use the first.
+- Text can hold values: `say "Hello {name}, you have {length of xs} items"`.
+- Editor support: [editors/vscode](editors/vscode) (colours, run, format, mistakes underlined).
 - Windows has no networking or `plain install` yet; tasks run one at a time.
   The full list is in [docs/DEVELOPER.md](docs/DEVELOPER.md#limits).

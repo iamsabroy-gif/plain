@@ -41,6 +41,8 @@ it is built (`plain lib stack`) is a good lesson 9.
 
 ## Lessons
 
+Each lesson has exercises that Plain checks: `plain lesson 1` starts the first.
+
 | Lesson | You learn | Try |
 |---|---|---|
 | 1 Values | `say`, `set`, numbers and text, `ask` | `plain -e "say 6 * 7"` |

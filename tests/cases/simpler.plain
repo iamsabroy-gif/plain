@@ -1,0 +1,27 @@
+# Behaviour that makes Plain simpler to reason about.
+
+# Empty lists, text and maps are all false; anything inside makes them true.
+for each box in [[], "", {}, [0], "a", {a: 1}]
+    if box then
+        say "true:", box
+    otherwise
+        say "false:", box
+    end
+end
+
+# After a counting loop, the counter holds the last number counted.
+for i from 1 to 3
+end
+say "i is", i
+for j from 10 to 1 by -3
+end
+say "j is", j
+for k from 0 to 1 by 0.5
+end
+say "k is", k
+
+# A program may still use a built-in name for its own action.
+sort("anything")
+define sort with x
+    say "my own sort got", x
+end
