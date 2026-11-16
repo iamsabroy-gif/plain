@@ -1,0 +1,81 @@
+# 2. Decisions
+`if` runs some lines only when something is true. `otherwise` runs other lines when
+it is not. Every `if` is closed with `end`.
+
+    if age is at least 13 then
+        say "You are a teenager"
+    otherwise
+        say "You are not a teenager yet"
+    end
+
+The comparisons are: is, is not, is less than, is greater than, is at most,
+is at least. Join them with `and` and `or`. For more than two cases, use
+`otherwise if`:
+
+    if score is at least 90 then
+        say "A"
+    otherwise if score is at least 75 then
+        say "B"
+    otherwise
+        say "C"
+    end
+=== Big or small
+Ask "Pick a number" into n. Say big if n is greater than 100, and small
+otherwise.
+--- input
+250
+--- output
+big
+--- uses
+if, otherwise
+--- hint
+if n is greater than 100 then ... otherwise ... end
+--- solution
+ask "Pick a number" into n
+if n is greater than 100 then
+    say "big"
+otherwise
+    say "small"
+end
+=== Even or odd
+Ask "Pick a number" into n. Say "{n} is even" or "{n} is odd". A number is even
+when it divides by 2 with nothing left over: n % 2 is 0.
+--- input
+7
+--- output
+7 is odd
+--- uses
+if, %
+--- hint
+n % 2 is the remainder after dividing by 2. It is 0 for even numbers.
+
+if n % 2 is 0 then say "{n} is even" ... otherwise say "{n} is odd"
+--- solution
+ask "Pick a number" into n
+if n % 2 is 0 then
+    say "{n} is even"
+otherwise
+    say "{n} is odd"
+end
+=== Grades
+Ask "Score?" into score. Say A for 90 or more, B for 75 or more, C for 50 or
+more, and "Try again" for anything less.
+--- input
+80
+--- output
+B
+--- uses
+otherwise
+--- hint
+Check the biggest first: if score is at least 90 ... otherwise if score is at least 75 ...
+--- solution
+ask "Score?" into score
+if score is at least 90 then
+    say "A"
+otherwise if score is at least 75 then
+    say "B"
+otherwise if score is at least 50 then
+    say "C"
+otherwise
+    say "Try again"
+end

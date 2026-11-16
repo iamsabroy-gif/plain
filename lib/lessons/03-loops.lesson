@@ -1,0 +1,104 @@
+# 3. Loops
+A loop runs the same lines again and again.
+
+    repeat 3 times
+        say "Hip hip hooray!"
+    end
+
+`for` counts. The counter changes by itself each time round:
+
+    for i from 1 to 5
+        say i
+    end
+
+`while` keeps going as long as something stays true:
+
+    set n to 1
+    while n is less than 100
+        set n to n * 2
+    end
+    say n
+
+Watch any loop run, step by step:  plain visualize yourfile.plain
+=== Count to ten
+Say the numbers from 1 to 10, one on each line. Use a loop, not ten says.
+--- output
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+--- uses
+for
+--- hint
+for i from 1 to 10 ... say i ... end
+--- solution
+for i from 1 to 10
+    say i
+end
+=== Times table
+Ask "Which table?" into n. Say the first five lines of its times table, like:
+3 x 1 = 3
+--- input
+3
+--- output
+3 x 1 = 3
+3 x 2 = 6
+3 x 3 = 9
+3 x 4 = 12
+3 x 5 = 15
+--- uses
+for
+--- hint
+for i from 1 to 5, and in the loop: say "{n} x {i} = {n * i}"
+--- solution
+ask "Which table?" into n
+for i from 1 to 5
+    say "{n} x {i} = {n * i}"
+end
+=== Add them up
+Add up all the numbers from 1 to 100 and say the total. Keep a running total in a
+variable that starts at 0.
+--- output
+5050
+--- uses
+for
+--- avoid
+5050
+--- hint
+set total to 0 before the loop. Inside: increase total by i.
+--- solution
+set total to 0
+for i from 1 to 100
+    increase total by i
+end
+say total
+=== Doubling
+Start with 1 and keep doubling while the number is less than 1000. Say each number
+before you double it.
+--- output
+1
+2
+4
+8
+16
+32
+64
+128
+256
+512
+--- uses
+while
+--- hint
+set n to 1, then: while n is less than 1000 ... say n ... set n to n * 2 ... end
+--- solution
+set n to 1
+while n is less than 1000
+    say n
+    set n to n * 2
+end

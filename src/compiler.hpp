@@ -143,6 +143,7 @@ private:
     // is known, because the program may define its own action with that name further down.
     struct Discarded { std::string name, arg; int line; };
     std::vector<Discarded> discarded;
+    std::vector<Discarded> templateNames;  // {name} in text, with a name that may not exist
 
     // ------------------------------------------------------------ tokens
     bool soft(const Token& t) const { return t.k == Token::NL && t.depth > nlBase; }
@@ -523,6 +524,15 @@ private:
             "integer", "float", "decimal", "quotient", "fixed", "is_integer", "is_float", "is_decimal",
             "is_a", "to_json", "from_json", "find_first", "combine", "url_encode", "url_decode",
         };
+        for (const Discarded& t : templateNames) {
+            auto g = prog.gslot.find(t.name);
+            if (g != prog.gslot.end() && (prog.gdeclared[(size_t)g->second] || prog.gvals[(size_t)g->second].tag != Value::Undef)) continue;
+            PlainError e;
+            e.line = t.line;
+            e.msg = "The text has {" + t.name + "}, which puts the value of '" + t.name + "' into it, but nothing is called '" + t.name +
+                    "'. To show the braces themselves, write \\{" + t.name + "}.";
+            throw e;
+        }
         for (const Discarded& d : discarded) {
             auto g = prog.gslot.find(d.name);
             if (g == prog.gslot.end() || prog.gdeclared[(size_t)g->second]) continue;  // the program's own action
@@ -1223,9 +1233,21 @@ private:
             flush();
             holeExpression(inside, s.line, true);
             emit(OP_ADD);
+            noteTemplateName(inside, s.line);
         }
         literal += s.text.substr(from);
         flush();
+    }
+    // "{c}" with a name nothing in the program defines is probably meant as text: say so
+    // once the whole program is known (the name may be set further down).
+    void noteTemplateName(const std::string& inside, int line) {
+        std::string name = inside;
+        size_t a = name.find_first_not_of(" \t"), b = name.find_last_not_of(" \t");
+        name = name.substr(a, b - a + 1);
+        if (name.empty() || !isIdStart(name[0])) return;
+        for (char c : name) if (!isIdChar(c)) return;
+        if (keywords().count(name) || fs->locals.count(name) || resolveUpvalue(fs, name) >= 0) return;
+        templateNames.push_back({name, "", line});
     }
     // Compile the text inside a template's braces as one expression. With keep false
     // this only tries, and leaves no trace: it says whether the text is a value.

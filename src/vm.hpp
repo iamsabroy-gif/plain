@@ -816,7 +816,7 @@ inline Value VM::executeT(Value* sp, uint32_t nargs, size_t stopDepth) {
                         std::string prompt = fmt(sp[-1]);
                         if (!prompt.empty()) {
                             if constexpr (OBS) {
-                                if (obs->capture) obs->output(prompt + " ");
+                                if (obs->capture) { if (!obs->quietPrompts) obs->output(prompt + " "); }
                                 else { fputs(prompt.c_str(), stdout); fputc(' ', stdout); }
                             } else {
                                 fputs(prompt.c_str(), stdout);

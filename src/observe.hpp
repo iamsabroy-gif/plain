@@ -14,6 +14,7 @@ struct Observer {
     // ---- what to do
     bool trace = false;          // record a step for every source line that runs
     bool capture = false;        // keep what the program says instead of printing it
+    bool quietPrompts = false;   // with capture: leave out the questions that 'ask' shows (lesson checks)
     bool showLibrary = false;    // also step through the built-in library's own code
     uint64_t maxInstr = 0;       // stop the run after this many instructions (0 = no limit)
     size_t maxSteps = 6000;      // stop recording after this many steps
@@ -349,7 +350,8 @@ struct Observer {
 
     // ------------------------------------------------------ the whole trace as JSON
     std::string traceJson(const std::vector<std::pair<std::string, std::string>>& sources, const std::vector<std::string>& watch,
-                          const std::string& errorMsg, int errorLine) const {
+                          const std::string& errorMsg, int errorLine,
+                          const std::vector<std::pair<std::string, std::string>>& views = {}) const {
         std::string o = "{\"sources\":[";
         for (size_t i = 0; i < sources.size(); ++i) {
             if (i) o += ',';
@@ -369,7 +371,14 @@ struct Observer {
             if (i) o += ',';
             jsonString(o, watch[i]);
         }
-        o += "],\"vals\":[";
+        o += "],\"views\":{";
+        for (size_t i = 0; i < views.size(); ++i) {
+            if (i) o += ',';
+            jsonString(o, views[i].first);
+            o += ':';
+            jsonString(o, views[i].second);
+        }
+        o += "},\"vals\":[";
         for (size_t i = 0; i < valueJson.size(); ++i) {
             if (i) o += ',';
             o += valueJson[i];

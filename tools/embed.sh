@@ -1,5 +1,5 @@
 #!/bin/sh
-# Packs lib/*.plain (the data-structure library) and lib/problems/*.plain (the practice problems)
+# Packs lib/*.plain (the data-structure library), lib/problems/*.plain (the practice problems) and lib/lessons/*.lesson
 # into src/libfiles.hpp, so the plain command carries them. Run after changing anything in lib/:
 #   sh tools/embed.sh
 cd "$(dirname "$0")/.." || exit 1
@@ -9,10 +9,10 @@ out=${1:-src/libfiles.hpp}
     echo "#pragma once"
     echo "struct LibFile { const char* name; const char* text; };"
     echo "static const LibFile LIB_FILES[] = {"
-    for f in lib/*.plain lib/problems/*.plain lib/viz/*.html; do
+    for f in lib/*.plain lib/problems/*.plain lib/lessons/*.lesson lib/viz/*.html; do
         [ -f "$f" ] || continue
         name=${f#lib/}
-        case "$name" in *.plain) name=${name%.plain} ;; esac
+        case "$name" in *.plain) name=${name%.plain} ;; *.lesson) name=${name%.lesson} ;; esac
         printf '{"%s", R"PLAINLIB(' "$name"
         cat "$f"
         printf ')PLAINLIB"},\n'

@@ -10,7 +10,7 @@ LDLIBS ?= $(if $(filter Linux,$(shell uname -s)),-ldl,)
 
 all: build/plain
 
-src/libfiles.hpp: $(wildcard lib/*.plain lib/problems/*.plain lib/viz/*.html)
+src/libfiles.hpp: $(wildcard lib/*.plain lib/problems/*.plain lib/lessons/*.lesson lib/viz/*.html)
 	sh tools/embed.sh
 
 build/plain: src/main.cpp src/*.hpp
@@ -25,6 +25,7 @@ test: build/plain
 	@sh tests/lib_test.sh build/plain
 	@sh tests/viz_test.sh build/plain
 	@sh tests/practice_test.sh build/plain
+	@sh tests/lesson_test.sh build/plain
 	@sh tests/webmode_test.sh
 	@sh tests/docs_test.sh build/plain
 	@if command -v node >/dev/null 2>&1; then node tests/wasm_test.js && node tests/web_e2e.js; fi

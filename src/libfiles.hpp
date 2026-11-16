@@ -4154,6 +4154,796 @@ define __reference with text, words
 end
 # --- end solution ---
 )PLAINLIB"},
+{"lessons/01-values", R"PLAINLIB(# 1. Values
+A program is a list of instructions, one per line, done from top to bottom.
+`say` shows a value. `set` keeps a value under a name, so you can use it later.
+
+    say "Hello!"
+    set age to 9
+    say "Next year I will be", age + 1
+
+Text goes between double quotes. Numbers do not. You can put a value inside text
+with curly brackets: say "I am {age}" shows I am 9.
+
+`ask` shows a question and keeps what is typed in:
+
+    ask "What is your name?" into name
+    say "Nice to meet you, {name}!"
+=== Say hello
+Make a program that says exactly: Hello, world!
+--- output
+Hello, world!
+--- uses
+say
+--- hint
+Text goes between double quotes, after say: say "..."
+--- solution
+say "Hello, world!"
+=== Keep a value
+Keep the number 7 under the name lucky, then say "My lucky number is" followed by
+the number, using lucky (not the digit 7 again).
+--- output
+My lucky number is 7
+--- uses
+set, lucky
+--- hint
+First: set lucky to 7
+
+Then say the text and the name, with a comma between them: say "My lucky number is", lucky
+--- solution
+set lucky to 7
+say "My lucky number is", lucky
+=== Ask and answer
+Ask "What is your name?" and keep the answer in name. Then say
+Hello, followed by the name and an exclamation mark, like: Hello, Asha!
+Use a text template: "Hello, {name}!"
+--- input
+Asha
+--- output
+Hello, Asha!
+--- uses
+ask, {}
+--- hint
+ask "What is your name?" into name
+
+Then: say "Hello, {name}!"  (the curly brackets put the value of name into the text)
+--- solution
+ask "What is your name?" into name
+say "Hello, {name}!"
+=== Do the maths
+Ask "How old are you?" into age. Then say how old you will be in 10 years, like:
+In 10 years you will be 19
+--- input
+9
+--- output
+In 10 years you will be 19
+--- uses
+ask
+--- hint
+What is typed in is a number, so age + 10 works.
+
+say "In 10 years you will be", age + 10   (or use a template: "... {age + 10}")
+--- solution
+ask "How old are you?" into age
+say "In 10 years you will be {age + 10}"
+)PLAINLIB"},
+{"lessons/02-decisions", R"PLAINLIB(# 2. Decisions
+`if` runs some lines only when something is true. `otherwise` runs other lines when
+it is not. Every `if` is closed with `end`.
+
+    if age is at least 13 then
+        say "You are a teenager"
+    otherwise
+        say "You are not a teenager yet"
+    end
+
+The comparisons are: is, is not, is less than, is greater than, is at most,
+is at least. Join them with `and` and `or`. For more than two cases, use
+`otherwise if`:
+
+    if score is at least 90 then
+        say "A"
+    otherwise if score is at least 75 then
+        say "B"
+    otherwise
+        say "C"
+    end
+=== Big or small
+Ask "Pick a number" into n. Say big if n is greater than 100, and small
+otherwise.
+--- input
+250
+--- output
+big
+--- uses
+if, otherwise
+--- hint
+if n is greater than 100 then ... otherwise ... end
+--- solution
+ask "Pick a number" into n
+if n is greater than 100 then
+    say "big"
+otherwise
+    say "small"
+end
+=== Even or odd
+Ask "Pick a number" into n. Say "{n} is even" or "{n} is odd". A number is even
+when it divides by 2 with nothing left over: n % 2 is 0.
+--- input
+7
+--- output
+7 is odd
+--- uses
+if, %
+--- hint
+n % 2 is the remainder after dividing by 2. It is 0 for even numbers.
+
+if n % 2 is 0 then say "{n} is even" ... otherwise say "{n} is odd"
+--- solution
+ask "Pick a number" into n
+if n % 2 is 0 then
+    say "{n} is even"
+otherwise
+    say "{n} is odd"
+end
+=== Grades
+Ask "Score?" into score. Say A for 90 or more, B for 75 or more, C for 50 or
+more, and "Try again" for anything less.
+--- input
+80
+--- output
+B
+--- uses
+otherwise
+--- hint
+Check the biggest first: if score is at least 90 ... otherwise if score is at least 75 ...
+--- solution
+ask "Score?" into score
+if score is at least 90 then
+    say "A"
+otherwise if score is at least 75 then
+    say "B"
+otherwise if score is at least 50 then
+    say "C"
+otherwise
+    say "Try again"
+end
+)PLAINLIB"},
+{"lessons/03-loops", R"PLAINLIB(# 3. Loops
+A loop runs the same lines again and again.
+
+    repeat 3 times
+        say "Hip hip hooray!"
+    end
+
+`for` counts. The counter changes by itself each time round:
+
+    for i from 1 to 5
+        say i
+    end
+
+`while` keeps going as long as something stays true:
+
+    set n to 1
+    while n is less than 100
+        set n to n * 2
+    end
+    say n
+
+Watch any loop run, step by step:  plain visualize yourfile.plain
+=== Count to ten
+Say the numbers from 1 to 10, one on each line. Use a loop, not ten says.
+--- output
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+--- uses
+for
+--- hint
+for i from 1 to 10 ... say i ... end
+--- solution
+for i from 1 to 10
+    say i
+end
+=== Times table
+Ask "Which table?" into n. Say the first five lines of its times table, like:
+3 x 1 = 3
+--- input
+3
+--- output
+3 x 1 = 3
+3 x 2 = 6
+3 x 3 = 9
+3 x 4 = 12
+3 x 5 = 15
+--- uses
+for
+--- hint
+for i from 1 to 5, and in the loop: say "{n} x {i} = {n * i}"
+--- solution
+ask "Which table?" into n
+for i from 1 to 5
+    say "{n} x {i} = {n * i}"
+end
+=== Add them up
+Add up all the numbers from 1 to 100 and say the total. Keep a running total in a
+variable that starts at 0.
+--- output
+5050
+--- uses
+for
+--- avoid
+5050
+--- hint
+set total to 0 before the loop. Inside: increase total by i.
+--- solution
+set total to 0
+for i from 1 to 100
+    increase total by i
+end
+say total
+=== Doubling
+Start with 1 and keep doubling while the number is less than 1000. Say each number
+before you double it.
+--- output
+1
+2
+4
+8
+16
+32
+64
+128
+256
+512
+--- uses
+while
+--- hint
+set n to 1, then: while n is less than 1000 ... say n ... set n to n * 2 ... end
+--- solution
+set n to 1
+while n is less than 1000
+    say n
+    set n to n * 2
+end
+)PLAINLIB"},
+{"lessons/04-lists", R"PLAINLIB(# 4. Lists
+A list keeps many values in order, between square brackets. Items are counted from 1.
+
+    set fruits to ["mango", "banana", "lychee"]
+    say fruits[1]
+    add "guava" to fruits
+    say length of fruits
+
+`for each` goes through every item:
+
+    for each fruit in fruits
+        say "I like {fruit}"
+    end
+
+`sort(list)` gives back a sorted copy: set fruits to sort(fruits).
+=== Every item
+Make a list of the colours red, green and blue, then say each one on its own line
+using for each.
+--- output
+red
+green
+blue
+--- uses
+each, []
+--- hint
+set colours to ["red", "green", "blue"], then for each c in colours ... say c ... end
+--- solution
+set colours to ["red", "green", "blue"]
+for each c in colours
+    say c
+end
+=== The biggest
+Find the biggest number in [12, 45, 7, 23, 56, 9] with a loop (not max), and say it.
+--- output
+56
+--- uses
+each
+--- avoid
+max, sort
+--- hint
+Keep the biggest so far, starting with the first item: set biggest to numbers[1]
+
+For each number: if it is greater than biggest, set biggest to it.
+--- solution
+set numbers to [12, 45, 7, 23, 56, 9]
+set biggest to numbers[1]
+for each x in numbers
+    if x is greater than biggest then
+        set biggest to x
+    end
+end
+say biggest
+=== Build a list
+Start with an empty list. Add the squares of 1 to 5 to it (1, 4, 9, 16, 25) with a
+loop, then say the list.
+--- output
+[1, 4, 9, 16, 25]
+--- uses
+add, for
+--- hint
+set squares to [] first. In a loop from 1 to 5: add i * i to squares.
+--- solution
+set squares to []
+for i from 1 to 5
+    add i * i to squares
+end
+say squares
+=== Sorted
+Say the list [5, 3, 8, 1] sorted from smallest to biggest, and then its first and
+last items on one line, like: smallest 1 biggest 8
+--- output
+[1, 3, 5, 8]
+smallest 1 biggest 8
+--- uses
+sort
+--- hint
+set xs to sort([5, 3, 8, 1]). The last item is xs[length of xs].
+--- solution
+set xs to sort([5, 3, 8, 1])
+say xs
+say "smallest", xs[1], "biggest", xs[length of xs]
+)PLAINLIB"},
+{"lessons/05-actions", R"PLAINLIB(# 5. Actions
+An action is your own instruction. `define` makes one; `give back` is its answer.
+
+    define area with width, height
+        give back width * height
+    end
+
+    say area(3, 4)
+
+The values in brackets are given to the names after `with`. An action can be used
+again and again, with different values each time.
+=== Double it
+Make an action called double that gives back its number times 2. Then say
+double(21).
+--- output
+42
+--- uses
+define, give
+--- hint
+define double with n ... give back n * 2 ... end, then say double(21)
+--- solution
+define double with n
+    give back n * 2
+end
+say double(21)
+=== Biggest of two
+Make an action bigger with a and b that gives back the bigger one. Say
+bigger(3, 9) and bigger(10, 4) on one line.
+--- output
+9 10
+--- uses
+define, if
+--- avoid
+max
+--- hint
+Inside: if a is greater than b then give back a ... end, then give back b.
+--- solution
+define bigger with a, b
+    if a is greater than b then
+        give back a
+    end
+    give back b
+end
+say bigger(3, 9), bigger(10, 4)
+=== Count the vowels
+Make an action vowels with word that gives back how many of its letters are
+a, e, i, o or u. Say vowels("banana") and vowels("sky").
+--- output
+3 0
+--- uses
+define, each
+--- hint
+for each letter in word goes through the letters. "aeiou" contains letter tells you if it is a vowel.
+--- solution
+define vowels with word
+    set count to 0
+    for each letter in word
+        if "aeiou" contains letter then
+            increase count by 1
+        end
+    end
+    give back count
+end
+say vowels("banana"), vowels("sky")
+)PLAINLIB"},
+{"lessons/06-maps-and-text", R"PLAINLIB(# 6. Maps and text
+A map keeps values under names, between curly brackets:
+
+    set pet to {name: "Rex", legs: 4}
+    say pet's name
+    set pet's legs to 3
+
+Use `map[key]` when the name is in a variable, and `has_key(map, key)` to check.
+Text can be split into a list of words, and a list joined back into text:
+
+    set words to split("the quick brown fox", " ")
+    say join(words, "-")
+=== A person
+Make a map for a person with name Asha and age 30. Then say
+"Asha is 30" using the map's entries (not typing Asha or 30 again).
+--- output
+Asha is 30
+--- uses
+'s
+--- hint
+set person to {name: "Asha", age: 30}, then say "{person's name} is {person's age}"
+--- solution
+set person to {name: "Asha", age: 30}
+say "{person's name} is {person's age}"
+=== Count the words
+Count how many times each word appears in "the cat and the hat and the bat" and
+say the map.
+--- output
+{"the": 3, "cat": 1, "and": 2, "hat": 1, "bat": 1}
+--- uses
+split, has_key
+--- hint
+set counts to {}. For each word in split(text, " "): if has_key(counts, word) increase counts[word] by 1, otherwise set counts[word] to 1.
+--- solution
+set counts to {}
+for each word in split("the cat and the hat and the bat", " ")
+    if has_key(counts, word) then
+        increase counts[word] by 1
+    otherwise
+        set counts[word] to 1
+    end
+end
+say counts
+=== Shout it
+Ask "Say something" into words. Say it back in capital letters with the words in
+reverse order, joined by spaces. "hello big world" becomes WORLD BIG HELLO.
+--- input
+hello big world
+--- output
+WORLD BIG HELLO
+--- uses
+split, join
+--- hint
+split(words, " ") gives a list; reverse(list) turns it around; join(list, " ") makes text; uppercase(text) shouts.
+--- solution
+ask "Say something" into words
+say uppercase(join(reverse(split(words, " ")), " "))
+)PLAINLIB"},
+{"lessons/07-thinking-in-steps", R"PLAINLIB(# 7. Thinking in steps
+An action can call itself. Each call works on a smaller piece of the problem, until
+the piece is so small the answer is obvious. That obvious case must come first, or
+the calls never stop.
+
+    define factorial with n
+        if n is at most 1 then
+            give back 1
+        end
+        give back n * factorial(n - 1)
+    end
+
+Searching and sorting by hand show how much work a computer does. Watch it:
+plain visualize examples/sorting.plain
+=== Count down
+Make an action countdown with n that says n, then calls itself with n - 1, and
+stops after saying 1. Then say "Lift off!". Call countdown(5).
+--- output
+5
+4
+3
+2
+1
+Lift off!
+--- uses
+define
+--- avoid
+for, while, repeat
+--- hint
+Inside: if n is less than 1 then give back (stop). Otherwise say n, then countdown(n - 1).
+--- solution
+define countdown with n
+    if n is less than 1 then
+        give back nothing
+    end
+    say n
+    countdown(n - 1)
+end
+countdown(5)
+say "Lift off!"
+=== Sum of digits
+Make an action digit_sum with n that adds up the digits of a whole number by
+calling itself: the last digit is n % 10, and the rest is quotient(n, 10). Say
+digit_sum(4096).
+--- output
+19
+--- uses
+define, quotient
+--- hint
+When n is less than 10, the answer is n itself.
+
+Otherwise give back n % 10 + digit_sum(quotient(n, 10)).
+--- solution
+define digit_sum with n
+    if n is less than 10 then
+        give back n
+    end
+    give back n % 10 + digit_sum(quotient(n, 10))
+end
+say digit_sum(4096)
+=== Find it
+Write linear_search with items and target that gives back the position (counting
+from 1) of target in items, or 0 if it isn't there. Say
+linear_search([4, 8, 15, 16, 23, 42], 16) and linear_search([1, 2], 9).
+--- output
+4 0
+--- uses
+define, for
+--- avoid
+index_of, contains
+--- hint
+for i from 1 to length of items: if items[i] is target then give back i. After the loop, give back 0.
+--- solution
+define linear_search with items, target
+    for i from 1 to length of items
+        if items[i] is target then
+            give back i
+        end
+    end
+    give back 0
+end
+say linear_search([4, 8, 15, 16, 23, 42], 16), linear_search([1, 2], 9)
+)PLAINLIB"},
+{"lessons/08-data-structures", R"PLAINLIB(# 8. Data structures
+A data structure is a way of keeping values so that some jobs become easy. Plain
+comes with a library of them, written in Plain:
+
+    use "stack"
+    set pile to new Stack()
+    pile's push("plate 1")
+    pile's push("plate 2")
+    say pile's pop()
+
+A stack gives back the last thing put in (like a pile of plates). A queue gives
+back the first (like a line of people): use "queue", new Queue(), enqueue,
+dequeue. See every part with: plain lib
+=== Reverse with a stack
+Use a Stack to reverse the word "stressed": push each letter, then pop them all,
+joining them into new text. Say the result.
+--- output
+desserts
+--- uses
+stack, push, pop
+--- avoid
+reverse
+--- hint
+use "stack" and set s to new Stack(). Push every letter in a for each loop.
+
+set out to "", then while not s's is_empty(): set out to out + s's pop()
+--- solution
+use "stack"
+set s to new Stack()
+for each letter in "stressed"
+    s's push(letter)
+end
+set out to ""
+while not s's is_empty()
+    set out to out + s's pop()
+end
+say out
+=== Brackets that match
+Use a Stack to check whether the brackets in "(a[b]\{c})" and "(a[b)]" are
+properly matched (a brace in text is written \{ so that it is not a template): every closing bracket must close the most recent open one. Say
+true or false for each, on one line.
+--- output
+true false
+--- uses
+stack, define
+--- hint
+Push every opening bracket. For a closing one: if the stack is empty, or what you pop is not its partner, it is not matched.
+
+At the end it is matched only if the stack is empty.
+--- solution
+use "stack"
+define matched with text
+    set partner to {")": "(", "]": "[", "}": "{"}
+    set s to new Stack()
+    for each c in text
+        if "([{" contains c then
+            s's push(c)
+        otherwise if has_key(partner, c) then
+            if s's is_empty() then
+                give back false
+            end
+            if s's pop() is not partner[c] then
+                give back false
+            end
+        end
+    end
+    give back s's is_empty()
+end
+say matched("(a[b]\{c})"), matched("(a[b)]")
+=== Take turns
+Use a Queue for three players: Ana, Ben and Cy. Five times, take the player at
+the front, say "{name}'s turn", and put them at the back again.
+--- output
+Ana's turn
+Ben's turn
+Cy's turn
+Ana's turn
+Ben's turn
+--- uses
+queue, enqueue, dequeue
+--- hint
+use "queue", set q to new Queue(), and enqueue each name.
+
+repeat 5 times: set p to q's dequeue(), say it, then q's enqueue(p).
+--- solution
+use "queue"
+set q to new Queue()
+for each name in ["Ana", "Ben", "Cy"]
+    q's enqueue(name)
+end
+repeat 5 times
+    set p to q's dequeue()
+    say "{p}'s turn"
+    q's enqueue(p)
+end
+)PLAINLIB"},
+{"lessons/09-cost", R"PLAINLIB(# 9. Cost
+Two programs can give the same answer while one does far more work. Counting the
+steps tells them apart better than a stopwatch:
+
+    plain count examples/sorting.plain
+    plain compare examples/sorting.plain bubble_sort merge_sort
+    plain growth examples/sorting.plain bubble_sort merge_sort
+
+If doubling the data doubles the work, the work grows like n (written O(n)). If
+it quadruples, it grows like n squared (O(n^2)): fine for 100 items, painful for a
+million. Halving the problem at every step (like guessing a number with "higher"
+or "lower") grows like log n: about 20 steps for a million items.
+=== Count the guesses
+Write binary search on the sorted list range(1, 1000) to find 777, counting how
+many items you look at. Look at the middle item; if it is too small, keep the
+upper half, otherwise the lower half. Say "found 777 in" and the count, and
+"steps".
+--- output
+found 777 in 8 steps
+--- uses
+while
+--- avoid
+index_of, contains
+--- hint
+set low to 1 and high to length of items. While low is at most high: set mid to quotient(low + high, 2) and count one step.
+
+If items[mid] is the target, stop. If it is less, set low to mid + 1, otherwise set high to mid - 1.
+--- solution
+set items to range(1, 1000)
+set target to 777
+set low to 1
+set high to length of items
+set steps to 0
+while low is at most high
+    set mid to quotient(low + high, 2)
+    increase steps by 1
+    if items[mid] is target then
+        stop
+    otherwise if items[mid] is less than target then
+        set low to mid + 1
+    otherwise
+        set high to mid - 1
+    end
+end
+say "found {target} in {steps} steps"
+=== Pairs
+Counting pairs shows quadratic growth. For n = 10, 20 and 40, count the pairs
+(i, j) with 1 <= i < j <= n using two loops, one inside the other, and say
+"n = 10: 45 pairs" and so on. Notice: twice the n, about four times the work.
+--- output
+n = 10: 45 pairs
+n = 20: 190 pairs
+n = 40: 780 pairs
+--- uses
+for
+--- hint
+for each n in [10, 20, 40]: set count to 0; for i from 1 to n, for j from i + 1 to n: increase count by 1.
+
+Careful: when i is n, j would go from n + 1 to n. A 'for' that starts past its end does not run.
+--- solution
+for each n in [10, 20, 40]
+    set count to 0
+    for i from 1 to n - 1
+        for j from i + 1 to n
+            increase count by 1
+        end
+    end
+    say "n = {n}: {count} pairs"
+end
+)PLAINLIB"},
+{"lessons/10-under-the-hood", R"PLAINLIB(# 10. Under the hood
+The library's data structures are ordinary Plain classes. A class describes a
+kind of object: `init` sets up a new one, and its actions use `me` for the object
+itself.
+
+    class Counter
+        init
+            set me's count to 0
+        end
+        define tick
+            increase me's count by 1
+        end
+    end
+
+    set c to new Counter()
+    c's tick()
+    say c's count
+
+Read how the library builds a stack: plain lib stack
+=== Your own stack
+Make a class Pile that keeps a list in me's items, with push(x), pop() (gives
+back and removes the last item) and size(). Push 1, 2 and 3, pop once, and say
+what was popped and the size left.
+--- output
+3 2
+--- uses
+class, me, init
+--- hint
+init: set me's items to []. push: add x to me's items.
+
+pop: set last to me's items[length of me's items], then remove the last item with pop(me's items), and give back last. (The built-in pop(list) does both: give back pop(me's items).)
+--- solution
+class Pile
+    init
+        set me's items to []
+    end
+    define push with x
+        add x to me's items
+    end
+    define pop
+        give back pop(me's items)
+    end
+    define size
+        give back length of me's items
+    end
+end
+set p to new Pile()
+p's push(1)
+p's push(2)
+p's push(3)
+say p's pop(), p's size()
+=== A linked chain
+A linked list is a chain of maps: {value: 1, next: ...}, where the last one's next
+is nothing. Build the chain 1 -> 2 -> 3 from the end backwards, then walk it with
+a while loop, saying each value.
+--- output
+1
+2
+3
+--- uses
+while, nothing
+--- hint
+set head to nothing. For each v in [3, 2, 1]: set head to {value: v, next: head}.
+
+To walk: set node to head; while node is not nothing: say node's value, set node to node's next.
+--- solution
+set head to nothing
+for each v in [3, 2, 1]
+    set head to {value: v, next: head}
+end
+set node to head
+while node is not nothing
+    say node's value
+    set node to node's next
+end
+)PLAINLIB"},
 {"viz/growth.html", R"PLAINLIB(<!doctype html>
 <html lang="en">
 <head>
@@ -4453,6 +5243,7 @@ const DATA = /*__PLAIN_DATA__*/null;
 "use strict";
 const $ = (id) => document.getElementById(id);
 const D = DATA;
+const VIEWS = D.views || {};  // "# watch: xs as bars": how to draw a name
 const POINTERS = new Set(["i","j","k","lo","hi","low","high","mid","left","right","start","stop","pivot","pos","position","index","idx","gap","front","back","slow","fast","smallest","largest","min_index","max_index","low_at","high_at","split"]);
 
 function h(tag, attrs, ...kids) {
@@ -4530,6 +5321,43 @@ function render(v, ctx, depth) {
     return renderRecord(v, ctx, depth);
   }
   return h("span", { class: "chip", text: "?" });
+}
+
+// "# watch: xs as bars" picks how a value is drawn. When the value can't be drawn that
+// way (a map as bars), it is drawn the usual way, with a note saying why.
+function renderAs(v, ctx, view) {
+  const why = (text) => h("div", null, render(v, ctx, 0), h("div", { class: "more", text: "(can't draw this as " + view + ": " + text + ")" }));
+  if (view === "text") return h("span", { class: "chip", text: shorten(scalarText0(v), 200), title: scalarText0(v) });
+  if (isScalar(v)) return view === "text" ? render(v, ctx, 0) : why("it is a single value");
+  if (view === "bars") {
+    if (!isList(v)) return why("it is not a list");
+    if (!v.v.every((x) => typeof x === "number" || (x && x.N !== undefined))) return why("not every item is a number");
+    const cmp = new Set(), mv = new Set(), marks = {};
+    (ctx.step.c || []).forEach((q) => { if (q[0] === v.L) cmp.add(q[1]); });
+    (ctx.step.w || []).forEach((q) => { if (q[0] === v.L) mv.add(q[1]); });
+    (ctx.step.s || []).forEach((q) => { if (q[0] === v.L) { mv.add(q[1]); mv.add(q[2]); } });
+    (ctx.scope || []).forEach(([name, val]) => {
+      if (typeof val === "number" && Number.isInteger(val) && val >= 1 && val <= v.n && POINTERS.has(name)) (marks[val - 1] = marks[val - 1] || []).push(name);
+    });
+    return renderBars(v, ctx, cmp, mv, marks);
+  }
+  if (view === "boxes") return isList(v) ? renderList(v, Object.assign({}, ctx, { boxes: true })) : why("it is not a list");
+  if (view === "grid") return isList(v) && v.v.length && v.v.every(isList) ? renderMatrix(v, ctx) : why("it is not a list of lists");
+  if (view === "table") {
+    if (!isRec(v)) return isList(v) ? renderList(v, Object.assign({}, ctx, { boxes: true })) : why("it is not a map");
+    const tbl = h("table", { class: "kv" });
+    for (const e of v.v) tbl.append(h("tr", null, h("td", { class: "k", text: scalarText(e[0]) }), h("td", null, render(e[1], ctx, 1))));
+    return v.v.length ? tbl : h("span", { class: "chip", text: "{}" });
+  }
+  if (view === "tree") {
+    if (isList(v)) return v.v.length ? renderHeapTree(v.v, ctx, v.L) : h("span", { class: "chip", text: "[ ]" });
+    if (isRec(v) && isBinaryNode(v)) return renderBinaryTree(v, ctx);
+    if (isRec(v) && isKidsNode(v)) return renderKidsTree(v, ctx);
+    return why("a tree is a list (drawn like a heap), or maps with value/left/right or value/children");
+  }
+  if (view === "chain") return isRec(v) && isChainNode(v) ? renderChain(v, ctx) : why("a chain is maps with value and next");
+  if (view === "graph") return isRec(v) && isGraph(v) ? renderGraph(v, ctx, null) : why("a graph is a map from each node to a list of its neighbours");
+  return render(v, ctx, 0);
 }
 
 // A heap is a list used as a tree: item i has children 2i and 2i+1.
@@ -4981,6 +5809,7 @@ function drawVars(i) {
       const oid = idOf(v), own = oid !== null ? owner[oid] : null;
       if (contained.has(g.title + "/" + n)) cell = h("span", { class: "chip fn", text: "→ points into the structure above" });
       else if (own && (own[0] !== gi || own[1] !== n)) cell = h("span", { class: "chip fn", text: "the same as " + own[1] + (own[2] !== "Variables" ? " (in " + own[2] + ")" : "") + (own[0] > gi ? " below" : " above") });
+      else if (VIEWS[n]) cell = renderAs(v, ctx, VIEWS[n]);
       else cell = render(v, ctx, 0);
       gd.append(h("div", { class: "var" + (changed ? " changed" : "") }, h("div", { class: "vn", text: n }), h("div", null, cell)));
     });
@@ -5072,6 +5901,16 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "Home") { stop(); show(0); }
   else if (e.key === "End") { stop(); show(steps.length - 1); }
 });
+
+// ------------------------------------------------------------ side by side
+// A page that shows two players (plain visualize a.plain b.plain) steps them together.
+window.addEventListener("message", (e) => {
+  const m = e.data;
+  if (!m || m.plainPlayer === undefined || e.source !== window.parent) return;
+  stop();
+  if (m.plainPlayer === "go") show(m.i);
+});
+if (window.parent !== window) window.parent.postMessage({ plainPlayerReady: steps.length }, "*");
 
 // ------------------------------------------------------------ start up
 const c = D.counts;

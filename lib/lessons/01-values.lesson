@@ -1,0 +1,72 @@
+# 1. Values
+A program is a list of instructions, one per line, done from top to bottom.
+`say` shows a value. `set` keeps a value under a name, so you can use it later.
+
+    say "Hello!"
+    set age to 9
+    say "Next year I will be", age + 1
+
+Text goes between double quotes. Numbers do not. You can put a value inside text
+with curly brackets: say "I am {age}" shows I am 9.
+
+`ask` shows a question and keeps what is typed in:
+
+    ask "What is your name?" into name
+    say "Nice to meet you, {name}!"
+=== Say hello
+Make a program that says exactly: Hello, world!
+--- output
+Hello, world!
+--- uses
+say
+--- hint
+Text goes between double quotes, after say: say "..."
+--- solution
+say "Hello, world!"
+=== Keep a value
+Keep the number 7 under the name lucky, then say "My lucky number is" followed by
+the number, using lucky (not the digit 7 again).
+--- output
+My lucky number is 7
+--- uses
+set, lucky
+--- hint
+First: set lucky to 7
+
+Then say the text and the name, with a comma between them: say "My lucky number is", lucky
+--- solution
+set lucky to 7
+say "My lucky number is", lucky
+=== Ask and answer
+Ask "What is your name?" and keep the answer in name. Then say
+Hello, followed by the name and an exclamation mark, like: Hello, Asha!
+Use a text template: "Hello, {name}!"
+--- input
+Asha
+--- output
+Hello, Asha!
+--- uses
+ask, {}
+--- hint
+ask "What is your name?" into name
+
+Then: say "Hello, {name}!"  (the curly brackets put the value of name into the text)
+--- solution
+ask "What is your name?" into name
+say "Hello, {name}!"
+=== Do the maths
+Ask "How old are you?" into age. Then say how old you will be in 10 years, like:
+In 10 years you will be 19
+--- input
+9
+--- output
+In 10 years you will be 19
+--- uses
+ask
+--- hint
+What is typed in is a number, so age + 10 works.
+
+say "In 10 years you will be", age + 10   (or use a template: "... {age + 10}")
+--- solution
+ask "How old are you?" into age
+say "In 10 years you will be {age + 10}"

@@ -12,31 +12,66 @@ struct WatchedRun {
     std::string errorFile;
 };
 
-// Names listed in comment lines like:   # watch: xs, total
-static std::vector<std::string> watchNames(const std::string& src) {
-    std::vector<std::string> out;
+static std::string htmlEscape(const std::string& s) {
+    std::string o;
+    for (char c : s) {
+        if (c == '<') o += "&lt;";
+        else if (c == '>') o += "&gt;";
+        else if (c == '&') o += "&amp;";
+        else if (c == '"') o += "&quot;";
+        else o += c;
+    }
+    return o;
+}
+
+// What "# watch:" comment lines ask for:   # watch: xs, total   or   # watch: xs as bars, grid as table
+static const char* const WATCH_VIEWS[] = {"bars", "boxes", "grid", "table", "tree", "chain", "graph", "text"};
+struct WatchList {
+    std::vector<std::string> names;
+    std::vector<std::pair<std::string, std::string>> views;  // name -> how to draw it
+    std::vector<std::string> problems;
+};
+static WatchList watchNames(const std::string& src) {
+    WatchList w;
     size_t at = 0;
+    int lineNo = 0;
     while (at < src.size()) {
         size_t end = src.find('\n', at);
         if (end == std::string::npos) end = src.size();
         std::string line = src.substr(at, end - at);
         at = end + 1;
+        ++lineNo;
         size_t hash = line.find('#');
         if (hash == std::string::npos) continue;
         std::string c = line.substr(hash + 1);
         size_t a = c.find_first_not_of(" \t");
         if (a == std::string::npos || c.compare(a, 6, "watch:") != 0) continue;
-        std::string names = c.substr(a + 6), cur;
-        for (char ch : names + ",") {
-            if (ch == ',' || ch == ' ' || ch == '\t') {
-                if (!cur.empty()) out.push_back(cur);
-                cur.clear();
+        std::string entry;
+        for (char ch : c.substr(a + 6) + ",") {
+            if (ch != ',') { entry += ch; continue; }
+            std::vector<std::string> words;
+            std::string cur;
+            for (char e : entry + " ") {
+                if (e == ' ' || e == '\t') { if (!cur.empty()) words.push_back(cur); cur.clear(); }
+                else cur += e;
+            }
+            entry.clear();
+            if (words.size() == 3 && words[1] == "as") {
+                bool known = false;
+                for (const char* v : WATCH_VIEWS) known = known || words[2] == v;
+                w.names.push_back(words[0]);
+                if (known) w.views.emplace_back(words[0], words[2]);
+                else {
+                    std::string all;
+                    for (const char* v : WATCH_VIEWS) all += (all.empty() ? "" : ", ") + std::string(v);
+                    w.problems.push_back("Line " + std::to_string(lineNo) + ": I can't draw '" + words[0] + "' as '" + words[2] + "'. I can draw a value as: " + all + ".");
+                }
             } else {
-                cur += ch;
+                for (const std::string& x : words) w.names.push_back(x);  // "# watch: xs total"
             }
         }
     }
-    return out;
+    return w;
 }
 
 static std::string replaceFirst(std::string text, const std::string& what, const std::string& with) {
@@ -45,9 +80,164 @@ static std::string replaceFirst(std::string text, const std::string& what, const
     return text;
 }
 
-// plain visualize program.plain [-o page.html] [--max-steps N] [--into-library]
+// One program run under the recorder.
+struct Recording {
+    std::unique_ptr<WatchedRun> run;
+    std::string file, src, json;
+    bool neverStarted = false;  // a mistake in how it is written: already reported
+};
+static Recording recordRun(const std::string& file, const std::string& src, size_t maxSteps, uint64_t budget, bool intoLib) {
+    Recording R;
+    R.file = file;
+    R.src = src;
+    R.run = std::make_unique<WatchedRun>();
+    WatchedRun& run = *R.run;
+    setUp(run.prog);
+    VM vm(run.prog);
+    run.ob.trace = true;
+    run.ob.capture = true;
+    run.ob.showLibrary = intoLib;
+    run.ob.maxSteps = maxSteps;
+    run.ob.maxInstr = budget;
+    vm.obs = &run.ob;
+    vm.args = {};
+    try {
+        Compiler compiler(run.prog, src, file);
+        Value mainFn = compiler.compileMain();
+        vm.run(mainFn);
+        run.ob.finish(vm);
+    } catch (const PlainError& e) {
+        if (run.ob.steps.empty() && !run.ob.pending && e.line && run.ob.outputChunks.empty() && e.file.empty()) {
+            report(e, file, src, &run.prog);
+            R.neverStarted = true;
+            return R;
+        }
+        run.errorMsg = e.msg;
+        run.errorLine = e.line;
+        run.errorFile = e.file;
+    }
+    std::vector<std::pair<std::string, std::string>> sources;
+    std::vector<std::string> names = run.ob.files;
+    if (names.empty()) names.push_back(file);
+    for (const std::string& n : names) {
+        std::string text;
+        if (n == file) text = src;
+        else if (const char* lib = libSource(n)) text = lib;
+        else
+            for (const auto& s : run.prog.sources)
+                if (s.first == n) text = s.second;
+        sources.emplace_back(n, text);
+    }
+    run.ob.files = names;
+    WatchList w = watchNames(src);
+    for (const std::string& p : w.problems) fprintf(stderr, "%s: %s\n", file.c_str(), p.c_str());
+    std::string json = run.ob.traceJson(sources, w.names, run.errorMsg, run.errorLine, w.views);
+    R.json.reserve(json.size());
+    for (size_t i = 0; i < json.size(); ++i) {  // never end the page's <script> early
+        if (json[i] == '<' && i + 1 < json.size() && json[i + 1] == '/') R.json += "<\\";  // the '/' follows next
+        else R.json += json[i];
+    }
+    return R;
+}
+// Report the problem a recorded run stopped with (if any). Gives the exit code.
+static int reportRecording(const Recording& R) {
+    if (R.run->errorMsg.empty()) return 0;
+    PlainError e;
+    e.msg = R.run->errorMsg;
+    e.line = R.run->errorLine;
+    e.file = R.run->errorFile;
+    report(e, R.file, R.src, &R.run->prog);
+    return 1;
+}
+static bool writePage(const std::string& out, const std::string& page) {
+    FILE* f = fopen(out.c_str(), "wb");
+    if (!f) { fprintf(stderr, "I couldn't write to '%s'.\n", out.c_str()); return false; }
+    fwrite(page.data(), 1, page.size(), f);
+    fclose(f);
+    return true;
+}
+static std::string pageName(const std::string& file) {
+    size_t slash = file.find_last_of("/\\");
+    std::string base = file.substr(slash == std::string::npos ? 0 : slash + 1);
+    size_t dot = base.find_last_of('.');
+    return dot == std::string::npos ? base : base.substr(0, dot);
+}
+
+// Two recorded runs in one page: two players next to each other, stepped together.
+static std::string sideBySidePage(const std::string& tmpl, const Recording& a, const Recording& b) {
+    auto pageJs = [&](const Recording& r) {
+        std::string page = replaceFirst(tmpl, "/*__PLAIN_DATA__*/null", r.json), js;
+        Observer::jsonString(js, page);
+        std::string safe;  // the page sits inside a <script>: hide every "</"
+        for (size_t i = 0; i < js.size(); ++i) {
+            if (js[i] == '<' && i + 1 < js.size() && js[i + 1] == '/') safe += "<\\";  // the '/' follows next
+            else safe += js[i];
+        }
+        return safe;
+    };
+    std::string titleA = pageName(a.file), titleB = pageName(b.file);
+    std::string t;
+    t += "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+         "<title>Plain - side by side</title><style>"
+         ":root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--muted:#5d6675;--line:#d9dde4;--accent:#2f6fde}"
+         "@media (prefers-color-scheme:dark){:root{--bg:#14171c;--card:#1d2128;--ink:#e6e9ee;--muted:#9aa3b2;--line:#323844;--accent:#6ea0ff}}"
+         "*{box-sizing:border-box}body{margin:0;font:15px/1.4 system-ui,sans-serif;background:var(--bg);color:var(--ink)}"
+         "header{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line)}"
+         "header b{margin-right:8px}button{font:inherit;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);cursor:pointer}"
+         "button:hover{border-color:var(--accent)}#at{color:var(--muted);margin-left:auto}"
+         "main{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px}@media (max-width:900px){main{grid-template-columns:1fr}}"
+         "section{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}"
+         "section h2{margin:0;padding:8px 12px;font-size:15px;border-bottom:1px solid var(--line)}"
+         "iframe{width:100%;height:calc(100vh - 120px);min-height:520px;border:0;display:block}</style></head><body>"
+         "<header><b>Side by side</b><button id=\"first\">&#9198; Start</button><button id=\"prev\">&#9664; Back</button>"
+         "<button id=\"play\">&#9654; Play</button><button id=\"next\">Step &#9654;</button><button id=\"last\">End &#9197;</button>"
+         "<span id=\"at\"></span></header><main>";
+    t += "<section><h2>" + htmlEscape(titleA) + "</h2><iframe id=\"a\" title=\"" + htmlEscape(titleA) + "\"></iframe></section>";
+    t += "<section><h2>" + htmlEscape(titleB) + "</h2><iframe id=\"b\" title=\"" + htmlEscape(titleB) + "\"></iframe></section></main>";
+    t += "<script>const PAGES=[" + pageJs(a) + "," + pageJs(b) + "];\n";
+    t += R"JS(
+const frames = [document.getElementById("a"), document.getElementById("b")];
+const total = [0, 0];
+let step = 0, timer = null;
+frames.forEach((f, k) => { f.srcdoc = PAGES[k]; });
+window.addEventListener("message", (e) => {
+  const k = frames.findIndex((f) => f.contentWindow === e.source);
+  if (k < 0 || !e.data || e.data.plainPlayerReady === undefined) return;
+  total[k] = e.data.plainPlayerReady;
+  go(step);
+});
+function longest() { return Math.max(total[0], total[1], 1); }
+function go(i) {
+  step = Math.max(0, Math.min(longest() - 1, i));
+  frames.forEach((f, k) => { if (total[k]) f.contentWindow.postMessage({ plainPlayer: "go", i: Math.min(step, total[k] - 1) }, "*"); });
+  const parts = total.map((n, k) => (k ? "right " : "left ") + Math.min(step + 1, n) + " of " + n);
+  document.getElementById("at").textContent = "step " + (step + 1) + "  ·  " + parts.join(", ");
+  document.getElementById("play").innerHTML = timer ? "&#10074;&#10074; Pause" : "&#9654; Play";
+}
+function stop() { if (timer) { clearInterval(timer); timer = null; } }
+document.getElementById("first").onclick = () => { stop(); go(0); };
+document.getElementById("prev").onclick = () => { stop(); go(step - 1); };
+document.getElementById("next").onclick = () => { stop(); go(step + 1); };
+document.getElementById("last").onclick = () => { stop(); go(longest() - 1); };
+document.getElementById("play").onclick = () => {
+  if (timer) { stop(); go(step); return; }
+  if (step >= longest() - 1) step = 0;
+  timer = setInterval(() => { if (step >= longest() - 1) { stop(); go(step); return; } go(step + 1); }, 450);
+  go(step);
+};
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowRight") { stop(); go(step + 1); }
+  else if (e.key === "ArrowLeft") { stop(); go(step - 1); }
+});
+</script></body></html>
+)JS";
+    return t;
+}
+
+// plain visualize program.plain [other.plain] [-o page.html] [--max-steps N] [--into-library]
 static int visualizeCommand(const std::vector<std::string>& args) {
-    std::string file, out, inlineSrc;
+    std::string out, inlineSrc;
+    std::vector<std::string> files;
     bool haveInline = false, jsonOnly = false;
     size_t maxSteps = 6000;
     bool intoLib = false;
@@ -59,100 +249,55 @@ static int visualizeCommand(const std::vector<std::string>& args) {
         else if (args[i] == "--budget" && i + 1 < args.size()) budget = (uint64_t)std::max(1LL, atoll(args[++i].c_str()));
         else if (args[i] == "--max-steps" && i + 1 < args.size()) maxSteps = (size_t)std::max(1, atoi(args[++i].c_str()));
         else if (args[i] == "--into-library") intoLib = true;
-        else file = args[i];
+        else files.push_back(args[i]);
     }
-    std::string src;
+    if (files.size() > 2 || (haveInline && !files.empty())) {
+        fprintf(stderr, "Give one program to watch, or two to watch side by side: plain visualize a.plain b.plain\n");
+        return 2;
+    }
+    std::vector<std::string> srcs;
     if (haveInline) {
-        file = "program.plain";
-        src = inlineSrc;
+        files = {"program.plain"};
+        srcs = {inlineSrc};
     } else {
-        if (file.empty()) { fprintf(stderr, "Tell me which program to draw, like: plain visualize program.plain\n"); return 2; }
-        if (!readFile(file, src)) { fprintf(stderr, "I couldn't open the file '%s'.\n", file.c_str()); return 2; }
-    }
-    if (out.empty()) {
-        size_t slash = file.find_last_of("/\\"), dot = file.find_last_of('.');
-        std::string base = file.substr(slash == std::string::npos ? 0 : slash + 1);
-        dot = base.find_last_of('.');
-        out = (dot == std::string::npos ? base : base.substr(0, dot)) + ".html";
+        if (files.empty()) { fprintf(stderr, "Tell me which program to draw, like: plain visualize program.plain\n"); return 2; }
+        for (const std::string& f : files) {
+            std::string src;
+            if (!readFile(f, src)) { fprintf(stderr, "I couldn't open the file '%s'.\n", f.c_str()); return 2; }
+            srcs.push_back(src);
+        }
     }
     const char* tmpl = packedFile("viz/player.html");
     if (!tmpl) { fprintf(stderr, "This copy of Plain has no player inside it.\n"); return 3; }
 
-    auto run = std::make_unique<WatchedRun>();
-    setUp(run->prog);
-    VM vm(run->prog);
-    run->ob.trace = true;
-    run->ob.capture = true;
-    run->ob.showLibrary = intoLib;
-    run->ob.maxSteps = maxSteps;
-    run->ob.maxInstr = budget;
-    vm.obs = &run->ob;
-    vm.args = {};
-    try {
-        Compiler compiler(run->prog, src, file);
-        Value mainFn = compiler.compileMain();
-        vm.run(mainFn);
-        run->ob.finish(vm);
-    } catch (const PlainError& e) {
-        if (run->ob.steps.empty() && !run->ob.pending && e.line && run->ob.outputChunks.empty() && e.file.empty()) {
-            report(e, file, src, &run->prog);  // it never started: a mistake in how the program is written
-            return 1;
-        }
-        run->errorMsg = e.msg;
-        run->errorLine = e.line;
-        run->errorFile = e.file;
+    if (files.size() == 2) {
+        if (jsonOnly) { fprintf(stderr, "--json takes one program.\n"); return 2; }
+        Recording a = recordRun(files[0], srcs[0], maxSteps, budget, intoLib);
+        if (a.neverStarted) return 1;
+        Recording b = recordRun(files[1], srcs[1], maxSteps, budget, intoLib);
+        if (b.neverStarted) return 1;
+        if (out.empty()) out = pageName(files[0]) + "-and-" + pageName(files[1]) + ".html";
+        if (!writePage(out, sideBySidePage(tmpl, a, b))) return 2;
+        printf("Recorded %zu and %zu steps. Open %s in a browser to step through both together.\n", a.run->ob.steps.size(),
+               b.run->ob.steps.size(), out.c_str());
+        int ca = reportRecording(a), cb = reportRecording(b);
+        return ca || cb;
     }
-    std::vector<std::pair<std::string, std::string>> sources;
-    std::vector<std::string> names = run->ob.files;
-    if (names.empty()) names.push_back(file);
-    for (const std::string& n : names) {
-        std::string text;
-        if (n == file) text = src;
-        else if (const char* lib = libSource(n)) text = lib;
-        else
-            for (const auto& s : run->prog.sources)
-                if (s.first == n) text = s.second;
-        sources.emplace_back(n, text);
-    }
-    run->ob.files = names;
-    std::string json = run->ob.traceJson(sources, watchNames(src), run->errorMsg, run->errorLine);
-    std::string safe;
-    safe.reserve(json.size());
-    for (size_t i = 0; i < json.size(); ++i) {
-        if (json[i] == '<' && i + 1 < json.size() && json[i + 1] == '/') safe += "<\\/";
-        else safe += json[i];
-    }
-    if (safe.find("\xE2\x80\xA8") != std::string::npos) {}  // (U+2028 is fine inside a JSON string in modern browsers)
+
+    const std::string& file = files[0];
+    Recording R = recordRun(file, srcs[0], maxSteps, budget, intoLib);
+    if (R.neverStarted) return 1;
     if (jsonOnly) {  // for the web playground: the trace itself, which its own copy of the player draws
-        fwrite(safe.data(), 1, safe.size(), stdout);
+        fwrite(R.json.data(), 1, R.json.size(), stdout);
         fflush(stdout);
-        if (!run->errorMsg.empty()) {
-            PlainError e;
-            e.msg = run->errorMsg;
-            e.line = run->errorLine;
-            e.file = run->errorFile;
-            report(e, file, src, &run->prog);
-            return 1;
-        }
-        return 0;
+        return reportRecording(R);
     }
-    std::string page = replaceFirst(tmpl, "/*__PLAIN_DATA__*/null", safe);
-    FILE* f = fopen(out.c_str(), "wb");
-    if (!f) { fprintf(stderr, "I couldn't write to '%s'.\n", out.c_str()); return 2; }
-    fwrite(page.data(), 1, page.size(), f);
-    fclose(f);
-    printf("Recorded %zu step%s of %s. Open %s in a browser to watch it.\n", run->ob.steps.size(), run->ob.steps.size() == 1 ? "" : "s",
+    if (out.empty()) out = pageName(file) + ".html";
+    if (!writePage(out, replaceFirst(tmpl, "/*__PLAIN_DATA__*/null", R.json))) return 2;
+    printf("Recorded %zu step%s of %s. Open %s in a browser to watch it.\n", R.run->ob.steps.size(), R.run->ob.steps.size() == 1 ? "" : "s",
            file.c_str(), out.c_str());
-    if (run->ob.truncated) printf("(It was longer than %zu steps, so the recording stops there. Try a smaller input, or --max-steps.)\n", maxSteps);
-    if (!run->errorMsg.empty()) {
-        PlainError e;
-        e.msg = run->errorMsg;
-        e.line = run->errorLine;
-        e.file = run->errorFile;
-        report(e, file, src, &run->prog);
-        return 1;
-    }
-    return 0;
+    if (R.run->ob.truncated) printf("(It was longer than %zu steps, so the recording stops there. Try a smaller input, or --max-steps.)\n", maxSteps);
+    return reportRecording(R);
 }
 
 static std::string withCommas(uint64_t n) {

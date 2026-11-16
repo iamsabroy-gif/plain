@@ -1,0 +1,75 @@
+# 10. Under the hood
+The library's data structures are ordinary Plain classes. A class describes a
+kind of object: `init` sets up a new one, and its actions use `me` for the object
+itself.
+
+    class Counter
+        init
+            set me's count to 0
+        end
+        define tick
+            increase me's count by 1
+        end
+    end
+
+    set c to new Counter()
+    c's tick()
+    say c's count
+
+Read how the library builds a stack: plain lib stack
+=== Your own stack
+Make a class Pile that keeps a list in me's items, with push(x), pop() (gives
+back and removes the last item) and size(). Push 1, 2 and 3, pop once, and say
+what was popped and the size left.
+--- output
+3 2
+--- uses
+class, me, init
+--- hint
+init: set me's items to []. push: add x to me's items.
+
+pop: set last to me's items[length of me's items], then remove the last item with pop(me's items), and give back last. (The built-in pop(list) does both: give back pop(me's items).)
+--- solution
+class Pile
+    init
+        set me's items to []
+    end
+    define push with x
+        add x to me's items
+    end
+    define pop
+        give back pop(me's items)
+    end
+    define size
+        give back length of me's items
+    end
+end
+set p to new Pile()
+p's push(1)
+p's push(2)
+p's push(3)
+say p's pop(), p's size()
+=== A linked chain
+A linked list is a chain of maps: {value: 1, next: ...}, where the last one's next
+is nothing. Build the chain 1 -> 2 -> 3 from the end backwards, then walk it with
+a while loop, saying each value.
+--- output
+1
+2
+3
+--- uses
+while, nothing
+--- hint
+set head to nothing. For each v in [3, 2, 1]: set head to {value: v, next: head}.
+
+To walk: set node to head; while node is not nothing: say node's value, set node to node's next.
+--- solution
+set head to nothing
+for each v in [3, 2, 1]
+    set head to {value: v, next: head}
+end
+set node to head
+while node is not nothing
+    say node's value
+    set node to node's next
+end

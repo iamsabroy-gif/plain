@@ -45,6 +45,16 @@ printf 'define wrong with xs\n    give back xs\nend\ndefine right with xs\n    g
 check "$WORK/cmp2.out" 'they disagree' "compare: disagreement reported"
 "$PLAIN" growth "$DIR/viz/sorting.plain" nosuch > "$WORK/g3.out" 2>&1 && fail=1
 check "$WORK/g3.out" 'Actions I can test: .*bubble_sort' "growth: lists the testable actions"
+# watch: picking how a value is drawn, and two programs side by side
+printf '# watch: heap as tree, xs as pie, total\nset heap to [1, 3, 2]\nset xs to [1]\nset total to 0\nsay "</b>"\n' > "$WORK/views.plain"
+(cd "$WORK" && "$PLAIN" visualize views.plain > views.out 2>&1)
+check "$WORK/views.out" "can't draw 'xs' as 'pie'" "visualize: an unknown view is reported"
+check "$WORK/views.html" '"views":{"heap":"tree"}' "visualize: views are in the page"
+check "$WORK/views.html" '"watch":\["heap","xs","total"\]' "visualize: watched names are in the page"
+grep -q '<\\//' "$WORK/views.html" && { echo "FAILED: visualize: '</' was escaped twice"; fail=1; }
+(cd "$WORK" && "$PLAIN" visualize views.plain "$DIR/viz/bubble.plain" -o both.html > both.out 2>&1)
+check "$WORK/both.out" 'step through both together' "visualize: two programs side by side"
+check "$WORK/both.html" 'plainPlayerReady' "visualize: side-by-side page drives both players"
 rm -rf "$WORK"
 [ $fail -eq 0 ] && echo "visualize/count: ok"
 [ $fail -eq 0 ]

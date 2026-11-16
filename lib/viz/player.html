@@ -177,6 +177,7 @@ const DATA = /*__PLAIN_DATA__*/null;
 "use strict";
 const $ = (id) => document.getElementById(id);
 const D = DATA;
+const VIEWS = D.views || {};  // "# watch: xs as bars": how to draw a name
 const POINTERS = new Set(["i","j","k","lo","hi","low","high","mid","left","right","start","stop","pivot","pos","position","index","idx","gap","front","back","slow","fast","smallest","largest","min_index","max_index","low_at","high_at","split"]);
 
 function h(tag, attrs, ...kids) {
@@ -254,6 +255,43 @@ function render(v, ctx, depth) {
     return renderRecord(v, ctx, depth);
   }
   return h("span", { class: "chip", text: "?" });
+}
+
+// "# watch: xs as bars" picks how a value is drawn. When the value can't be drawn that
+// way (a map as bars), it is drawn the usual way, with a note saying why.
+function renderAs(v, ctx, view) {
+  const why = (text) => h("div", null, render(v, ctx, 0), h("div", { class: "more", text: "(can't draw this as " + view + ": " + text + ")" }));
+  if (view === "text") return h("span", { class: "chip", text: shorten(scalarText0(v), 200), title: scalarText0(v) });
+  if (isScalar(v)) return view === "text" ? render(v, ctx, 0) : why("it is a single value");
+  if (view === "bars") {
+    if (!isList(v)) return why("it is not a list");
+    if (!v.v.every((x) => typeof x === "number" || (x && x.N !== undefined))) return why("not every item is a number");
+    const cmp = new Set(), mv = new Set(), marks = {};
+    (ctx.step.c || []).forEach((q) => { if (q[0] === v.L) cmp.add(q[1]); });
+    (ctx.step.w || []).forEach((q) => { if (q[0] === v.L) mv.add(q[1]); });
+    (ctx.step.s || []).forEach((q) => { if (q[0] === v.L) { mv.add(q[1]); mv.add(q[2]); } });
+    (ctx.scope || []).forEach(([name, val]) => {
+      if (typeof val === "number" && Number.isInteger(val) && val >= 1 && val <= v.n && POINTERS.has(name)) (marks[val - 1] = marks[val - 1] || []).push(name);
+    });
+    return renderBars(v, ctx, cmp, mv, marks);
+  }
+  if (view === "boxes") return isList(v) ? renderList(v, Object.assign({}, ctx, { boxes: true })) : why("it is not a list");
+  if (view === "grid") return isList(v) && v.v.length && v.v.every(isList) ? renderMatrix(v, ctx) : why("it is not a list of lists");
+  if (view === "table") {
+    if (!isRec(v)) return isList(v) ? renderList(v, Object.assign({}, ctx, { boxes: true })) : why("it is not a map");
+    const tbl = h("table", { class: "kv" });
+    for (const e of v.v) tbl.append(h("tr", null, h("td", { class: "k", text: scalarText(e[0]) }), h("td", null, render(e[1], ctx, 1))));
+    return v.v.length ? tbl : h("span", { class: "chip", text: "{}" });
+  }
+  if (view === "tree") {
+    if (isList(v)) return v.v.length ? renderHeapTree(v.v, ctx, v.L) : h("span", { class: "chip", text: "[ ]" });
+    if (isRec(v) && isBinaryNode(v)) return renderBinaryTree(v, ctx);
+    if (isRec(v) && isKidsNode(v)) return renderKidsTree(v, ctx);
+    return why("a tree is a list (drawn like a heap), or maps with value/left/right or value/children");
+  }
+  if (view === "chain") return isRec(v) && isChainNode(v) ? renderChain(v, ctx) : why("a chain is maps with value and next");
+  if (view === "graph") return isRec(v) && isGraph(v) ? renderGraph(v, ctx, null) : why("a graph is a map from each node to a list of its neighbours");
+  return render(v, ctx, 0);
 }
 
 // A heap is a list used as a tree: item i has children 2i and 2i+1.
@@ -705,6 +743,7 @@ function drawVars(i) {
       const oid = idOf(v), own = oid !== null ? owner[oid] : null;
       if (contained.has(g.title + "/" + n)) cell = h("span", { class: "chip fn", text: "→ points into the structure above" });
       else if (own && (own[0] !== gi || own[1] !== n)) cell = h("span", { class: "chip fn", text: "the same as " + own[1] + (own[2] !== "Variables" ? " (in " + own[2] + ")" : "") + (own[0] > gi ? " below" : " above") });
+      else if (VIEWS[n]) cell = renderAs(v, ctx, VIEWS[n]);
       else cell = render(v, ctx, 0);
       gd.append(h("div", { class: "var" + (changed ? " changed" : "") }, h("div", { class: "vn", text: n }), h("div", null, cell)));
     });
@@ -796,6 +835,16 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "Home") { stop(); show(0); }
   else if (e.key === "End") { stop(); show(steps.length - 1); }
 });
+
+// ------------------------------------------------------------ side by side
+// A page that shows two players (plain visualize a.plain b.plain) steps them together.
+window.addEventListener("message", (e) => {
+  const m = e.data;
+  if (!m || m.plainPlayer === undefined || e.source !== window.parent) return;
+  stop();
+  if (m.plainPlayer === "go") show(m.i);
+});
+if (window.parent !== window) window.parent.postMessage({ plainPlayerReady: steps.length }, "*");
 
 // ------------------------------------------------------------ start up
 const c = D.counts;

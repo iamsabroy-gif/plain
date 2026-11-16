@@ -1,0 +1,81 @@
+# 4. Lists
+A list keeps many values in order, between square brackets. Items are counted from 1.
+
+    set fruits to ["mango", "banana", "lychee"]
+    say fruits[1]
+    add "guava" to fruits
+    say length of fruits
+
+`for each` goes through every item:
+
+    for each fruit in fruits
+        say "I like {fruit}"
+    end
+
+`sort(list)` gives back a sorted copy: set fruits to sort(fruits).
+=== Every item
+Make a list of the colours red, green and blue, then say each one on its own line
+using for each.
+--- output
+red
+green
+blue
+--- uses
+each, []
+--- hint
+set colours to ["red", "green", "blue"], then for each c in colours ... say c ... end
+--- solution
+set colours to ["red", "green", "blue"]
+for each c in colours
+    say c
+end
+=== The biggest
+Find the biggest number in [12, 45, 7, 23, 56, 9] with a loop (not max), and say it.
+--- output
+56
+--- uses
+each
+--- avoid
+max, sort
+--- hint
+Keep the biggest so far, starting with the first item: set biggest to numbers[1]
+
+For each number: if it is greater than biggest, set biggest to it.
+--- solution
+set numbers to [12, 45, 7, 23, 56, 9]
+set biggest to numbers[1]
+for each x in numbers
+    if x is greater than biggest then
+        set biggest to x
+    end
+end
+say biggest
+=== Build a list
+Start with an empty list. Add the squares of 1 to 5 to it (1, 4, 9, 16, 25) with a
+loop, then say the list.
+--- output
+[1, 4, 9, 16, 25]
+--- uses
+add, for
+--- hint
+set squares to [] first. In a loop from 1 to 5: add i * i to squares.
+--- solution
+set squares to []
+for i from 1 to 5
+    add i * i to squares
+end
+say squares
+=== Sorted
+Say the list [5, 3, 8, 1] sorted from smallest to biggest, and then its first and
+last items on one line, like: smallest 1 biggest 8
+--- output
+[1, 3, 5, 8]
+smallest 1 biggest 8
+--- uses
+sort
+--- hint
+set xs to sort([5, 3, 8, 1]). The last item is xs[length of xs].
+--- solution
+set xs to sort([5, 3, 8, 1])
+say xs
+say "smallest", xs[1], "biggest", xs[length of xs]

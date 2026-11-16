@@ -1,0 +1,95 @@
+# 8. Data structures
+A data structure is a way of keeping values so that some jobs become easy. Plain
+comes with a library of them, written in Plain:
+
+    use "stack"
+    set pile to new Stack()
+    pile's push("plate 1")
+    pile's push("plate 2")
+    say pile's pop()
+
+A stack gives back the last thing put in (like a pile of plates). A queue gives
+back the first (like a line of people): use "queue", new Queue(), enqueue,
+dequeue. See every part with: plain lib
+=== Reverse with a stack
+Use a Stack to reverse the word "stressed": push each letter, then pop them all,
+joining them into new text. Say the result.
+--- output
+desserts
+--- uses
+stack, push, pop
+--- avoid
+reverse
+--- hint
+use "stack" and set s to new Stack(). Push every letter in a for each loop.
+
+set out to "", then while not s's is_empty(): set out to out + s's pop()
+--- solution
+use "stack"
+set s to new Stack()
+for each letter in "stressed"
+    s's push(letter)
+end
+set out to ""
+while not s's is_empty()
+    set out to out + s's pop()
+end
+say out
+=== Brackets that match
+Use a Stack to check whether the brackets in "(a[b]\{c})" and "(a[b)]" are
+properly matched (a brace in text is written \{ so that it is not a template): every closing bracket must close the most recent open one. Say
+true or false for each, on one line.
+--- output
+true false
+--- uses
+stack, define
+--- hint
+Push every opening bracket. For a closing one: if the stack is empty, or what you pop is not its partner, it is not matched.
+
+At the end it is matched only if the stack is empty.
+--- solution
+use "stack"
+define matched with text
+    set partner to {")": "(", "]": "[", "}": "{"}
+    set s to new Stack()
+    for each c in text
+        if "([{" contains c then
+            s's push(c)
+        otherwise if has_key(partner, c) then
+            if s's is_empty() then
+                give back false
+            end
+            if s's pop() is not partner[c] then
+                give back false
+            end
+        end
+    end
+    give back s's is_empty()
+end
+say matched("(a[b]\{c})"), matched("(a[b)]")
+=== Take turns
+Use a Queue for three players: Ana, Ben and Cy. Five times, take the player at
+the front, say "{name}'s turn", and put them at the back again.
+--- output
+Ana's turn
+Ben's turn
+Cy's turn
+Ana's turn
+Ben's turn
+--- uses
+queue, enqueue, dequeue
+--- hint
+use "queue", set q to new Queue(), and enqueue each name.
+
+repeat 5 times: set p to q's dequeue(), say it, then q's enqueue(p).
+--- solution
+use "queue"
+set q to new Queue()
+for each name in ["Ana", "Ben", "Cy"]
+    q's enqueue(name)
+end
+repeat 5 times
+    set p to q's dequeue()
+    say "{p}'s turn"
+    q's enqueue(p)
+end
