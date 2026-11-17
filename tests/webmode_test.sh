@@ -20,6 +20,7 @@ grep -q 'web playground' "$WORK/t.out" || { echo "FAILED (web mode): tasks shoul
 "$WORK/plain_web" -e 'say http_get("http://example.com")' > "$WORK/n.out" 2>&1
 grep -q 'web playground' "$WORK/n.out" || { echo "FAILED (web mode): networking should be refused politely"; fail=1; }
 "$WORK/plain_web" visualize --json -e 'say 1' | grep -q '"steps"' || { echo "FAILED (web mode): visualize --json"; fail=1; }
+printf 'say 1\ntotal = 5\n' | "$WORK/plain_web" check --json - | grep -q '"line":2' || { echo "FAILED (web mode): check --json - (the playground's live underlining)"; fail=1; }
 rm -rf "$WORK"
 [ $fail -eq 0 ] && echo "web mode: ok"
 [ $fail -eq 0 ]

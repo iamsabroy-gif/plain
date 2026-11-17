@@ -54,6 +54,52 @@ const ok = (cond, what) => { results.push((cond ? "ok   " : "FAIL ") + what); };
   await p.click("#tidy");
   await p.waitForFunction(() => !document.getElementById("tidy").disabled);
   ok((await p.inputValue("#code")) === 'set x to 1\nif x is 1\n    say "one"\nend\n', "Tidy rewrites it in the standard style");
+  // colouring that knows what the program defines
+  await p.fill("#code", 'class Dog\n    define bark\n        say "Woof"\n    end\nend\ndefine greet with who\n    say who\nend\nset d to new Dog()\nset f to greet\nd\'s bark()\n');
+  const names = await p.evaluate(() => {
+    const get = (c) => [...document.querySelectorAll("#hl ." + c)].map((e) => e.textContent).join(" ");
+    return { def: get("t-def"), cls: get("t-cls"), fn: get("t-fn") };
+  });
+  ok(names.def === "bark greet", "the names after define are coloured: " + names.def);
+  ok(names.cls === "Dog Dog", "class names are coloured, also after new: " + names.cls);
+  ok(names.fn === "greet bark", "using a defined action is coloured even without brackets: " + names.fn);
+  // typing like a person: end is added, the cursor lands inside, end and otherwise line up
+  await p.fill("#code", "");
+  await p.click("#code");
+  await p.keyboard.type("for i from 1 to 3");
+  await p.keyboard.press("Enter");
+  ok((await p.inputValue("#code")) === "for i from 1 to 3\n    \nend", "Enter after a block line adds its end: " + JSON.stringify(await p.inputValue("#code")));
+  await p.keyboard.type("if i is 2 then");
+  await p.keyboard.press("Enter");
+  await p.keyboard.type("say i");
+  await p.keyboard.press("Enter");
+  await p.keyboard.type("otherwise");
+  await p.keyboard.press("Enter");
+  await p.keyboard.type("say 0");
+  const typed = await p.inputValue("#code");
+  ok(typed === "for i from 1 to 3\n    if i is 2 then\n        say i\n    otherwise\n        say 0\n    end\nend", "nested blocks get one end each, and otherwise lines up with its if: " + JSON.stringify(typed));
+  await p.click("#run");
+  await p.waitForFunction(() => !document.getElementById("run").disabled);
+  ok((await p.textContent("#output")).replace(/\s+/g, " ").trim() === "0 2 0", "and what was typed runs");
+  // pressing Enter after a block that already has its end must not add another
+  await p.fill("#code", "if 1 is 1 then\n    say 1\nend\n");
+  await p.click("#code");
+  await p.keyboard.press("Control+Home");
+  await p.keyboard.press("End");
+  await p.keyboard.press("Enter");
+  ok((await p.inputValue("#code")) === "if 1 is 1 then\n    \n    say 1\nend\n", "no second end when the block is already closed");
+  // mistakes are underlined after typing stops, and an unfinished block is only a gentle warning
+  await p.fill("#code", "set total to 0\ntotal = 5\nsay total\n");
+  await p.waitForSelector("#hl .t-bad", { timeout: 6000 });
+  ok((await p.textContent("#liveProblem")).includes("Line 2:") && (await p.textContent("#liveProblem")).includes("start the line with 'set'"), "a mistake is underlined, with its message: " + (await p.textContent("#liveProblem")));
+  ok((await p.locator("#gutter .gbad").textContent()) === "2", "and its line number is marked");
+  ok((await p.evaluate(() => document.querySelector("#hl .t-bad").textContent)) === "total = 5", "on the right line");
+  await p.fill("#code", "set total to 0\nsay total\n");
+  await p.waitForSelector("#liveProblem", { state: "hidden", timeout: 6000 });
+  ok((await p.locator("#hl .t-bad").count()) === 0, "the underline goes away when it is fixed");
+  await p.fill("#code", "set x to 1\nif x is 1 then\n    say x\n");
+  await p.waitForSelector("#hl .t-warn", { timeout: 6000 });
+  ok((await p.textContent("#liveProblem")).startsWith("Not finished, line 2"), "an unclosed block is a warning, not an error");
   // blocks
   await p.fill("#code", "");
   await p.click("#blocks button:has-text('repeat')");

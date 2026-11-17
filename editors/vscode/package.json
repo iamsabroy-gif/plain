@@ -34,7 +34,8 @@
       "title": "Plain",
       "properties": {
         "plain.path": { "type": "string", "default": "plain", "description": "The plain command (or its full path)." },
-        "plain.checkOnSave": { "type": "boolean", "default": true, "description": "Run 'plain check' when a file is saved and underline mistakes." }
+        "plain.checkAsYouType": { "type": "boolean", "default": true, "description": "Run 'plain check' a moment after you stop typing and underline the line with a mistake." },
+        "plain.checkOnSave": { "type": "boolean", "default": true, "description": "Run 'plain check' when a file is opened or saved and underline mistakes." }
       }
     }
   }

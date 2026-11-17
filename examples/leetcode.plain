@@ -1,0 +1,276 @@
+# Ten LeetCode problems, solved in Plain.   plain examples/leetcode.plain
+# Each solution is an action; the checks at the bottom run it on the problem's own examples.
+#
+#  121 Best Time to Buy and Sell Stock     arrays            O(n)
+#  217 Contains Duplicate                  hashing           O(n)
+#  238 Product of Array Except Self        prefix products   O(n)
+#   11 Container With Most Water           two pointers      O(n)
+#   15 3Sum                                sort + pointers   O(n^2)
+#    3 Longest Substring Without Repeats   sliding window    O(n)
+#  198 House Robber                        dynamic prog.     O(n)
+#  200 Number of Islands                   grid search       O(rows * cols)
+#  226 Invert Binary Tree                  recursion         O(n)
+#  206 Reverse Linked List                 pointers          O(n)
+
+# ---------------------------------------------------------------- 121 Best Time to Buy and Sell Stock
+# Buy on one day, sell on a later day: the biggest profit (0 if every trade loses money).
+define max_profit with prices
+    if length of prices is 0 then
+        give back 0
+    end
+    set cheapest to prices[1]
+    set best to 0
+    for each price in prices
+        if price is less than cheapest then
+            set cheapest to price
+        otherwise if price - cheapest is greater than best then
+            set best to price - cheapest
+        end
+    end
+    give back best
+end
+
+# ---------------------------------------------------------------- 217 Contains Duplicate
+# Does any number appear twice? A map remembers what has been seen.
+define contains_duplicate with numbers
+    set seen_numbers to {}
+    for each n in numbers
+        if has_key(seen_numbers, n) then
+            give back true
+        end
+        set seen_numbers[n] to true
+    end
+    give back false
+end
+
+# ---------------------------------------------------------------- 238 Product of Array Except Self
+# For each position, the product of all the other numbers, without dividing.
+# First pass: the product of everything before each position. Second pass: everything after.
+define product_except_self with numbers
+    set answer to []
+    set running to 1
+    for each x in numbers
+        add running to answer
+        set running to running * x
+    end
+    set running to 1
+    for i from length of numbers to 1 by -1
+        set answer[i] to answer[i] * running
+        set running to running * numbers[i]
+    end
+    give back answer
+end
+
+# ---------------------------------------------------------------- 11 Container With Most Water
+# Two lines and the floor make a container: the most water one can hold.
+# Start with the widest container and always move the shorter wall in.
+define max_water with heights
+    set left to 1
+    set right to length of heights
+    set best to 0
+    while left is less than right
+        set area to min(heights[left], heights[right]) * (right - left)
+        set best to max(best, area)
+        if heights[left] is less than heights[right] then
+            increase left by 1
+        otherwise
+            decrease right by 1
+        end
+    end
+    give back best
+end
+
+# ---------------------------------------------------------------- 15 3Sum
+# All the different triples that add up to 0. Sort, fix one number, and walk two pointers in.
+define three_sum with numbers
+    set xs to sort(numbers)
+    set n to length of xs
+    set found to []
+    for i from 1 to n - 2
+        if i is greater than 1 and xs[i] is xs[i - 1] then
+            skip
+        end
+        set low to i + 1
+        set high to n
+        while low is less than high
+            set total to xs[i] + xs[low] + xs[high]
+            if total is less than 0 then
+                increase low by 1
+            otherwise if total is greater than 0 then
+                decrease high by 1
+            otherwise
+                add [xs[i], xs[low], xs[high]] to found
+                increase low by 1
+                decrease high by 1
+                while low is less than high and xs[low] is xs[low - 1]
+                    increase low by 1
+                end
+            end
+        end
+    end
+    give back found
+end
+
+# ---------------------------------------------------------------- 3 Longest Substring Without Repeating Characters
+# A window slides along the text; when a letter repeats, the window's start jumps past its last place.
+define longest_unique with word
+    set last_place to {}
+    set window_start to 1
+    set best to 0
+    set position to 0
+    for each letter in word
+        increase position by 1
+        if has_key(last_place, letter) and last_place[letter] is at least window_start then
+            set window_start to last_place[letter] + 1
+        end
+        set last_place[letter] to position
+        set best to max(best, position - window_start + 1)
+    end
+    give back best
+end
+
+# ---------------------------------------------------------------- 198 House Robber
+# Rob houses along a street for the most money, never two next to each other.
+# At each house: the best so far is either "skip it" or "rob it, plus the best from two houses back".
+define rob with money
+    set before to 0
+    set previous to 0
+    for each m in money
+        set current to max(previous, before + m)
+        set before to previous
+        set previous to current
+    end
+    give back previous
+end
+
+# ---------------------------------------------------------------- 200 Number of Islands
+# A grid of "1" (land) and "0" (water): how many islands? Walk each island once, marking its land seen.
+define count_islands with grid
+    set rows to length of grid
+    if rows is 0 then
+        give back 0
+    end
+    set cols to length of grid[1]
+    set visited to {}
+    set islands to 0
+    for r from 1 to rows
+        for c from 1 to cols
+            if grid[r][c] is "1" and not has_key(visited, "{r},{c}") then
+                increase islands by 1
+                set visited["{r},{c}"] to true
+                set pending to [[r, c]]
+                while length of pending is greater than 0
+                    set cell to pop(pending)
+                    for each move in [[1, 0], [-1, 0], [0, 1], [0, -1]]
+                        set nr to cell[1] + move[1]
+                        set nc to cell[2] + move[2]
+                        if nr is at least 1 and nr is at most rows and nc is at least 1 and nc is at most cols then
+                            if grid[nr][nc] is "1" and not has_key(visited, "{nr},{nc}") then
+                                set visited["{nr},{nc}"] to true
+                                add [nr, nc] to pending
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    give back islands
+end
+
+# ---------------------------------------------------------------- 226 Invert Binary Tree
+# Mirror a tree: every left child becomes the right child. A node is a map {value, left, right};
+# a missing child is nothing.
+define invert_tree with node
+    if node is nothing then
+        give back nothing
+    end
+    set mirrored_left to invert_tree(node's right)
+    set mirrored_right to invert_tree(node's left)
+    give back {value: node's value, left: mirrored_left, right: mirrored_right}
+end
+
+# ---------------------------------------------------------------- 206 Reverse Linked List
+# A list is a chain of maps {value, next}. Turn every arrow around, one node at a time.
+define reverse_list with head
+    set previous_node to nothing
+    set current_node to head
+    while current_node is not nothing
+        set following to current_node's next
+        set current_node's next to previous_node
+        set previous_node to current_node
+        set current_node to following
+    end
+    give back previous_node
+end
+
+# ================================================================ the checks
+set checks to 0
+set checks_failed to 0
+define check with name, got, want
+    increase checks by 1
+    if got is want then
+        say "ok  ", name, "->", got
+    otherwise
+        increase checks_failed by 1
+        say "FAIL", name, "gave", got, "but should give", want
+    end
+end
+
+# helpers to build and read trees and chains
+define leaf with v
+    give back {value: v, left: nothing, right: nothing}
+end
+define branch with v, a, b
+    give back {value: v, left: a, right: b}
+end
+define in_order with node
+    if node is nothing then
+        give back []
+    end
+    give back in_order(node's left) + [node's value] + in_order(node's right)
+end
+define make_chain with values
+    set head to nothing
+    for i from length of values to 1 by -1
+        set head to {value: values[i], next: head}
+    end
+    give back head
+end
+define chain_values with head
+    set out to []
+    set node to head
+    while node is not nothing
+        add node's value to out
+        set node to node's next
+    end
+    give back out
+end
+
+say "Ten LeetCode problems"
+check("121 max_profit [7,1,5,3,6,4]", max_profit([7, 1, 5, 3, 6, 4]), 5)
+check("121 max_profit [7,6,4,3,1]", max_profit([7, 6, 4, 3, 1]), 0)
+check("217 contains_duplicate [1,2,3,1]", contains_duplicate([1, 2, 3, 1]), true)
+check("217 contains_duplicate [1,2,3,4]", contains_duplicate([1, 2, 3, 4]), false)
+check("238 product_except_self [1,2,3,4]", product_except_self([1, 2, 3, 4]), [24, 12, 8, 6])
+check("238 product_except_self [-1,1,0,-3,3]", product_except_self([-1, 1, 0, -3, 3]), [0, 0, 9, 0, 0])
+check("11 max_water [1,8,6,2,5,4,8,3,7]", max_water([1, 8, 6, 2, 5, 4, 8, 3, 7]), 49)
+check("11 max_water [1,1]", max_water([1, 1]), 1)
+check("15 three_sum [-1,0,1,2,-1,-4]", three_sum([-1, 0, 1, 2, -1, -4]), [[-1, -1, 2], [-1, 0, 1]])
+check("15 three_sum [0,1,1]", three_sum([0, 1, 1]), [])
+check("15 three_sum [0,0,0,0]", three_sum([0, 0, 0, 0]), [[0, 0, 0]])
+check("3 longest_unique abcabcbb", longest_unique("abcabcbb"), 3)
+check("3 longest_unique bbbbb", longest_unique("bbbbb"), 1)
+check("3 longest_unique pwwkew", longest_unique("pwwkew"), 3)
+check("3 longest_unique abba", longest_unique("abba"), 2)
+check("198 rob [1,2,3,1]", rob([1, 2, 3, 1]), 4)
+check("198 rob [2,7,9,3,1]", rob([2, 7, 9, 3, 1]), 12)
+check("200 count_islands (one big island)", count_islands(["11110", "11010", "11000", "00000"]), 1)
+check("200 count_islands (three islands)", count_islands(["11000", "11000", "00100", "00011"]), 3)
+set tree to branch(4, branch(2, leaf(1), leaf(3)), branch(7, leaf(6), leaf(9)))
+check("226 invert_tree in order before", in_order(tree), [1, 2, 3, 4, 6, 7, 9])
+check("226 invert_tree in order after", in_order(invert_tree(tree)), [9, 7, 6, 4, 3, 2, 1])
+check("226 invert_tree twice is the original", invert_tree(invert_tree(tree)), tree)
+check("206 reverse_list [1,2,3,4,5]", chain_values(reverse_list(make_chain([1, 2, 3, 4, 5]))), [5, 4, 3, 2, 1])
+check("206 reverse_list []", chain_values(reverse_list(make_chain([]))), [])
+say checks, "checks,", checks_failed, "failed"

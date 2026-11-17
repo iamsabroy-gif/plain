@@ -71,13 +71,25 @@ textarea#code::selection { background: color-mix(in srgb, var(--accent) 30%, tra
 .t-num, .t-lit { color: #c2560f; }
 .t-com { color: var(--muted); font-style: italic; }
 .t-fn { color: #0f7a8a; }
+.t-def { color: #0f7a8a; font-weight: 700; }
+.t-cls { color: #a05a00; font-weight: 700; }
 .t-me { color: #8a3ffc; }
+/* a line Plain found a mistake in (red), or a block that is still open (amber) */
+.t-bad { text-decoration: underline wavy var(--stop); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+.t-warn { text-decoration: underline wavy #d99a00; text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+.gutter .gbad { color: var(--stop); font-weight: 700; }
+.gutter .gwarn { color: #d99a00; font-weight: 700; }
+.live { display: flex; gap: 8px; align-items: baseline; padding: 8px 14px; font-size: 14px; border-top: 1px solid var(--line); cursor: pointer; background: var(--err-bg); color: var(--err-ink); }
+.live[hidden] { display: none; }
+.live.warn { background: color-mix(in srgb, #d99a00 16%, var(--panel)); color: var(--ink); }
+.live b { white-space: nowrap; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .t-ins { color: #f08bd4; }
   :root:not([data-theme="light"]) .t-op { color: #e8c76a; }
   :root:not([data-theme="light"]) .t-str { color: #6fd39b; }
   :root:not([data-theme="light"]) .t-num, :root:not([data-theme="light"]) .t-lit { color: #ffa36b; }
-  :root:not([data-theme="light"]) .t-fn { color: #5fd0e0; }
+  :root:not([data-theme="light"]) .t-fn, :root:not([data-theme="light"]) .t-def { color: #5fd0e0; }
+  :root:not([data-theme="light"]) .t-cls { color: #ffc46b; }
   :root:not([data-theme="light"]) .t-me { color: #c3a0ff; }
 }
 /* blocks: click to put a line of code where the cursor is */
@@ -156,6 +168,7 @@ footer a { color: var(--accent); }
         <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your program"></textarea>
       </div>
     </div>
+    <div id="liveProblem" class="live" role="status" hidden></div>
     <details>
       <summary>Typed answers for <code>ask</code> (one per line)</summary>
       <textarea id="stdin" spellcheck="false" aria-label="Typed answers, one per line" placeholder="If your program uses  ask ... into name  put the answers here, one per line."></textarea>
@@ -184,6 +197,7 @@ footer a { color: var(--accent); }
 <div id="loading" hidden></div>
 <footer>Plain is free and open source. <a href="https://github.com/iamsabroy-gif/plain">Source and install</a> &middot; <a href="https://github.com/iamsabroy-gif/plain/blob/main/docs/LANGUAGE.md">The language</a></footer>
 
+<script src="syntax.js"></script>
 <script>
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -204,77 +218,110 @@ const editor = $("code"), gutter = $("gutter"), out = $("output"), statusEl = $(
 let worker = null, busy = false, stopTimer = null, playerHtml = null, ready = false;
 
 // ---------------------------------------------------------------- the editor
+const SX = PlainSyntax;
+const esc = SX.esc;
+let problem = null;   // what Plain found wrong, from the last check: {line, message, incomplete}
 function updateGutter() {
   const lines = editor.value.split("\n").length;
-  let s = "";
-  for (let i = 1; i <= lines; i++) s += i + "\n";
-  gutter.textContent = s;
+  let html = "";
+  for (let i = 1; i <= lines; i++) {
+    const mark = problem && problem.line === i ? (problem.incomplete ? "gwarn" : "gbad") : "";
+    html += (mark ? '<span class="' + mark + '">' + i + "</span>" : i) + "\n";
+  }
+  gutter.innerHTML = html;
   gutter.scrollTop = editor.scrollTop;
 }
-editor.addEventListener("input", () => { updateGutter(); paint(); remember(); });
+editor.addEventListener("input", (e) => {
+  if (e.inputType === "insertText") outdentLine();
+  updateGutter(); paint(); remember(); scheduleCheck();
+});
 editor.addEventListener("scroll", () => { gutter.scrollTop = editor.scrollTop; syncScroll(); });
 
 // ------------------------------------------------------------- colouring
-const KW = new Set("if then otherwise end repeat times while for each in from to by stop skip give back try on error fail use call init class extends new action gives define with".split(" "));
-const INS = new Set("set say show print ask into add remove increase decrease".split(" "));
-const OPW = new Set("is not and or greater less than at least most equal contains plus minus multiplied divided modulo length of item".split(" "));
-const LIT = new Set(["true", "false", "nothing"]);
-const ME = new Set(["me", "parent"]);
-const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const span = (cls, t) => '<span class="' + cls + '">' + esc(t) + "</span>";
-// Colour one piece of code (no strings or comments inside: those are found first).
-function paintCode(code) {
-  return code.replace(/(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?d?)|([A-Za-z_\u0080-\uFFFF][A-Za-z0-9_\u0080-\uFFFF]*)(\s*\()?|('s\b)|([^A-Za-z0-9_\u0080-\uFFFF']+|')/g,
-    (m, num, word, call, poss, other) => {
-      if (num) return span("t-num", num);
-      if (poss) return span("t-op", poss);
-      if (other !== undefined) return esc(other);
-      const w = word.toLowerCase(), rest = call ? esc(call) : "";
-      if (KW.has(w)) return span("t-kw", word) + rest;
-      if (INS.has(w)) return span("t-ins", word) + rest;
-      if (OPW.has(w)) return span("t-op", word) + rest;
-      if (LIT.has(w)) return span("t-lit", word) + rest;
-      if (ME.has(w)) return span("t-me", word) + rest;
-      if (call) return span("t-fn", word) + rest;
-      return esc(word);
-    });
-}
-// Text, with the {values} inside it coloured as code.
-function paintText(t) {
-  let out = "", i = 0;
-  while (i < t.length) {
-    if (t[i] === "\\" && i + 1 < t.length) { out += esc(t.slice(i, i + 2)); i += 2; continue; }
-    if (t[i] === "{" && /[A-Za-z_(\[0-9-]/.test(t[i + 1] || "")) {
-      const close = t.indexOf("}", i);
-      if (close > 0) { out += '</span><span class="t-hole">{' + paintCode(t.slice(i + 1, close)) + '}</span><span class="t-str">'; i = close + 1; continue; }
-    }
-    out += esc(t[i]); i++;
-  }
-  return '<span class="t-str">' + out + "</span>";
-}
-function paintLine(line) {
-  if (/^\s*note:/i.test(line)) return span("t-com", line);
-  let out = "", i = 0, start = 0;
-  while (i < line.length) {
-    const c = line[i];
-    if (c === "#") { out += paintCode(line.slice(start, i)) + span("t-com", line.slice(i)); return out; }
-    if (c === '"') {
-      out += paintCode(line.slice(start, i));
-      let j = i + 1;
-      while (j < line.length && line[j] !== '"') j += line[j] === "\\" ? 2 : 1;
-      out += paintText(line.slice(i, Math.min(j + 1, line.length)));
-      i = start = Math.min(j + 1, line.length);
-      continue;
-    }
-    i++;
-  }
-  return out + paintCode(line.slice(start));
-}
 function paint() {
-  $("hl").innerHTML = editor.value.split("\n").map(paintLine).join("\n") + "\n ";
+  const known = SX.names(editor.value);
+  $("hl").innerHTML = editor.value.split("\n").map((l, i) => {
+    const html = SX.paintLine(l, known);
+    return problem && problem.line === i + 1 ? '<span class="' + (problem.incomplete ? "t-warn" : "t-bad") + '">' + html + "</span>" : html;
+  }).join("\n") + "\n ";
   syncScroll();
 }
 function syncScroll() { const hl = $("hl"); hl.scrollTop = editor.scrollTop; hl.scrollLeft = editor.scrollLeft; }
+
+// ----------------------------------------------------- end, otherwise, on error line up as you type
+// Typing the last letter of  end / otherwise / on error  moves the line back to where its block began.
+function outdentLine() {
+  const v = editor.value, at = editor.selectionStart;
+  if (at !== editor.selectionEnd) return;
+  const lineStart = v.lastIndexOf("\n", at - 1) + 1;
+  if (v.slice(at).split("\n")[0].trim() !== "") return;   // only when typing at the end of the line
+  const typed = v.slice(lineStart, at);
+  const m = typed.match(/^( +)(end|otherwise|on error)$/);
+  if (!m) return;
+  const lines = v.slice(0, at).split("\n");
+  let want = SX.matchingIndent(lines, lines.length - 1);
+  if (want < 0) want = Math.max(0, m[1].length - 4);
+  if (want >= m[1].length) return;
+  editor.setSelectionRange(lineStart + want, lineStart + m[1].length);
+  document.execCommand("delete");   // (an edit the browser can undo)
+  const back = at - (m[1].length - want);   // the end of the line again, where typing goes on
+  editor.setSelectionRange(back, back);
+}
+
+// ------------------------------------------------------------- mistakes, found as you type
+// A second interpreter (in its own worker, so a running program is never interrupted) runs
+// "plain check --json -" a moment after typing stops, and the line it names is underlined.
+let checker = null, checking = false, recheck = false, checkTimer = null;
+function scheduleCheck() {
+  clearTimeout(checkTimer);
+  checkTimer = setTimeout(liveCheck, 600);
+}
+function showProblem(p) {
+  const same = JSON.stringify(p) === JSON.stringify(problem);
+  problem = p;
+  const box = $("liveProblem");
+  if (!p) { box.hidden = true; }
+  else {
+    box.hidden = false;
+    box.className = "live" + (p.incomplete ? " warn" : "");
+    box.textContent = "";
+    box.append(el("b", { text: (p.incomplete ? "Not finished, line " : "Line ") + p.line + ":" }), el("span", { text: p.message }));
+    box.title = "Click to go to line " + p.line;
+  }
+  if (!same) { updateGutter(); paint(); }
+}
+function liveCheck() {
+  if (!ready) { if (typeof WebAssembly === "object") scheduleCheck(); return; }   // (wait for the interpreter to load)
+  if (checking) { recheck = true; return; }
+  const code = editor.value;
+  if (!code.trim()) { showProblem(null); return; }
+  checking = true; recheck = false;
+  if (!checker) checker = new Worker("worker.js");
+  let text = "";
+  const finish = (result) => {
+    checking = false;
+    if (code === editor.value) showProblem(result);   // (text typed since then is checked next)
+    if (recheck || code !== editor.value) scheduleCheck();
+  };
+  checker.onmessage = (ev) => {
+    const m = ev.data;
+    if (m.type === "out" && m.fd === 1) text += m.text;
+    else if (m.type === "done") {
+      let v = null;
+      try { v = JSON.parse(text.trim().split("\n")[0]); } catch (e) { /* not understood: show nothing */ }
+      finish(v && v.ok === false && (!v.file || v.file === "program.plain") ? { line: v.line, message: v.message, incomplete: !!v.incomplete } : null);
+    } else if (m.type === "failed") { checker.terminate(); checker = null; finish(null); }
+  };
+  checker.postMessage({ args: ["check", "--json", "-"], stdin: code, wasmUrl: "plain.wasm" });
+}
+$("liveProblem").onclick = () => {
+  if (!problem) return;
+  const lines = editor.value.split("\n");
+  let at = 0;
+  for (let i = 0; i < problem.line - 1 && i < lines.length; i++) at += lines[i].length + 1;
+  editor.focus();
+  editor.setSelectionRange(at, at + (lines[problem.line - 1] || "").length);
+};
 
 // ----------------------------------------------------------------- blocks
 const BLOCKS = [
@@ -310,12 +357,20 @@ editor.addEventListener("keydown", (e) => {
     document.execCommand("insertText", false, "    ");
   } else if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
     // keep the indent of the line above, and go one step further in after a line that opens a block
-    const start = editor.selectionStart, before = editor.value.slice(0, start);
-    const line = before.slice(before.lastIndexOf("\n") + 1);
-    let indent = line.match(/^ */)[0];
-    if (/^\s*(if|repeat|while|for|define|class|otherwise|try|on error)\b/i.test(line) || /\baction\b[^\n]*$/i.test(line) && !/\bgives\b/i.test(line) && /^\s*set\b/i.test(line)) indent += "    ";
+    const v = editor.value, start = editor.selectionStart;
+    const lineStart = v.lastIndexOf("\n", start - 1) + 1;
+    const line = v.slice(lineStart, start);
+    const indent = line.match(/^ */)[0];
+    const atLineEnd = start === editor.selectionEnd && v.slice(start).split("\n")[0].trim() === "";
     e.preventDefault();
-    document.execCommand("insertText", false, "\n" + indent);
+    if (atLineEnd && SX.opensBlock(line) && SX.unclosedBlocks(v) > 0) {
+      // the block is not closed anywhere: close it now, and leave the cursor inside it
+      document.execCommand("insertText", false, "\n" + indent + "    \n" + indent + "end");
+      const inside = editor.selectionStart - (indent.length + 3) - 1;
+      editor.setSelectionRange(inside, inside);
+    } else {
+      document.execCommand("insertText", false, "\n" + indent + (SX.indentsAfter(line) ? "    " : ""));
+    }
   } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
     e.preventDefault();
     if (!busy) runProgram();
@@ -328,7 +383,7 @@ const store = {  // localStorage, which may be missing (private windows): then n
 };
 let lessonKey = null;   // while doing a lesson exercise, like "3.2": its code is kept separately
 function remember() { store.set(lessonKey ? "plain-lesson-code-" + lessonKey : "plain-code", editor.value); }
-function setCode(text) { editor.value = text; updateGutter(); paint(); remember(); }
+function setCode(text) { editor.value = text; showProblem(null); updateGutter(); paint(); remember(); scheduleCheck(); }
 
 // -------------------------------------------------------------- running it
 const MAX_OUTPUT = 300000;   // characters; a program that says more than this is almost certainly stuck
@@ -542,7 +597,7 @@ function teachingNodes(text) {
     if (para.length) nodes.push(paraNode(para.join(" ")));
     if (code.length) {
       const src = code.join("\n") + "\n";
-      nodes.push(el("pre", { class: "snippet", html: src.split("\n").map(paintLine).join("\n") },
+      nodes.push(el("pre", { class: "snippet", html: SX.highlight(src) },
         el("button", { class: "needs-plain", text: "\u25B6 Try it", onclick: () => { out.textContent = ""; guarded("Running...", () => runPlain(["-e", src], { live: true, stdin: "Asha\n9\n" })); } })));
     }
     para = []; code = [];
@@ -576,7 +631,7 @@ function showLesson(L, exIndex) {
     if (shown >= ex.hints.length) { hintBtn.hidden = true; solBtn.hidden = false; }
   } });
   const solBtn = el("button", { text: "Show a program that works", hidden: "", onclick: () => {
-    hints.append(el("pre", { class: "expect", html: ex.solution.split("\n").map(paintLine).join("\n") }));
+    hints.append(el("pre", { class: "expect", html: SX.highlight(ex.solution) }));
     solBtn.hidden = true;
   } });
   const nextBtn = el("button", { text: i + 1 < L.exercises.length ? "Next exercise \u2192" : "Back to all lessons",
@@ -691,6 +746,7 @@ picker.onchange = () => { if (picker.value) { setCode(EXAMPLES[picker.value]); o
       statusEl.textContent = "Ready";
       for (const id of ["run", "watch", "count", "tidy"]) $(id).disabled = false;
       ready = true;
+      scheduleCheck();
       openLessonFromLink();
       probe.terminate();
     } else if (ev.data.type === "failed") {

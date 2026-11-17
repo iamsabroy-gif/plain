@@ -24,12 +24,13 @@ test: build/plain
 	@sh tests/tls_test.sh build/plain
 	@sh tests/format_test.sh build/plain
 	@sh tests/lib_test.sh build/plain
+	@sh tests/check_json_test.sh build/plain
 	@sh tests/viz_test.sh build/plain
 	@sh tests/practice_test.sh build/plain
 	@sh tests/lesson_test.sh build/plain
 	@sh tests/webmode_test.sh
 	@sh tests/docs_test.sh build/plain
-	@if command -v node >/dev/null 2>&1; then node tests/web_ui_test.js && node tests/docs_site_test.js && node tests/desktop_test.js && node tests/wasm_test.js && node tests/web_e2e.js; fi
+	@if command -v node >/dev/null 2>&1; then node tests/web_ui_test.js && node tests/vscode_test.js && node tests/docs_site_test.js && node tests/desktop_test.js && node tests/wasm_test.js && node tests/web_e2e.js; fi
 
 install: build/plain
 	install -d $(DESTDIR)$(PREFIX)/bin

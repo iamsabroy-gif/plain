@@ -4,7 +4,7 @@ A programming language that reads like English, made for learning to program and
 seeing how data structures and algorithms really work. Programs run on a fast
 virtual machine inside one small `plain` command with no dependencies.
 
-```
+```plain
 set fruits to ["mango", "banana", "lychee"]
 add "guava" to fruits
 

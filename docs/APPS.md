@@ -13,7 +13,7 @@ run with nothing to install. The examples are `examples/web_notes.plain` and
 
 ## Web sites: `use "web"`
 
-```
+```plain-example
 use "web"
 set app to new WebApp()
 
@@ -73,7 +73,7 @@ that Plain's own `"{name}"` templates leave them alone.
 **Sessions.** `request's session` is a map that belongs to one visitor (a cookie remembers
 which). Put anything in it, and it is there on their next request:
 
-```
+```plain-example
 define visit with request
     set s to request's session
     if not has_key(s, "visits") then
@@ -101,7 +101,7 @@ program: `say app's try_request("POST", "/notes", "text=Hi")'s status`.
 
 ## Desktop windows: `use "desktop"`
 
-```
+```plain-example
 use "desktop"
 set win to new Window("Counter", 360, 240)
 set clicks to 0

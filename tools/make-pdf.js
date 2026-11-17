@@ -62,7 +62,10 @@ code, pre { font-family: "DejaVu Sans Mono", "Liberation Mono", monospace; }
 code { background: #eef0f6; padding: 0 3px; border-radius: 3px; font-size: .92em; }
 pre { background: #f6f6f2; border: 1px solid #dcdcd4; border-radius: 6px; padding: 8px 11px; font-size: 8.8pt; line-height: 1.45; white-space: pre-wrap; word-break: break-word; page-break-inside: avoid; margin: 8px 0 12px; }
 pre code { background: none; padding: 0; font-size: inherit; }
-pre .k { color: #2748c4; font-weight: 700; } pre .s { color: #1a7f4b; } pre .c { color: #77776f; }
+pre .t-kw { color: #2748c4; font-weight: 700; } pre .t-ins { color: #a63a8c; font-weight: 700; } pre .t-op { color: #7a5c00; }
+pre .t-str { color: #1a7f4b; } pre .t-hole { background: #e3ebff; border-radius: 2px; } pre .t-num, pre .t-lit { color: #b8500c; }
+pre .t-com { color: #77776f; font-style: italic; } pre .t-fn { color: #0b6f7d; } pre .t-def { color: #0b6f7d; font-weight: 700; }
+pre .t-cls { color: #8f5000; font-weight: 700; } pre .t-me { color: #7a2fe0; }
 pre.lang-output { background: #fffbea; border-color: #ecd98a; }
 pre.lang-output::before { content: "It prints"; display: block; font: 700 7.5pt "Liberation Sans", sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #8a6d00; margin-bottom: 3px; }
 pre.lang-input { background: #eef6ff; border-color: #b9d3f2; }
