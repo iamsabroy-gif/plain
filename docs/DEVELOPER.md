@@ -82,7 +82,8 @@ lib/
   web.plain       use "web": WebApp, page, fill, escape_html, sessions, static files
   desktop.plain   use "desktop": Window and its widgets (a local web server + a page)
   ui/             what those send: page.css (the web style) and desktop.html (the window's page)
-web/              the browser playground: index.html, worker.js, syntax.js (plain.wasm and player.html are built)
+web/              the browser playground: index.html, worker.js, syntax.js, flowchart.js, algorithms.js
+                  (plain.wasm and player.html are built)
 tools/            embed.sh (pack lib/ into src/libfiles.hpp), build-wasm.sh, update-formula.sh,
                   markdown.js (the docs' Markdown converter), make-pdf.js (the PDFs),
                   build-docs.js and docs-site/ (the documentation web site)
@@ -354,7 +355,22 @@ quick enough for every key press. On top of it the editor:
   noticed when the program runs.
 
 A new keyword needs adding to `syntax.js` (colours), `editors/vscode/syntaxes` (the same, for
-VS Code) and, if it opens a block, `opensBlock`.
+VS Code) and, if it opens a block, `opensBlock` (and `flowchart.js`, if it should be drawn as
+more than a box).
+
+**The flowchart** (`flowchart.js`) reads a program line by line, like `syntax.js`, into ifs,
+loops, `try`, steps and jumps (`give back`, `stop`, `skip`, `fail`), with each `define` and each
+class action as a chart of its own, and lays it out as a structured flowchart in SVG. Every box
+knows its lines, so `boxForLine` finds the box for a step of a "Watch it run" trace: the player
+posts `{plainPlayerAt, line, file}` to the page as it moves, and the page lights that box and
+counts the steps per box; a click on a box posts `{plainPlayer: "line", lines}` back, and the
+player goes to the next step on one of those lines. `tests/flowchart_test.js` draws every
+program in the repository and checks that every line has a box and that no boxes overlap.
+
+**The algorithm gallery** is `algorithms.js`: one entry per algorithm (name, picture, group,
+cost, a sentence, and the program). A new one needs an expected answer in
+`tests/algorithms_test.js`, which also checks it is in the standard style, records in full
+(keep inputs small: the player records 6,000 steps) and that every step lands on a box.
 
 The interpreter is this same source built with `-DPLAIN_WASM` (set automatically by a WASI
 compiler). `value.hpp` defines `PLAIN_POSIX` for full builds (not Windows, not WebAssembly):

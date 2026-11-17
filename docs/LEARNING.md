@@ -35,6 +35,17 @@ heap, or maps with `value`/`left`/`right` or `children`), `chain` (`value`/`next
 `graph` and `text`. If a value can't be drawn that way, it is drawn as usual with a
 note saying why.
 
+**In the playground.** "Watch it run" shows the same player, with a **flowchart** of the
+program beside it. The box being run lights up as you step, each box shows how many times it
+has run so far (`×12`), and clicking a box jumps to the next time it runs. The **Flowchart**
+button shows the chart on its own and redraws it as you type; clicking a box finds its line.
+Decisions are diamonds, loops are hexagons with a dashed "round again" arrow, `say` and `ask`
+are slanted boxes, and each action (and each action of a class) gets a chart of its own. The
+**Algorithms** button opens 14 classic algorithms written to be watched: finding the biggest,
+linear and binary search, bubble, selection, insertion, merge and quick sort, Fibonacci and the
+Towers of Hanoi by recursion, breadth- and depth-first search, matching brackets with a stack,
+and Euclid's algorithm.
+
 **Side by side.** `plain visualize a.plain b.plain` records both programs into one
 page (`a-and-b.html`): two players next to each other, with one set of controls that
 steps both, so two solutions to the same problem can be watched together. Steps inside the built-in library

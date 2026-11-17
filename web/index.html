@@ -54,8 +54,50 @@ textarea#code { display: block; width: 100%; height: 56vh; min-height: 280px; re
 details { border-top: 1px solid var(--line); }
 summary { padding: 9px 14px; cursor: pointer; color: var(--muted); font-size: 14px; }
 details textarea { width: calc(100% - 28px); margin: 0 14px 12px; height: 70px; font: 14px/1.5 ui-monospace, Menlo, Consolas, monospace; background: var(--code-bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
-#vizCard { grid-column: 1 / -1; }
-#vizFrame { width: 100%; height: 78vh; border: 0; background: var(--bg); display: block; }
+#vizCard, #algosCard { grid-column: 1 / -1; }
+#vizFrame { width: 100%; height: 78vh; border: 0; background: var(--bg); display: block; min-width: 0; }
+/* the flowchart beside the step player (or alone, from the Flowchart button) */
+.vizbody { display: grid; grid-template-columns: minmax(300px, 40%) minmax(0, 1fr); }
+.vizbody.only-flow { grid-template-columns: minmax(0, 1fr); }
+.vizbody.only-flow #vizFrame { display: none; }
+.vizbody.no-flow { grid-template-columns: minmax(0, 1fr); }
+.vizbody.no-flow .flowpane { display: none; }
+.flowpane { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; }
+.vizbody.only-flow .flowpane { border-right: 0; }
+.flownote { padding: 8px 14px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--line); }
+#flowBox { overflow: auto; height: 74vh; padding: 10px 12px; }
+.vizbody.only-flow #flowBox { height: auto; max-height: 80vh; }
+@media (max-width: 860px) {
+  .vizbody { grid-template-columns: minmax(0, 1fr); }
+  .flowpane { border-right: 0; border-bottom: 1px solid var(--line); }
+  #flowBox { height: auto; max-height: 50vh; }
+}
+:root { --fc-step: #ffffff; --fc-line: #9b9a92; --fc-dec: #fff4d6; --fc-dec-line: #d39b00; --fc-loop: #e7eeff; --fc-io: #e6f6ec; --fc-err: #fdecec; --fc-on: #d6e2ff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --fc-step: #23252c; --fc-line: #6f717c; --fc-dec: #3a3220; --fc-dec-line: #c9a227; --fc-loop: #1f2a45; --fc-io: #1c3326; --fc-err: #3a2124; --fc-on: #2f3f73; }
+}
+.flowchart { font: 12px ui-monospace, "SF Mono", Menlo, Consolas, monospace; display: block; }
+.flowchart text { fill: var(--ink); }
+.fc-node rect, .fc-node polygon { fill: var(--fc-step); stroke: var(--fc-line); stroke-width: 1.4; transition: fill .15s, stroke .15s; }
+.fc-node[role="button"] { cursor: pointer; }
+.fc-node:focus { outline: none; }
+.fc-node:focus-visible rect, .fc-node:focus-visible polygon { stroke: var(--accent); stroke-dasharray: 3 2; }
+.fc-decision polygon { fill: var(--fc-dec); stroke: var(--fc-dec-line); }
+.fc-loop polygon { fill: var(--fc-loop); stroke: var(--accent); }
+.fc-io polygon { fill: var(--fc-io); stroke: var(--go); }
+.fc-io-err polygon { fill: var(--fc-err); stroke: var(--stop); }
+.fc-term rect { fill: var(--chip); }
+.fc-call .fc-bars { fill: none; stroke: var(--fc-line); stroke-width: 1.2; }
+.fc-edge { fill: none; stroke: var(--fc-line); stroke-width: 1.4; }
+.fc-again, .fc-fail { stroke-dasharray: 5 3; }
+#fc-arrow path { fill: var(--fc-line); }
+.fc-label { font: 11px system-ui, sans-serif; fill: var(--muted) !important; }
+.fc-title { font: 700 13px system-ui, sans-serif; }
+.fc-count { font: 700 11px system-ui, sans-serif; fill: var(--accent) !important; }
+.fc-node.fc-on rect, .fc-node.fc-on polygon { fill: var(--fc-on); stroke: var(--accent); stroke-width: 3; }
+.algo-group { padding: 4px 14px 0; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.tile .about { font-size: 13px; color: var(--muted); line-height: 1.35; }
+.tile .cost { font: 12px ui-monospace, Menlo, Consolas, monospace; color: var(--accent); }
 .note { color: var(--muted); font-size: 13px; padding: 8px 14px 12px; }
 /* the editor: a coloured copy of the text sits exactly under a see-through textarea */
 .area { position: relative; }
@@ -139,6 +181,7 @@ footer a { color: var(--accent); }
   <nav class="tabs" aria-label="Site"><a href="./" aria-current="page">Playground</a><a href="docs/">Documentation</a></nav>
   <span class="tag">Write a program, press Run. Nothing to install.</span>
   <button id="lessonsBtn" title="Lessons with exercises that are checked">&#128218; Lessons</button>
+  <button id="algosBtn" title="Classic algorithms to watch step by step">&#129518; Algorithms</button>
   <a href="docs/kids.html">Guide for kids</a>
   <a href="docs/overview.html#overview-install">Install on your computer</a>
 </header>
@@ -154,6 +197,7 @@ footer a { color: var(--accent); }
       <button id="run" class="run" disabled title="Run (Ctrl+Enter)">&#9654; Run</button>
       <button id="stop" class="stop" hidden>&#9632; Stop</button>
       <button id="watch" disabled title="Run slowly and watch every step">&#128064; Watch it run</button>
+      <button id="flowBtn" title="See the program as a flowchart">&#128256; Flowchart</button>
       <button id="count" disabled title="Count how much work it does">&#128290; Count the work</button>
       <button id="tidy" disabled title="Rewrite it in the standard style (plain format)">&#10024; Tidy</button>
       <span class="spacer"></span>
@@ -189,15 +233,27 @@ footer a { color: var(--accent); }
     <pre id="output" aria-live="polite"><span class="hint">Press Run to see what your program says.</span></pre>
     <div class="note">This runs inside your browser. Tasks, networking and files are only in the version you install.</div>
   </section>
+  <section class="card" id="algosCard" hidden>
+    <h2><span>Algorithms to watch</span><button id="algosClose" style="padding:2px 10px;font-size:12px">Close</button></h2>
+    <div id="algosBody"></div>
+  </section>
   <section class="card" id="vizCard" hidden>
-    <h2><span>Watch it run</span><button id="closeViz" style="padding:2px 10px;font-size:12px">Close</button></h2>
-    <iframe id="vizFrame" title="Step through the program" sandbox="allow-scripts"></iframe>
+    <h2><span id="vizTitle">Watch it run</span><span><button id="flowToggle" style="padding:2px 10px;font-size:12px">Hide flowchart</button> <button id="closeViz" style="padding:2px 10px;font-size:12px">Close</button></span></h2>
+    <div class="vizbody" id="vizBody">
+      <div class="flowpane" id="flowPane">
+        <div class="flownote" id="flowNote"></div>
+        <div id="flowBox"></div>
+      </div>
+      <iframe id="vizFrame" title="Step through the program" sandbox="allow-scripts"></iframe>
+    </div>
   </section>
 </main>
 <div id="loading" hidden></div>
 <footer>Plain is free and open source. <a href="https://github.com/iamsabroy-gif/plain">Source and install</a> &middot; <a href="https://github.com/iamsabroy-gif/plain/blob/main/docs/LANGUAGE.md">The language</a></footer>
 
 <script src="syntax.js"></script>
+<script src="flowchart.js"></script>
+<script src="algorithms.js"></script>
 <script>
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -470,17 +526,135 @@ async function loadPlayer() {
 }
 function watchRun() {
   out.textContent = "";
+  const code = editor.value;
   return guarded("Recording every step...", async () => {
-    const r = await runPlain(["visualize", "--json", "-e", editor.value]);
+    const r = await runPlain(["visualize", "--json", "-e", code]);
     const json = r.stdout.trim();
     if (!json.startsWith("{")) { say(r.stderr.replace(/^\n/, "") || "I could not record that program.", "err"); return; }
+    let trace = null;
+    try { trace = JSON.parse(json); } catch (e) { /* the player shows it anyway */ }
     const page = (await loadPlayer()).replace("/*__PLAIN_DATA__*/null", () => json);
+    showFlow(code, "watch", trace);
     $("vizFrame").srcdoc = page;
-    $("vizCard").hidden = false;
     $("vizCard").scrollIntoView({ behavior: "smooth", block: "start" });
     if (r.stderr) say(r.stderr.replace(/^\n/, ""), "err");
   });
 }
+
+// ------------------------------------------------------------------ the flowchart
+// mode "flow": the chart alone, redrawn as you type; "watch": beside the step player, lighting up
+// the box being run and counting how often each box has run so far.
+const flow = { mode: null, boxes: [], lineBox: [], stepLines: [], lastOn: null, hidden: false, finished: false };
+function showFlow(code, mode, trace) {
+  flow.mode = mode;
+  const r = PlainFlow.svg(code);
+  $("flowBox").innerHTML = r.svg;
+  flow.boxes = r.boxes;
+  flow.lineBox = [];
+  for (let line = 1; line <= r.lastLine; line++) { const b = PlainFlow.boxForLine(r.boxes, line); flow.lineBox[line] = b ? b.id : null; }
+  flow.stepLines = trace && trace.steps ? trace.steps.map((st) => (st.fi === 0 ? st.l : 0)) : [];
+  flow.finished = !!(trace && !trace.error && !trace.truncated);   // it ran to the end: light up End at the last step
+  flow.lastOn = null;
+  $("flowBox").querySelectorAll(".fc-node[role=button]").forEach((g) => {
+    g.addEventListener("click", () => boxClicked(g.id));
+    g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); boxClicked(g.id); } });
+  });
+  $("vizTitle").textContent = mode === "watch" ? "Watch it run" : "Flowchart";
+  $("flowNote").textContent = mode === "watch"
+    ? "The lit-up box is the step being run. \u00D7 shows how many times a box has run so far. Click a box to jump to the next time it runs."
+    : "Your program as a flowchart: it changes as you type. Click a box to find its line. Press Watch it run to see it light up step by step.";
+  $("vizBody").className = "vizbody" + (mode === "flow" ? " only-flow" : flow.hidden ? " no-flow" : "");
+  $("flowToggle").hidden = mode !== "watch";
+  if (mode === "flow") $("vizFrame").srcdoc = "";
+  $("vizCard").hidden = false;
+}
+function boxClicked(id) {
+  const b = flow.boxes.find((x) => x.id === id);
+  if (!b || !b.lines.length) return;
+  if (flow.mode === "watch") {
+    const lines = [];
+    for (const [a, z] of b.lines) for (let l = a; l <= z; l++) lines.push(l);
+    $("vizFrame").contentWindow.postMessage({ plainPlayer: "line", lines }, "*");
+  } else {
+    const all = editor.value.split("\n");
+    let at = 0;
+    for (let i = 0; i < b.lines[0][0] - 1; i++) at += all[i].length + 1;
+    let endAt = at;
+    for (let i = b.lines[0][0] - 1; i < b.lines[0][1]; i++) endAt += (all[i] || "").length + 1;
+    editor.focus();
+    editor.setSelectionRange(at, Math.max(at, endAt - 1));
+  }
+}
+// The player says which step it shows: light up that box and count the runs so far.
+window.addEventListener("message", (e) => {
+  if (e.source !== $("vizFrame").contentWindow || !e.data || e.data.plainPlayerAt === undefined || flow.mode !== "watch") return;
+  const i = e.data.plainPlayerAt;
+  const counts = {};
+  for (let k = 0; k <= i && k < flow.stepLines.length; k++) {
+    const id = flow.lineBox[flow.stepLines[k]];
+    if (id) counts[id] = (counts[id] || 0) + 1;
+  }
+  $("flowBox").querySelectorAll(".fc-node").forEach((g) => { const c = g.querySelector(".fc-count"); if (c) c.textContent = counts[g.id] ? "\u00D7" + counts[g.id] : ""; });
+  let id = e.data.file === 0 ? flow.lineBox[e.data.line] : null;
+  if (i === e.data.total - 1 && (flow.finished || !id)) { const end = $("flowBox").querySelector(".fc-end"); id = (end && end.id) || id; }   // the program finished
+  if (!id) return;   // (a step inside the library: keep the last box lit)
+  if (flow.lastOn && flow.lastOn !== id) { const old = document.getElementById(flow.lastOn); if (old) old.classList.remove("fc-on"); }
+  const g = document.getElementById(id);
+  if (!g) return;
+  g.classList.add("fc-on");
+  flow.lastOn = id;
+  // keep it in view inside the flowchart's own scroll box
+  const box = $("flowBox"), rb = box.getBoundingClientRect(), rg = g.getBoundingClientRect();
+  if (rg.top < rb.top + 10 || rg.bottom > rb.bottom - 10) box.scrollTop += rg.top - rb.top - box.clientHeight / 3;
+  if (rg.left < rb.left || rg.right > rb.right) box.scrollLeft += rg.left - rb.left - 20;
+});
+let flowTimer = null;
+editor.addEventListener("input", () => {
+  if (flow.mode !== "flow" || $("vizCard").hidden) return;
+  clearTimeout(flowTimer);
+  flowTimer = setTimeout(() => showFlow(editor.value, "flow"), 250);
+});
+$("flowBtn").onclick = () => {
+  if (!$("vizCard").hidden && flow.mode === "flow") { $("vizCard").hidden = true; flow.mode = null; return; }
+  showFlow(editor.value, "flow");
+  $("vizCard").scrollIntoView({ behavior: "smooth", block: "start" });
+};
+$("flowToggle").onclick = () => {
+  flow.hidden = !flow.hidden;
+  $("flowToggle").textContent = flow.hidden ? "Show flowchart" : "Hide flowchart";
+  $("vizBody").className = "vizbody" + (flow.hidden ? " no-flow" : "");
+};
+
+// ------------------------------------------------------------------ the algorithm gallery
+function showAlgorithms() {
+  const body = $("algosBody");
+  body.textContent = "";
+  body.append(el("p", { class: "note", text: "Classic algorithms, written in Plain. Pick one to watch it work step by step, next to its flowchart. Then change it and watch again." }));
+  const groups = [];
+  for (const a of PlainAlgorithms) if (!groups.includes(a.group)) groups.push(a.group);
+  for (const g of groups) {
+    body.append(el("div", { class: "algo-group", text: g }));
+    const tiles = el("div", { class: "tiles" });
+    for (const a of PlainAlgorithms.filter((x) => x.group === g)) {
+      tiles.append(el("button", { class: "tile", "data-algo": a.id, onclick: () => openAlgorithm(a), "aria-label": a.name + ": " + a.about },
+        el("span", { class: "pic", text: a.picture }), el("span", { class: "name", text: a.name }),
+        el("span", { class: "about", text: a.about }), el("span", { class: "cost", text: a.cost })));
+    }
+    body.append(tiles);
+  }
+  $("algosCard").hidden = false;
+  $("algosCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function openAlgorithm(a) {
+  if (lessonKey) { leaveExercise(); $("lessonsCard").hidden = true; }
+  currentName = null;
+  setCode(a.code);
+  $("algosCard").hidden = true;
+  if (ready && !busy) watchRun();
+  else showFlow(a.code, "flow");
+}
+$("algosBtn").onclick = () => { if ($("algosCard").hidden) showAlgorithms(); else $("algosCard").hidden = true; };
+$("algosClose").onclick = () => { $("algosCard").hidden = true; };
 
 // plain format, in the page
 function tidy() {
@@ -720,7 +894,7 @@ $("count").onclick = countWork;
 $("stop").onclick = () => stopRun("Stopped.");
 $("share").onclick = shareLink;
 $("clear").onclick = () => { out.innerHTML = '<span class="hint">Press Run to see what your program says.</span>'; };
-$("closeViz").onclick = () => { $("vizCard").hidden = true; $("vizFrame").srcdoc = ""; };
+$("closeViz").onclick = () => { $("vizCard").hidden = true; $("vizFrame").srcdoc = ""; flow.mode = null; };
 const picker = $("examples");
 picker.append(new Option("Pick one...", ""));
 Object.keys(EXAMPLES).forEach((name) => picker.append(new Option(name, name)));

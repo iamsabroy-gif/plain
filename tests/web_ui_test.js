@@ -144,6 +144,55 @@ const ok = (cond, what) => { results.push((cond ? "ok   " : "FAIL ") + what); };
   await p.waitForSelector(".tile");
   ok((await p.locator(".tile").nth(2).textContent()).includes("1 of 4 done"), "lesson progress is kept");
   await p.click("#lessonsClose");
+  // the flowchart, on its own: drawn from the program, redrawn as you type, a click finds the line
+  await p.fill("#code", 'set n to 3\nif n is 3 then\n    say "three"\nend\n');
+  await p.click("#flowBtn");
+  await p.waitForSelector("#flowBox svg .fc-node");
+  ok(await p.isVisible("#flowBox .fc-decision") && (await p.textContent("#vizTitle")) === "Flowchart", "the Flowchart button draws the program, with a decision for the if");
+  ok(!(await p.isVisible("#vizFrame")), "on its own, without the step player");
+  const before = await p.locator("#flowBox .fc-node").count();
+  await p.click("#code");
+  await p.keyboard.press("Control+End");
+  await p.keyboard.type("say n");
+  await p.waitForFunction((n) => document.querySelectorAll("#flowBox .fc-node").length === n + 1, before);
+  ok(true, "it is redrawn as you type");
+  await p.click("#flowBox .fc-decision");
+  ok((await p.evaluate(() => { const t = document.getElementById("code"); return t.value.slice(t.selectionStart, t.selectionEnd); })) === "if n is 3 then", "clicking a box selects its line");
+  await p.click("#flowBtn");
+  ok(await p.isHidden("#vizCard"), "the Flowchart button closes it again");
+
+  // the algorithm gallery: an algorithm opens in Watch it run, next to its flowchart
+  await p.click("#algosBtn");
+  await p.waitForSelector("#algosCard .tile");
+  ok((await p.locator("#algosCard .tile").count()) === 14, "the gallery has 14 algorithms");
+  await p.click('#algosCard .tile[data-algo="bubble-sort"]');
+  await p.waitForSelector("#flowBox .fc-on");
+  ok((await p.inputValue("#code")).startsWith("# Bubble sort"), "picking one puts it in the editor");
+  ok(await p.isVisible("#vizFrame") && await p.isVisible("#flowBox .fc-loop"), "and shows it running, with its flowchart beside it");
+  const frame = p.frames().find((f) => f !== p.mainFrame());
+  const lit = async () => p.evaluate(() => { const g = document.querySelector("#flowBox .fc-on"); return g ? g.querySelector("title").textContent : ""; });
+  const first = await lit();
+  for (let k = 0; k < 6; k++) await frame.click("#next");
+  await p.waitForFunction((f) => { const g = document.querySelector("#flowBox .fc-on"); return g && g.querySelector("title").textContent !== f; }, first);
+  ok(true, "stepping in the player moves the lit box (" + first + " -> " + (await lit()) + ")");
+  const counted = await p.evaluate(() => [...document.querySelectorAll("#flowBox .fc-count")].map((c) => c.textContent).filter(Boolean));
+  ok(counted.length >= 3 && counted.every((c) => /^\u00D7\d+$/.test(c)), "boxes show how often they have run: " + counted.join(" "));
+  const stepBefore = await frame.textContent("#count");
+  await p.click("#flowBox .fc-decision");
+  await p.waitForFunction(() => { const g = document.querySelector("#flowBox .fc-on"); return g && g.classList.contains("fc-decision"); });
+  ok((await frame.textContent("#count")) !== stepBefore, "clicking a box jumps the player to the next time it runs (" + stepBefore + " -> " + (await frame.textContent("#count")) + ")");
+  await frame.click("#last");
+  await p.waitForFunction(() => { const g = document.querySelector("#flowBox .fc-on"); return g && g.classList.contains("fc-end"); });
+  ok(true, "at the last step, End is lit");
+  await p.click("#flowToggle");
+  ok(!(await p.isVisible("#flowPane")) && await p.isVisible("#vizFrame"), "the flowchart can be hidden, leaving the player");
+  await p.click("#flowToggle");
+  await p.click("#algosBtn");
+  await p.click('#algosCard .tile[data-algo="dfs"]');
+  await p.waitForFunction(() => document.querySelectorAll("#flowBox .flowchart .fc-title").length === 2 && document.querySelector("#flowBox .fc-on"));
+  ok(true, "an algorithm with an action gets a chart for it too, and recursion lights up inside it");
+  await p.click("#closeViz");
+
   // phone width: no sideways scrolling
   await p.setViewportSize({ width: 390, height: 800 });
   const wide = await p.evaluate(() => document.documentElement.scrollWidth);

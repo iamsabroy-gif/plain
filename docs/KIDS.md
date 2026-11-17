@@ -29,6 +29,11 @@ The box helps you as you type:
 * If Plain can see a mistake, it draws a **red wavy line** under that line and tells you what
   to fix, underneath the box. (An orange line just means a block is not finished yet.)
 
+Press **Flowchart** to see your program as a picture: boxes for each step, diamonds for each
+question, and arrows that go round for loops. Press **Watch it run** and the box the computer is
+doing lights up, one step at a time. And **Algorithms** has famous programs, like sorting
+numbers and finding your way round a map, ready to watch.
+
 ## 1. Make the computer talk
 
 `say` makes the computer say something. Put what it should say inside quote marks.

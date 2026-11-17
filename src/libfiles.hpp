@@ -6690,6 +6690,8 @@ function show(i) {
   else if (cur === steps.length - 1 && D.error) banner.append(h("div", { class: "banner err" }, "The program stopped: " + D.error.msg));
   else if (cur === steps.length - 1 && D.truncated) banner.append(h("div", { class: "banner warn" }, "This run is longer than the player records, so it ends here. Try a smaller input."));
   $("play").innerHTML = timer ? "&#10074;&#10074; Pause" : (cur >= steps.length - 1 ? "&#8635; Replay" : "&#9654; Play");
+  // tell the page around the player (the playground's flowchart follows along)
+  if (window.parent !== window) window.parent.postMessage({ plainPlayerAt: cur, line: step.l, file: step.fi, total: steps.length }, "*");
 }
 
 function stop() { if (timer) { clearInterval(timer); timer = null; } }
@@ -6720,13 +6722,21 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "End") { stop(); show(steps.length - 1); }
 });
 
-// ------------------------------------------------------------ side by side
-// A page that shows two players (plain visualize a.plain b.plain) steps them together.
+// ------------------------------------------------------------ the page around the player
+// A page that shows two players (plain visualize a.plain b.plain) steps them together;
+// the playground's flowchart asks for "the next time this line runs" when a box is clicked.
 window.addEventListener("message", (e) => {
   const m = e.data;
   if (!m || m.plainPlayer === undefined || e.source !== window.parent) return;
   stop();
   if (m.plainPlayer === "go") show(m.i);
+  else if (m.plainPlayer === "line") {
+    const lines = new Set(m.lines || [m.line]);
+    for (let k = 1; k <= steps.length; k++) {
+      const j = (cur + k) % steps.length;   // the next time it runs, going round to the start if need be
+      if (steps[j].fi === 0 && lines.has(steps[j].l)) { show(j); return; }
+    }
+  }
 });
 if (window.parent !== window) window.parent.postMessage({ plainPlayerReady: steps.length }, "*");
 
