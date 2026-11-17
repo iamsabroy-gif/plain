@@ -313,17 +313,48 @@ static int checkSolution(const ProblemInfo& p, const std::string& file, std::map
 // plain practice [problem] [--hint] [--solution] [--show] [--file name.plain] [--selftest]
 static int practiceCommand(const std::vector<std::string>& args) {
     std::string id, file;
-    bool hint = false, solution = false, show = false, selftest = false, giveUp = false;
+    bool hint = false, solution = false, show = false, selftest = false, giveUp = false, json = false;
     for (size_t i = 1; i < args.size(); ++i) {
         if (args[i] == "--hint") hint = true;
         else if (args[i] == "--solution") solution = true;
         else if (args[i] == "--show") show = true;
         else if (args[i] == "--selftest") selftest = true;
         else if (args[i] == "--give-up") giveUp = true;
+        else if (args[i] == "--json") json = true;
         else if (args[i] == "--file" && i + 1 < args.size()) file = args[++i];
         else id = args[i];
     }
     std::vector<ProblemInfo> all = loadAllProblems();
+    if (json) {
+        // The problems for the documentation site: what to do and the examples. Never the hidden
+        // tests, hints or solutions, so publishing the list spoils nothing.
+        std::string o = "{\"problems\":[";
+        for (size_t i = 0; i < all.size(); ++i) {
+            const ProblemInfo& p = all[i];
+            if (i) o += ",";
+            o += "{\"id\":";
+            Observer::jsonString(o, p.id);
+            for (const auto& kv : std::vector<std::pair<const char*, const std::string*>>{
+                     {"title", &p.title}, {"topic", &p.topic}, {"action", &p.action}, {"params", &p.params},
+                     {"statement", &p.statement}, {"complexity", &p.complexity}}) {
+                o += std::string(",\"") + kv.first + "\":";
+                Observer::jsonString(o, *kv.second);
+            }
+            o += ",\"level\":" + std::to_string(p.level) + ",\"hidden_tests\":" + std::to_string(p.hidden.size()) +
+                 ",\"hints\":" + std::to_string(p.hints.size()) + ",\"examples\":[";
+            for (size_t k = 0; k < p.examples.size(); ++k) {
+                if (k) o += ",";
+                o += "{\"call\":";
+                Observer::jsonString(o, callText(p, p.examples[k].args));
+                o += ",\"gives\":";
+                Observer::jsonString(o, fmt(p.examples[k].expect, true));
+                o += "}";
+            }
+            o += "]}";
+        }
+        printf("%s]}\n", o.c_str());
+        return 0;
+    }
     if (selftest) {
         int bad = 0;
         size_t tests = 0;

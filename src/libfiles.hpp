@@ -327,6 +327,392 @@ class Deque
     end
 end
 )PLAINLIB"},
+{"desktop", R"PLAINLIB(# The desktop library: a program with a window.   use "desktop"
+#
+#     use "desktop"
+#     set win to new Window("Counter", 360, 240)
+#     set clicks to 0
+#     set shown to win's label("Clicked 0 times")
+#
+#     define clicked
+#         increase clicks by 1
+#         shown's set_text("Clicked {clicks} times")
+#     end
+#
+#     win's button("Click me", clicked)
+#     win's run()
+#
+# The window is drawn by the computer's browser engine: in a window of its own
+# when Chrome, Edge or Chromium is installed, otherwise in a browser tab. Only this
+# computer can reach it. The program ends when the window is closed.
+#
+# Things you can put in a window (each gives back the widget, to change it later):
+#   heading(words)  label(words)  button(words, action)  separator()
+#   input(label)  password(label)  number_input(label)  text_box(label)
+#   checkbox(label)  choice(label, options)  slider(label, low, high)
+#   list(items)  image(file)  row()  column()
+# row() and column() give back a box that holds widgets side by side, or stacked.
+#
+# A widget's value is what the person typed, ticked or chose: name_box's value.
+# Change a widget with set_text, set_value, set_items, hide, unhide, disable, enable.
+# Actions run when something happens; they take no values:
+#   button(words, action)   when_changed(action)   when_entered(action)  (Enter in an input)
+#   when_picked(action)     on a list: its picked is the number of the item clicked
+# The window: every(seconds, action), show_message(words), set_title(words), close().
+
+class Widget
+    init with window, kind, words
+        set me's id to window's __new_id(me)
+        set me's kind to kind
+        set me's text to words
+        set me's value to ""
+        set me's items to []
+        set me's placeholder to ""
+        set me's hidden to false
+        set me's disabled to false
+        set me's on_click to nothing
+        set me's on_change to nothing
+        set me's on_enter to nothing
+        set me's on_pick to nothing
+        set me's picked to 0
+        set me's extra to {}
+    end
+    define set_text with words
+        set me's text to words
+    end
+    define set_value with v
+        set me's value to v
+    end
+    define set_items with things
+        set me's items to things
+    end
+    define set_placeholder with words
+        set me's placeholder to words
+    end
+    define hide
+        set me's hidden to true
+    end
+    define unhide
+        set me's hidden to false
+    end
+    define disable
+        set me's disabled to true
+    end
+    define enable
+        set me's disabled to false
+    end
+    define when_clicked with handler
+        set me's on_click to handler
+    end
+    define when_changed with handler
+        set me's on_change to handler
+    end
+    define when_entered with handler
+        set me's on_enter to handler
+    end
+    define when_picked with handler
+        set me's on_pick to handler
+    end
+    # The item of a list that was clicked last (nothing before the first click).
+    define picked_item
+        if me's picked is less than 1 or me's picked is greater than length of me's items then
+            give back nothing
+        end
+        give back me's items[me's picked]
+    end
+    # What the window's page needs to draw this widget.
+    define __state
+        set s to {id: me's id, kind: me's kind, text: text(me's text), value: me's value, items: me's items, placeholder: me's placeholder, hidden: me's hidden, disabled: me's disabled, on_change: me's on_change is not nothing, on_enter: me's on_enter is not nothing, on_pick: me's on_pick is not nothing}
+        for each k in keys(me's extra)
+            set s[k] to me's extra[k]
+        end
+        give back s
+    end
+end
+
+# A widget that holds other widgets: a row, a column, or the window itself.
+class Box extends Widget
+    init with window, kind
+        parent's init(window, kind, "")
+        set me's window to window
+        set me's children to []
+    end
+    define __put with w
+        add w to me's children
+        give back w
+    end
+    define heading with words
+        set w to me's __put(new Widget(me's window, "heading", words))
+        set w's extra's level to 1
+        give back w
+    end
+    define label with words
+        give back me's __put(new Widget(me's window, "text", words))
+    end
+    define button with words, handler
+        set w to me's __put(new Widget(me's window, "button", words))
+        set w's on_click to handler
+        give back w
+    end
+    define input with words
+        give back me's __put(new Widget(me's window, "input", words))
+    end
+    define password with words
+        give back me's __put(new Widget(me's window, "password", words))
+    end
+    define number_input with words
+        set w to me's __put(new Widget(me's window, "number", words))
+        set w's value to 0
+        give back w
+    end
+    define text_box with words
+        give back me's __put(new Widget(me's window, "textarea", words))
+    end
+    define checkbox with words
+        set w to me's __put(new Widget(me's window, "checkbox", words))
+        set w's value to false
+        give back w
+    end
+    define choice with words, options
+        set w to me's __put(new Widget(me's window, "choice", words))
+        set w's items to options
+        if length of options is greater than 0 then
+            set w's value to text(options[1])
+        end
+        give back w
+    end
+    define slider with words, low, high
+        set w to me's __put(new Widget(me's window, "slider", words))
+        set w's value to low
+        set w's extra's low to low
+        set w's extra's high to high
+        give back w
+    end
+    define list with things
+        set w to me's __put(new Widget(me's window, "list", ""))
+        set w's items to things
+        give back w
+    end
+    define image with file
+        set w to me's __put(new Widget(me's window, "image", file))
+        set w's extra's src to "/image/" + w's id
+        set w's extra's file to file
+        give back w
+    end
+    define separator
+        give back me's __put(new Widget(me's window, "separator", ""))
+    end
+    define row
+        give back me's __put(new Box(me's window, "row"))
+    end
+    define column
+        give back me's __put(new Box(me's window, "column"))
+    end
+    define __state
+        set s to {id: me's id, kind: me's kind, hidden: me's hidden, children: []}
+        for each c in me's children
+            add c's __state() to s's children
+        end
+        give back s
+    end
+end
+
+class Window extends Box
+    init with title, width, height
+        set me's next_id to 0
+        set me's registry to {}
+        parent's init(me, "column")
+        set me's title to title
+        set me's width to width
+        set me's height to height
+        set me's timers to {}
+        set me's messages to []
+        set me's problem to ""
+        set me's closed to false
+        set me's token to ""
+        set me's hidden to false
+        set me's restart to false
+    end
+    define __new_id with w
+        increase me's next_id by 1
+        set id to "w" + text(me's next_id)
+        set me's registry[id] to w
+        give back id
+    end
+    define set_title with words
+        set me's title to words
+    end
+    define show_message with words
+        add text(words) to me's messages
+    end
+    # Run an action every so many seconds while the window is open.
+    define every with seconds, handler
+        increase me's next_id by 1
+        set me's timers["t" + text(me's next_id)] to {every: seconds, handler: handler}
+    end
+    # End the program (after the action that called this).
+    define close
+        set me's closed to true
+    end
+
+    # Open the window and answer it until it is closed.
+    define run
+        set server to tcp_listen(0, "localhost")
+        set me's token to secure_token(16)
+        set address to "http://127.0.0.1:" + text(tcp_port(server)) + "/?t=" + me's token
+        set how to open_url(address, {app: true, width: me's width, height: me's height})
+        if how is not "printed" then
+            say "The window \"{me's title}\" is open. (If you can't see it: {address})"
+        end
+        # The window checks in every second or two (less often while it is hidden, as browsers
+        # slow hidden windows down). When it goes quiet or says goodbye, it was closed - or it
+        # is only reloading, so wait a moment for it to come back before ending.
+        set waiting to true
+        while waiting
+            set me's restart to false
+            set quiet_for to 6
+            if me's hidden then
+                set quiet_for to 900
+            end
+            http_serve(server, me's handle, {idle: quiet_for})
+            if me's closed then
+                set waiting to false
+            otherwise if not me's restart then
+                if http_serve(server, me's handle, {how_many: 1, idle: 3}) is 0 then
+                    set waiting to false
+                end
+            end
+        end
+        tcp_close(server)
+    end
+
+    define __page_state
+        set timers to []
+        for each id in keys(me's timers)
+            add {id: id, every: me's timers[id]'s every} to timers
+        end
+        set s to {title: text(me's title), widgets: me's __state()'s children, messages: me's messages, timers: timers, problem: me's problem, closed: me's closed}
+        set me's messages to []
+        give back s
+    end
+
+    # Run one of the program's actions; a problem in it is shown in the window, not fatal.
+    define __run_action with handler, what
+        if handler is nothing then
+            give back nothing
+        end
+        set me's problem to ""
+        try
+            handler()
+        on error problem
+            set me's problem to "Problem in the action for {what}: {problem}"
+            say me's problem
+        end
+    end
+
+    define handle with request
+        set token to ""
+        if has_key(request's query, "t") then
+            set token to request's query's t
+        end
+        if has_key(request's headers, "x-plain-token") then
+            set token to request's headers["x-plain-token"]
+        end
+        if token is not me's token or me's token is "" then
+            give back {status: 403, body: "This window belongs to another program."}
+        end
+        if request's path is "/" then
+            set html to replace(__ui_asset("desktop.html"), "__PLAIN_TOKEN__", me's token)
+            set safe to replace(replace(replace(text(me's title), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+            give back {status: 200, body: replace(html, "__PLAIN_TITLE__", safe), headers: {"Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store"}}
+        end
+        if request's path is "/close" then
+            give back {status: 200, body: "", done: true}
+        end
+        if request's path is "/ping" then
+            set now_hidden to has_key(request's query, "hidden") and request's query's hidden is "1"
+            if now_hidden is not me's hidden then
+                # wait longer, or less long, from now on
+                set me's hidden to now_hidden
+                set me's restart to true
+                give back {status: 204, body: "", done: true}
+            end
+            give back {status: 204, body: ""}
+        end
+        if starts_with(request's path, "/image/") then
+            set id to slice(request's path, 8, length of request's path)
+            if has_key(me's registry, id) and file_exists(me's registry[id]'s extra's file) then
+                give back {status: 200, body: read_file(me's registry[id]'s extra's file), headers: {"Content-Type": __image_type(me's registry[id]'s extra's file)}}
+            end
+            give back {status: 404, body: "no such image"}
+        end
+        if request's path is "/event" then
+            me's __event(from_json(request's body))
+        end
+        give back {status: 200, body: to_json(me's __page_state()), headers: {"Content-Type": "application/json"}, done: me's closed}
+    end
+
+    define __event with e
+        # what was typed, ticked and chosen, as the window shows it now
+        for each id in keys(e's values)
+            if has_key(me's registry, id) then
+                set w to me's registry[id]
+                set v to e's values[id]
+                if w's kind is "number" or w's kind is "slider" then
+                    try
+                        set v to number(v)
+                    on error
+                        set v to 0
+                    end
+                end
+                set w's value to v
+            end
+        end
+        set id to e's id
+        if e's kind is "timer" then
+            if has_key(me's timers, id) then
+                me's __run_action(me's timers[id]'s handler, "every " + text(me's timers[id]'s every) + " seconds")
+            end
+            give back nothing
+        end
+        if not has_key(me's registry, id) then
+            give back nothing
+        end
+        set w to me's registry[id]
+        set name to w's kind + " \"" + text(w's text) + "\""
+        if e's kind is "click" then
+            me's __run_action(w's on_click, name)
+        otherwise if e's kind is "change" then
+            me's __run_action(w's on_change, name)
+        otherwise if e's kind is "enter" then
+            me's __run_action(w's on_enter, name)
+        otherwise if e's kind is "pick" then
+            set w's picked to e's index
+            me's __run_action(w's on_pick, name)
+        end
+    end
+end
+
+define __image_type with file
+    set f to lowercase(file)
+    if ends_with(f, ".png") then
+        give back "image/png"
+    end
+    if ends_with(f, ".jpg") or ends_with(f, ".jpeg") then
+        give back "image/jpeg"
+    end
+    if ends_with(f, ".gif") then
+        give back "image/gif"
+    end
+    if ends_with(f, ".svg") then
+        give back "image/svg+xml"
+    end
+    if ends_with(f, ".webp") then
+        give back "image/webp"
+    end
+    give back "application/octet-stream"
+end
+)PLAINLIB"},
 {"dsa", R"PLAINLIB(# Everything for data structures and algorithms in one line:   use "dsa"
 # Open any of these files to see how the structure is built:   plain lib stack
 
@@ -1721,6 +2107,428 @@ class Unique
 
     define to_text
         give back "Unique" + text(me's items())
+    end
+end
+)PLAINLIB"},
+{"web", R"PLAINLIB(# The web library: make a web site or a web API.   use "web"
+#
+#     use "web"
+#     set app to new WebApp()
+#
+#     define home with request
+#         give back page("Hello", "<h1>Hello, world!</h1>")
+#     end
+#     define hello with request
+#         give back "Hello, {request's params's name}!"
+#     end
+#
+#     app's get("/", home)
+#     app's get("/hello/:name", hello)
+#     app's start(8080)
+#
+# A route can have parts that change: "/hello/:name" matches /hello/Asha, and the
+# handler finds "Asha" in request's params's name. A "*" at the end matches the rest.
+#
+# Every handler gets a request map:
+#   method, path, params, query (after ?), form (a sent form), json (sent JSON),
+#   headers, cookies, session (a map kept for this visitor), body
+# and gives back one of:
+#   text                        (HTML when it starts with <, plain text otherwise)
+#   page(title, html)           a whole web page, with a tidy built-in style
+#   a list or a map             sent as JSON (for web APIs)
+#   redirect("/somewhere")      send the browser to another address
+#   reply(404, "Not here")      any status, with text, HTML, or a list or map
+#
+# Safe HTML: escape_html(text) turns < > & " ' into codes, so that text people
+# type can't become part of the page. Inside Plain, "<li>{escape_html(task)}</li>"
+# does it for one value. For HTML kept in a file, fill(read_file("page.html"), values)
+# fills in every {{name}} safely (and {{!name}} as it is, for HTML you trust).
+#
+# app's folder("/files", "public") sends the files in the folder "public".
+# app's try_request("GET", "/hello/Asha", "") answers one request without a
+# network, which is handy for testing handlers.
+
+define escape_html with value
+    set s to text(value)
+    set s to replace(s, "&", "&amp;")
+    set s to replace(s, "<", "&lt;")
+    set s to replace(s, ">", "&gt;")
+    set s to replace(s, "\"", "&quot;")
+    give back replace(s, "'", "&#39;")
+end
+
+# A whole HTML page with the built-in style (served at /__plain/style.css).
+define page with title, body
+    set head to "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
+    set head to head + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+    set head to head + "<title>" + escape_html(title) + "</title>\n<link rel=\"stylesheet\" href=\"/__plain/style.css\">\n</head>\n"
+    give back head + "<body>\n" + text(body) + "\n</body>\n</html>\n"
+end
+
+# Fill in a template: {{name}} with the value of values's name, made safe for HTML;
+# {{!name}} as it is (for HTML you trust). Double braces, so that Plain's own text
+# templates ({name} in quotes) leave them alone. A {{name}} not in values stays.
+define fill with template, values
+    set out to ""
+    set rest to text(template)
+    while true
+        set open_at to find(rest, "\{\{")
+        if open_at is 0 then
+            stop
+        end
+        set after to slice(rest, open_at + 2, length of rest)
+        set close_at to find(after, "}}")
+        if close_at is 0 then
+            stop
+        end
+        set name to trim(slice(after, 1, close_at - 1))
+        set raw to starts_with(name, "!")
+        if raw then
+            set name to trim(slice(name, 2, length of name))
+        end
+        set out to out + slice(rest, 1, open_at - 1)
+        if has_key(values, name) then
+            if raw then
+                set out to out + text(values[name])
+            otherwise
+                set out to out + escape_html(values[name])
+            end
+        otherwise
+            set out to out + "\{\{" + slice(after, 1, close_at + 1)
+        end
+        set rest to slice(after, close_at + 2, length of after)
+    end
+    give back out + rest
+end
+
+define reply with status, body
+    give back {__reply: true, status: status, body: body, headers: {}}
+end
+
+define redirect with address
+    give back {__reply: true, status: 303, body: "", headers: {Location: address}}
+end
+
+# Send a value as JSON (use this when a map's own keys could look like a reply's).
+define json_reply with value
+    give back {__reply: true, status: 200, body: to_json(value), headers: {"Content-Type": "application/json"}}
+end
+
+# Add a header (or a cookie) to whatever a handler gives back.
+define with_header with answer, name, value
+    set r to __as_reply(answer)
+    if has_key(r's headers, name) then
+        set old to r's headers[name]
+        if type_of(old) is "list" then
+            add value to old
+        otherwise
+            set r's headers[name] to [old, value]
+        end
+    otherwise
+        set r's headers[name] to value
+    end
+    give back r
+end
+
+define with_cookie with answer, name, value
+    give back with_header(answer, "Set-Cookie", name + "=" + url_encode(value) + "; Path=/; HttpOnly; SameSite=Lax")
+end
+
+# Anything a handler gives back, as {__reply, status, body, headers}.
+define __as_reply with answer
+    if type_of(answer) is "map" and has_key(answer, "__reply") then
+        give back answer
+    end
+    if answer is nothing then
+        give back reply(204, "")
+    end
+    give back reply(200, answer)
+end
+
+define __content_type with path
+    set types to {html: "text/html; charset=utf-8", htm: "text/html; charset=utf-8", css: "text/css; charset=utf-8", js: "text/javascript; charset=utf-8", json: "application/json", txt: "text/plain; charset=utf-8", svg: "image/svg+xml", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", ico: "image/x-icon", pdf: "application/pdf", wasm: "application/wasm", woff2: "font/woff2", mp3: "audio/mpeg", mp4: "video/mp4"}
+    set pieces to split(path, ".")
+    set kind to lowercase(pieces[length of pieces])
+    if length of pieces is greater than 1 and has_key(types, kind) then
+        give back types[kind]
+    end
+    give back "application/octet-stream"
+end
+
+# "a=1&b=two" -> {a: "1", b: "two"}
+define __parse_pairs with body, separator
+    set out to {}
+    for each pair in split(body, separator)
+        set pair to trim(pair)
+        if pair is not "" then
+            set cut to find(pair, "=")
+            if cut is 0 then
+                set out[url_decode(pair)] to ""
+            otherwise
+                set out[url_decode(slice(pair, 1, cut - 1))] to url_decode(slice(pair, cut + 1, length of pair + 1))
+            end
+        end
+    end
+    give back out
+end
+
+define __path_parts with path
+    give back keep_if(split(path, "/"), action with p gives p is not "")
+end
+
+# The params of a path that fits a route's pattern, or nothing.
+define __match_path with pattern_parts, path
+    set parts to __path_parts(path)
+    set params to {}
+    set i to 1
+    for each p in pattern_parts
+        if p is "*" then
+            set params's rest to ""
+            if i is at most length of parts then
+                set params's rest to join(slice(parts, i, length of parts), "/")
+            end
+            give back params
+        end
+        if i is greater than length of parts then
+            give back nothing
+        end
+        if starts_with(p, ":") then
+            set params[slice(p, 2, length of p)] to parts[i]
+        otherwise if p is not parts[i] then
+            give back nothing
+        end
+        increase i by 1
+    end
+    if i - 1 is not length of parts then
+        give back nothing
+    end
+    give back params
+end
+
+class WebApp
+    init
+        set me's routes to []
+        set me's folders to []
+        set me's sessions to {}
+        set me's quiet to false
+        set me's show_errors to true
+    end
+
+    # Answer requests for this pattern with handler (an action that takes the request).
+    define route with verb, pattern, handler
+        add {verb: uppercase(verb), pattern: pattern, parts: __path_parts(pattern), handler: handler} to me's routes
+    end
+    define get with pattern, handler
+        me's route("GET", pattern, handler)
+    end
+    define post with pattern, handler
+        me's route("POST", pattern, handler)
+    end
+    define put with pattern, handler
+        me's route("PUT", pattern, handler)
+    end
+    define delete with pattern, handler
+        me's route("DELETE", pattern, handler)
+    end
+
+    # Send the files of a folder: folder("/files", "public") sends public/cat.png at /files/cat.png.
+    define folder with prefix, place
+        set p to prefix
+        if not ends_with(p, "/") then
+            set p to p + "/"
+        end
+        add {prefix: p, place: place} to me's folders
+    end
+
+    # Don't print a line for every request.
+    define quietly
+        set me's quiet to true
+    end
+    # Show visitors "Something went wrong" instead of the error itself (for a public site).
+    define hide_errors
+        set me's show_errors to false
+    end
+
+    # Run the site on this computer only (open http://localhost:PORT/ to see it).
+    define start with port
+        me's __serve(tcp_listen(port, "localhost"), false)
+    end
+    # The same, and open it in the browser.
+    define start_and_open with port
+        me's __serve(tcp_listen(port, "localhost"), true)
+    end
+    # Run it for every computer that can reach this one (a real server).
+    define start_public with port
+        me's __serve(tcp_listen(port, "everywhere"), false)
+    end
+    define __serve with server, open_it
+        set address to "http://localhost:" + text(tcp_port(server)) + "/"
+        say "Your web app is running at {address}  (press Ctrl+C to stop it)"
+        if open_it then
+            open_url(address)
+        end
+        http_serve(server, me's handle)
+    end
+
+    # Answer one request without a network: gives back {status, body, headers}.
+    define try_request with verb, path, body
+        set query to {}
+        set cut to find(path, "?")
+        set only_path to path
+        if cut is greater than 0 then
+            set query to __parse_pairs(slice(path, cut + 1, length of path + 1), "&")
+            set only_path to slice(path, 1, cut - 1)
+        end
+        set headers to {}
+        if starts_with(trim(text(body)), "\{") or starts_with(trim(text(body)), "[") then
+            set headers["content-type"] to "application/json"
+        otherwise if find(text(body), "=") is greater than 0 then
+            set headers["content-type"] to "application/x-www-form-urlencoded"
+        end
+        set was_quiet to me's quiet
+        set me's quiet to true
+        set answer to me's handle({method: uppercase(verb), path: only_path, query: query, headers: headers, body: text(body)})
+        set me's quiet to was_quiet
+        give back answer
+    end
+
+    # One request from http_serve -> one reply for it.
+    define handle with raw
+        set request to {method: raw's method, path: raw's path, query: raw's query, headers: raw's headers, body: raw's body, params: {}, form: {}, json: nothing, cookies: {}, session: nothing}
+        set headers to raw's headers
+        if has_key(headers, "cookie") then
+            set request's cookies to __parse_pairs(headers's cookie, ";")
+        end
+        set kind to ""
+        if has_key(headers, "content-type") then
+            set kind to lowercase(headers["content-type"])
+        end
+        if find(kind, "application/x-www-form-urlencoded") is greater than 0 then
+            set request's form to __parse_pairs(raw's body, "&")
+        end
+        if find(kind, "application/json") is greater than 0 and trim(raw's body) is not "" then
+            try
+                set request's json to from_json(raw's body)
+            on error problem
+                give back me's __finish(request, reply(400, "That JSON couldn't be read: " + problem), "")
+            end
+        end
+        # this visitor's session
+        set sid to ""
+        if has_key(request's cookies, "plain_session") and has_key(me's sessions, request's cookies's plain_session) then
+            set sid to request's cookies's plain_session
+            set request's session to me's sessions[sid]
+        otherwise
+            set request's session to {}
+        end
+        set answer to me's __answer(request)
+        give back me's __finish(request, answer, sid)
+    end
+
+    define __answer with request
+        set verb to request's method
+        if verb is "HEAD" then
+            set verb to "GET"
+        end
+        if request's path is "/__plain/style.css" then
+            give back {__reply: true, status: 200, body: __ui_asset("page.css"), headers: {"Content-Type": "text/css; charset=utf-8"}}
+        end
+        set wrong_verb to false
+        for each r in me's routes
+            set params to __match_path(r's parts, request's path)
+            if params is not nothing then
+                if r's verb is verb then
+                    set request's params to params
+                    try
+                        give back __as_reply(r's handler(request))
+                    on error problem
+                        say "Problem in the handler for {r's verb} {r's pattern}: {problem}"
+                        if me's show_errors then
+                            give back reply(500, page("Something went wrong", "<h1>Something went wrong</h1>\n<p class=\"error\">" + escape_html(problem) + "</p>\n<p class=\"muted\">In the handler for " + escape_html(r's verb + " " + r's pattern) + ". (Visitors see this while app's hide_errors() is not used.)</p>"))
+                        end
+                        give back reply(500, page("Something went wrong", "<h1>Something went wrong</h1><p>Please try again later.</p>"))
+                    end
+                end
+                set wrong_verb to true
+            end
+        end
+        if verb is "GET" then
+            for each f in me's folders
+                if starts_with(request's path, f's prefix) then
+                    set found to me's __file(f's place, slice(request's path, length of f's prefix + 1, length of request's path + 1))
+                    if found is not nothing then
+                        give back found
+                    end
+                end
+            end
+        end
+        if wrong_verb then
+            give back reply(405, page("Not allowed", "<h1>Not allowed</h1><p>This address doesn't answer " + escape_html(verb) + " requests.</p>"))
+        end
+        give back reply(404, page("Not found", "<h1>Not found</h1><p>There is nothing at <code>" + escape_html(request's path) + "</code>.</p>"))
+    end
+
+    # A file from a folder, never from outside it.
+    define __file with place, rest
+        set clean to []
+        for each part in split(rest, "/")
+            if part is ".." or find(part, "\\") is greater than 0 then
+                give back nothing
+            end
+            if part is not "" and part is not "." then
+                add part to clean
+            end
+        end
+        set path to place
+        if length of clean is greater than 0 then
+            set path to place + "/" + join(clean, "/")
+        end
+        # a folder: its index.html (a file can't have one inside it)
+        for each candidate in [path + "/index.html", path]
+            if file_exists(candidate) then
+                try
+                    give back {__reply: true, status: 200, body: read_file(candidate), headers: {"Content-Type": __content_type(candidate)}}
+                on error
+                    # a folder, or a file that can't be read: try the next candidate
+                end
+            end
+        end
+        give back nothing
+    end
+
+    # The reply as http_serve wants it, with the session cookie, and a line in the log.
+    define __finish with request, answer, sid
+        set r to __as_reply(answer)
+        if sid is "" and length of keys(request's session) is greater than 0 then
+            set sid to secure_token(16)
+            set r to with_header(r, "Set-Cookie", "plain_session=" + sid + "; Path=/; HttpOnly; SameSite=Lax")
+        end
+        if sid is not "" then
+            set me's sessions[sid] to request's session
+        end
+        set body to r's body
+        set headers to r's headers
+        if type_of(body) is "list" or type_of(body) is "map" then
+            set body to to_json(body)
+            if not has_key(headers, "Content-Type") then
+                set headers["Content-Type"] to "application/json"
+            end
+        end
+        set body to text(body)
+        if not has_key(headers, "Content-Type") then
+            if starts_with(trim(body), "<") then
+                set headers["Content-Type"] to "text/html; charset=utf-8"
+            otherwise
+                set headers["Content-Type"] to "text/plain; charset=utf-8"
+            end
+        end
+        if request's method is "HEAD" then
+            set body to ""
+        end
+        if not me's quiet then
+            say request's method, request's path, "->", r's status
+        end
+        give back {status: r's status, body: body, headers: headers}
     end
 end
 )PLAINLIB"},
@@ -5944,5 +6752,330 @@ if (!steps.length) {
 </script>
 </body>
 </html>
+)PLAINLIB"},
+{"ui/desktop.html", R"PLAINLIB(<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__PLAIN_TITLE__</title>
+<style>
+/* A window made by Plain's desktop library (use "desktop"). The Plain program describes the
+   widgets; this page draws them and sends clicks and typing back to it. */
+:root {
+  --bg: #f6f5f1; --panel: #ffffff; --ink: #1c1c1a; --muted: #6a6a64; --line: #d9d8d0;
+  --accent: #2f5bea; --accent-ink: #ffffff; --bad: #d6393f; --chip: #ecebe4;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #17181c; --panel: #202228; --ink: #ecebe6; --muted: #a09f98; --line: #363840; --accent: #7c9bff; --accent-ink: #11131a; --bad: #ef6a6e; --chip: #2a2c34; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+#app { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.col { display: flex; flex-direction: column; gap: 12px; }
+h1 { font-size: 1.6rem; margin: 0; line-height: 1.2; }
+h2 { font-size: 1.25rem; margin: 0; }
+p { margin: 0; white-space: pre-wrap; }
+button { font: inherit; padding: 9px 18px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 650; cursor: pointer; }
+button:hover:not(:disabled) { filter: brightness(1.08); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+label.field { display: grid; gap: 4px; font-weight: 600; font-size: 14px; min-width: 200px; flex: 1; }
+input[type=text], input[type=password], input[type=number], textarea, select {
+  font: 16px/1.4 system-ui, sans-serif; font-weight: 400; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px; width: 100%;
+}
+textarea { min-height: 90px; resize: vertical; }
+input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible, li:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+label.check { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
+.slider { display: grid; gap: 2px; font-weight: 600; font-size: 14px; min-width: 200px; }
+.slider span { color: var(--muted); font-weight: 400; }
+input[type=range] { accent-color: var(--accent); width: 100%; }
+ul.list { margin: 0; padding: 0; list-style: none; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+ul.list li { padding: 9px 14px; border-bottom: 1px solid var(--line); }
+ul.list li:last-child { border-bottom: 0; }
+ul.list.pick li { cursor: pointer; }
+ul.list.pick li:hover { background: var(--chip); }
+ul.list li.empty { color: var(--muted); font-style: italic; }
+img { max-width: 100%; border-radius: 10px; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
+.hidden { display: none !important; }
+#toasts { position: fixed; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 8px; max-width: min(380px, calc(100vw - 28px)); z-index: 5; }
+.toast { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; padding: 10px 14px; box-shadow: 0 6px 24px rgba(0,0,0,.15); white-space: pre-wrap; }
+#problem { background: color-mix(in srgb, var(--bad) 14%, var(--panel)); color: var(--ink); border: 1px solid var(--bad); border-radius: 12px; padding: 10px 14px; white-space: pre-wrap; }
+#ended { color: var(--muted); text-align: center; padding: 40px 18px; }
+</style>
+</head>
+<body>
+<div id="problem" class="hidden" role="alert"></div>
+<main id="app" aria-live="polite"></main>
+<div id="toasts" aria-live="polite"></div>
+<script>
+"use strict";
+const TOKEN = "__PLAIN_TOKEN__";
+const app = document.getElementById("app");
+const els = {};        // widget id -> its element
+let sent = {};         // the values the program was last told
+let chain = Promise.resolve(), timers = {}, ended = false;
+
+async function call(path, body) {
+  const r = await fetch(path, { method: "POST", headers: { "X-Plain-Token": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+function currentValues() {
+  const v = {};
+  for (const id in els) {
+    const input = els[id].plainInput;
+    if (input) v[id] = input.type === "checkbox" ? input.checked : input.value;
+  }
+  sent = Object.assign({}, v);
+  return v;
+}
+// Events go one at a time, in order, so the program sees them as they happened.
+function send(id, kind, extra) {
+  if (ended) return;
+  chain = chain.then(async () => {
+    try { render(await call("/event", Object.assign({ id, kind, values: currentValues() }, extra || {}))); }
+    catch (e) { problem("The program stopped answering. " + (e.message || "")); }
+  });
+}
+function problem(text) {
+  const p = document.getElementById("problem");
+  p.textContent = text || "";
+  p.classList.toggle("hidden", !text);
+}
+const debounced = {};
+function later(id, kind) { clearTimeout(debounced[id]); debounced[id] = setTimeout(() => send(id, kind), 250); }
+
+// ---- making and updating the element for one widget
+function make(w) {
+  let el, input = null;
+  switch (w.kind) {
+    case "heading": el = document.createElement(w.level === 2 ? "h2" : "h1"); break;
+    case "text": el = document.createElement("p"); break;
+    case "button":
+      el = document.createElement("button");
+      el.type = "button";
+      el.onclick = () => send(w.id, "click");
+      break;
+    case "input": case "password": case "number": case "textarea": {
+      el = document.createElement("label");
+      el.className = "field";
+      el.append(document.createElement("span"));
+      input = document.createElement(w.kind === "textarea" ? "textarea" : "input");
+      if (w.kind !== "textarea") input.type = w.kind === "input" ? "text" : w.kind;
+      input.addEventListener("input", () => { if (els[w.id].plainWidget.on_change) later(w.id, "change"); });
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && w.kind !== "textarea" && els[w.id].plainWidget.on_enter) { e.preventDefault(); clearTimeout(debounced[w.id]); send(w.id, "enter"); }
+      });
+      el.append(input);
+      break;
+    }
+    case "checkbox":
+      el = document.createElement("label");
+      el.className = "check";
+      input = document.createElement("input");
+      input.type = "checkbox";
+      input.addEventListener("change", () => { if (els[w.id].plainWidget.on_change) send(w.id, "change"); });
+      el.append(input, document.createElement("span"));
+      break;
+    case "choice":
+      el = document.createElement("label");
+      el.className = "field";
+      el.append(document.createElement("span"));
+      input = document.createElement("select");
+      input.addEventListener("change", () => { if (els[w.id].plainWidget.on_change) send(w.id, "change"); });
+      el.append(input);
+      break;
+    case "slider": {
+      el = document.createElement("label");
+      el.className = "slider";
+      const cap = document.createElement("div");
+      cap.append(document.createElement("b"), " ", document.createElement("span"));
+      input = document.createElement("input");
+      input.type = "range";
+      input.addEventListener("input", () => {
+        cap.lastChild.textContent = input.value;
+        if (els[w.id].plainWidget.on_change) later(w.id, "change");
+      });
+      el.append(cap, input);
+      break;
+    }
+    case "list": el = document.createElement("ul"); el.className = "list"; break;
+    case "image": el = document.createElement("img"); break;
+    case "separator": el = document.createElement("hr"); break;
+    case "row": el = document.createElement("div"); el.className = "row"; break;
+    case "column": el = document.createElement("div"); el.className = "col"; break;
+    default: el = document.createElement("div"); el.textContent = "(unknown widget " + w.kind + ")";
+  }
+  el.plainInput = input;
+  el.plainKind = w.kind;
+  return el;
+}
+function update(el, w) {
+  el.plainWidget = w;
+  el.classList.toggle("hidden", !!w.hidden);
+  const input = el.plainInput;
+  const setValue = (v) => {
+    // If the person changed this field after the event was sent (typing on while the program
+    // was answering), what they typed wins; otherwise show the program's value.
+    const now = input.type === "checkbox" ? input.checked : input.value;
+    if (w.id in sent && String(now) !== String(sent[w.id])) return;
+    if (input.type === "checkbox") input.checked = !!v;
+    else if (input.value !== String(v ?? "")) input.value = v ?? "";
+  };
+  switch (w.kind) {
+    case "heading": case "text": if (el.textContent !== w.text) el.textContent = w.text; break;
+    case "button": el.textContent = w.text; el.disabled = !!w.disabled; break;
+    case "input": case "password": case "number": case "textarea":
+      el.firstChild.textContent = w.text || "";
+      el.firstChild.classList.toggle("hidden", !w.text);
+      input.placeholder = w.placeholder || "";
+      input.disabled = !!w.disabled;
+      setValue(w.value);
+      break;
+    case "checkbox": el.lastChild.textContent = w.text; input.disabled = !!w.disabled; setValue(w.value); break;
+    case "choice": {
+      el.firstChild.textContent = w.text || "";
+      el.firstChild.classList.toggle("hidden", !w.text);
+      const opts = (w.items || []).map(String);
+      if (Array.from(input.options).map((o) => o.value).join("\u0000") !== opts.join("\u0000")) {
+        input.textContent = "";
+        opts.forEach((o) => input.append(new Option(o, o)));
+      }
+      input.disabled = !!w.disabled;
+      setValue(w.value);
+      break;
+    }
+    case "slider":
+      el.firstChild.firstChild.textContent = w.text || "";
+      input.min = w.low; input.max = w.high; input.step = w.step || 1;
+      input.disabled = !!w.disabled;
+      setValue(w.value);
+      el.firstChild.lastChild.textContent = input.value;
+      break;
+    case "list": {
+      el.classList.toggle("pick", !!w.on_pick);
+      el.textContent = "";
+      const items = w.items || [];
+      if (!items.length) { const li = document.createElement("li"); li.className = "empty"; li.textContent = w.text || "Nothing here yet."; el.append(li); }
+      items.forEach((item, k) => {
+        const li = document.createElement("li");
+        li.textContent = typeof item === "string" ? item : JSON.stringify(item);
+        if (w.on_pick) {
+          li.tabIndex = 0;
+          li.onclick = () => send(w.id, "pick", { index: k + 1 });
+          li.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); li.click(); } };
+        }
+        el.append(li);
+      });
+      break;
+    }
+    case "image":
+      el.alt = w.text || "";
+      if (w.src && el.getAttribute("src") !== w.src) el.src = w.src + (w.src.includes("?") ? "&" : "?") + "t=" + TOKEN;
+      if (w.width) el.style.width = w.width + "px";
+      break;
+  }
+  if (w.children) place(el, w.children);
+}
+// Put these widgets, in this order, inside parent (reusing the elements that are already there).
+function place(parent, widgets) {
+  widgets.forEach((w, k) => {
+    let el = els[w.id];
+    if (!el || el.plainKind !== w.kind) { el = make(w); els[w.id] = el; }
+    update(el, w);
+    if (parent.children[k] !== el) parent.insertBefore(el, parent.children[k] || null);
+  });
+  while (parent.children.length > widgets.length) parent.lastChild.remove();
+}
+function toast(text) {
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.setAttribute("role", "status");
+  t.textContent = text;
+  document.getElementById("toasts").append(t);
+  setTimeout(() => t.remove(), Math.min(12000, 3000 + text.length * 60));
+}
+function render(state) {
+  document.title = state.title;
+  problem(state.problem || "");
+  place(app, state.widgets);
+  (state.messages || []).forEach(toast);
+  // timers: the program asked for an action every so many seconds
+  const want = {};
+  (state.timers || []).forEach((t) => { want[t.id] = t.every; });
+  for (const id in timers) if (want[id] !== timers[id].every) { clearInterval(timers[id].handle); delete timers[id]; }
+  for (const id in want) if (!timers[id]) timers[id] = { every: want[id], handle: setInterval(() => send(id, "timer"), Math.max(50, want[id] * 1000)) };
+  if (state.closed) finish();
+}
+function finish() {
+  ended = true;
+  for (const id in timers) clearInterval(timers[id].handle);
+  app.innerHTML = "";
+  const p = document.createElement("p");
+  p.id = "ended";
+  p.textContent = "The program has finished. You can close this window.";
+  app.append(p);
+  window.close();
+}
+// When the window closes (or reloads), tell the program; a reload simply connects again.
+window.addEventListener("pagehide", () => { if (!ended) navigator.sendBeacon("/close?t=" + TOKEN, ""); });
+// A heartbeat, so the program also notices a window that went away without saying so (a crash).
+// Browsers slow down the timers of hidden windows, so the program is told when this one is hidden
+// and then waits much longer before deciding it has gone.
+function ping() {
+  if (ended) return;
+  fetch("/ping?hidden=" + (document.hidden ? "1" : "0"), { method: "POST", headers: { "X-Plain-Token": TOKEN } }).catch(() => {});
+}
+setInterval(() => { if (!document.hidden) ping(); }, 1500);
+document.addEventListener("visibilitychange", ping);
+call("/state").then(render).catch((e) => problem("I couldn't reach the program. " + e.message));
+</script>
+</body>
+</html>
+)PLAINLIB"},
+{"ui/page.css", R"PLAINLIB(/* The default look of pages made with Plain's web library (use "web"): page("Title", body).
+   Plain sends it at /__plain/style.css. Plain HTML elements look good without classes. */
+:root {
+  --bg: #f7f7f4; --panel: #ffffff; --ink: #1d1d1b; --muted: #66665f; --line: #deddd5;
+  --accent: #2f5bea; --accent-ink: #ffffff; --ok: #1f9d63; --bad: #d6393f; --code: #f0f0ea;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15161a; --panel: #1e2026; --ink: #ecebe6; --muted: #a09f98; --line: #34363e;
+    --accent: #7c9bff; --accent-ink: #11131a; --ok: #3fb97f; --bad: #ef6a6e; --code: #262830;
+  }
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); color: var(--ink); font: 17px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+body { margin: 0 auto; max-width: 760px; padding: 24px 18px 48px; }
+h1, h2, h3 { line-height: 1.2; letter-spacing: -0.01em; }
+h1 { font-size: 2rem; margin: 0.4em 0 0.6em; }
+a { color: var(--accent); }
+p, ul, ol, table, form, pre { margin: 0 0 1em; }
+img { max-width: 100%; height: auto; border-radius: 8px; }
+code, pre { font: 0.92em/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; background: var(--code); border-radius: 6px; }
+code { padding: 1px 5px; }
+pre { padding: 12px 14px; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+form { display: grid; gap: 10px; }
+label { display: grid; gap: 4px; font-weight: 600; }
+input, textarea, select, button { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
+input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+input[type="checkbox"], input[type="radio"] { width: auto; }
+button, input[type="submit"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; cursor: pointer; justify-self: start; }
+button:hover, input[type="submit"]:hover { filter: brightness(1.08); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin: 0 0 16px; }
+.muted { color: var(--muted); }
+.ok { color: var(--ok); }
+.bad { color: var(--bad); }
+nav { display: flex; flex-wrap: wrap; gap: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+.error { background: color-mix(in srgb, var(--bad) 12%, var(--panel)); border: 1px solid var(--bad); border-radius: 12px; padding: 12px 16px; }
 )PLAINLIB"},
 {nullptr, nullptr}};

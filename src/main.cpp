@@ -23,7 +23,7 @@
 
 using namespace plain;
 
-static const char* VERSION = "2.2.0";
+static const char* VERSION = "2.3.0";
 static const char MAGIC[8] = {'P', 'L', 'A', 'I', 'N', 'A', 'P', 'P'};
 
 // The text of one line of a source file, so an error can show where it happened.
@@ -197,10 +197,16 @@ static int libCommand(const std::vector<std::string>& args) {
         {"segmenttree", "sum or smallest of any stretch of a list, with updates"},
         {"dsa", "all of the above:  use \"dsa\""},
     };
+    static const std::pair<const char*, const char*> apps[] = {
+        {"web", "web sites and web APIs: routes, forms, JSON, sessions, files, safe HTML"},
+        {"desktop", "a program with a window: buttons, inputs, lists, timers"},
+    };
     if (args.size() < 2) {
         printf("The built-in library. Load a part with:  use \"stack\"   (or everything: use \"dsa\")\n"
                "Every part is written in Plain: read how one is built with   plain lib stack\n\n");
         for (const auto& a : about) printf("  %-11s %s\n", a.first, a.second);
+        printf("\nFor making apps (see docs/APPS.md):\n\n");
+        for (const auto& a : apps) printf("  %-11s %s\n", a.first, a.second);
         printf("\nTo change one, copy it next to your program with   plain lib stack --copy   (your copy is used instead).\n");
         return 0;
     }

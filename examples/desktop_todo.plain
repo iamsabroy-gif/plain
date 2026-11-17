@@ -1,0 +1,36 @@
+# A to-do list in a window of its own.   plain examples/desktop_todo.plain
+use "desktop"
+
+set win to new Window("To-do", 460, 560)
+win's heading("My to-do list")
+
+set entry to win's input("Something to do")
+entry's set_placeholder("Type, then press Enter")
+set buttons to win's row()
+set tasks to win's list([])
+set info to win's label("Click a task to mark it done.")
+set done_count to 0
+
+define add_task
+    if trim(entry's value) is not "" then
+        add trim(entry's value) to tasks's items
+        entry's set_value("")
+    end
+    info's set_text("{length of tasks's items} to do, {done_count} done.")
+end
+define finish_task
+    increase done_count by 1
+    win's show_message("Done: {tasks's picked_item()}")
+    tasks's set_items(keep_if(tasks's items, action with t gives t is not tasks's picked_item()))
+    info's set_text("{length of tasks's items} to do, {done_count} done.")
+end
+define clear_all
+    tasks's set_items([])
+    info's set_text("All cleared.")
+end
+
+entry's when_entered(add_task)
+tasks's when_picked(finish_task)
+buttons's button("Add", add_task)
+buttons's button("Clear all", clear_all)
+win's run()

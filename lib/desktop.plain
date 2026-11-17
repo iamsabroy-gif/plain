@@ -1,0 +1,385 @@
+# The desktop library: a program with a window.   use "desktop"
+#
+#     use "desktop"
+#     set win to new Window("Counter", 360, 240)
+#     set clicks to 0
+#     set shown to win's label("Clicked 0 times")
+#
+#     define clicked
+#         increase clicks by 1
+#         shown's set_text("Clicked {clicks} times")
+#     end
+#
+#     win's button("Click me", clicked)
+#     win's run()
+#
+# The window is drawn by the computer's browser engine: in a window of its own
+# when Chrome, Edge or Chromium is installed, otherwise in a browser tab. Only this
+# computer can reach it. The program ends when the window is closed.
+#
+# Things you can put in a window (each gives back the widget, to change it later):
+#   heading(words)  label(words)  button(words, action)  separator()
+#   input(label)  password(label)  number_input(label)  text_box(label)
+#   checkbox(label)  choice(label, options)  slider(label, low, high)
+#   list(items)  image(file)  row()  column()
+# row() and column() give back a box that holds widgets side by side, or stacked.
+#
+# A widget's value is what the person typed, ticked or chose: name_box's value.
+# Change a widget with set_text, set_value, set_items, hide, unhide, disable, enable.
+# Actions run when something happens; they take no values:
+#   button(words, action)   when_changed(action)   when_entered(action)  (Enter in an input)
+#   when_picked(action)     on a list: its picked is the number of the item clicked
+# The window: every(seconds, action), show_message(words), set_title(words), close().
+
+class Widget
+    init with window, kind, words
+        set me's id to window's __new_id(me)
+        set me's kind to kind
+        set me's text to words
+        set me's value to ""
+        set me's items to []
+        set me's placeholder to ""
+        set me's hidden to false
+        set me's disabled to false
+        set me's on_click to nothing
+        set me's on_change to nothing
+        set me's on_enter to nothing
+        set me's on_pick to nothing
+        set me's picked to 0
+        set me's extra to {}
+    end
+    define set_text with words
+        set me's text to words
+    end
+    define set_value with v
+        set me's value to v
+    end
+    define set_items with things
+        set me's items to things
+    end
+    define set_placeholder with words
+        set me's placeholder to words
+    end
+    define hide
+        set me's hidden to true
+    end
+    define unhide
+        set me's hidden to false
+    end
+    define disable
+        set me's disabled to true
+    end
+    define enable
+        set me's disabled to false
+    end
+    define when_clicked with handler
+        set me's on_click to handler
+    end
+    define when_changed with handler
+        set me's on_change to handler
+    end
+    define when_entered with handler
+        set me's on_enter to handler
+    end
+    define when_picked with handler
+        set me's on_pick to handler
+    end
+    # The item of a list that was clicked last (nothing before the first click).
+    define picked_item
+        if me's picked is less than 1 or me's picked is greater than length of me's items then
+            give back nothing
+        end
+        give back me's items[me's picked]
+    end
+    # What the window's page needs to draw this widget.
+    define __state
+        set s to {id: me's id, kind: me's kind, text: text(me's text), value: me's value, items: me's items, placeholder: me's placeholder, hidden: me's hidden, disabled: me's disabled, on_change: me's on_change is not nothing, on_enter: me's on_enter is not nothing, on_pick: me's on_pick is not nothing}
+        for each k in keys(me's extra)
+            set s[k] to me's extra[k]
+        end
+        give back s
+    end
+end
+
+# A widget that holds other widgets: a row, a column, or the window itself.
+class Box extends Widget
+    init with window, kind
+        parent's init(window, kind, "")
+        set me's window to window
+        set me's children to []
+    end
+    define __put with w
+        add w to me's children
+        give back w
+    end
+    define heading with words
+        set w to me's __put(new Widget(me's window, "heading", words))
+        set w's extra's level to 1
+        give back w
+    end
+    define label with words
+        give back me's __put(new Widget(me's window, "text", words))
+    end
+    define button with words, handler
+        set w to me's __put(new Widget(me's window, "button", words))
+        set w's on_click to handler
+        give back w
+    end
+    define input with words
+        give back me's __put(new Widget(me's window, "input", words))
+    end
+    define password with words
+        give back me's __put(new Widget(me's window, "password", words))
+    end
+    define number_input with words
+        set w to me's __put(new Widget(me's window, "number", words))
+        set w's value to 0
+        give back w
+    end
+    define text_box with words
+        give back me's __put(new Widget(me's window, "textarea", words))
+    end
+    define checkbox with words
+        set w to me's __put(new Widget(me's window, "checkbox", words))
+        set w's value to false
+        give back w
+    end
+    define choice with words, options
+        set w to me's __put(new Widget(me's window, "choice", words))
+        set w's items to options
+        if length of options is greater than 0 then
+            set w's value to text(options[1])
+        end
+        give back w
+    end
+    define slider with words, low, high
+        set w to me's __put(new Widget(me's window, "slider", words))
+        set w's value to low
+        set w's extra's low to low
+        set w's extra's high to high
+        give back w
+    end
+    define list with things
+        set w to me's __put(new Widget(me's window, "list", ""))
+        set w's items to things
+        give back w
+    end
+    define image with file
+        set w to me's __put(new Widget(me's window, "image", file))
+        set w's extra's src to "/image/" + w's id
+        set w's extra's file to file
+        give back w
+    end
+    define separator
+        give back me's __put(new Widget(me's window, "separator", ""))
+    end
+    define row
+        give back me's __put(new Box(me's window, "row"))
+    end
+    define column
+        give back me's __put(new Box(me's window, "column"))
+    end
+    define __state
+        set s to {id: me's id, kind: me's kind, hidden: me's hidden, children: []}
+        for each c in me's children
+            add c's __state() to s's children
+        end
+        give back s
+    end
+end
+
+class Window extends Box
+    init with title, width, height
+        set me's next_id to 0
+        set me's registry to {}
+        parent's init(me, "column")
+        set me's title to title
+        set me's width to width
+        set me's height to height
+        set me's timers to {}
+        set me's messages to []
+        set me's problem to ""
+        set me's closed to false
+        set me's token to ""
+        set me's hidden to false
+        set me's restart to false
+    end
+    define __new_id with w
+        increase me's next_id by 1
+        set id to "w" + text(me's next_id)
+        set me's registry[id] to w
+        give back id
+    end
+    define set_title with words
+        set me's title to words
+    end
+    define show_message with words
+        add text(words) to me's messages
+    end
+    # Run an action every so many seconds while the window is open.
+    define every with seconds, handler
+        increase me's next_id by 1
+        set me's timers["t" + text(me's next_id)] to {every: seconds, handler: handler}
+    end
+    # End the program (after the action that called this).
+    define close
+        set me's closed to true
+    end
+
+    # Open the window and answer it until it is closed.
+    define run
+        set server to tcp_listen(0, "localhost")
+        set me's token to secure_token(16)
+        set address to "http://127.0.0.1:" + text(tcp_port(server)) + "/?t=" + me's token
+        set how to open_url(address, {app: true, width: me's width, height: me's height})
+        if how is not "printed" then
+            say "The window \"{me's title}\" is open. (If you can't see it: {address})"
+        end
+        # The window checks in every second or two (less often while it is hidden, as browsers
+        # slow hidden windows down). When it goes quiet or says goodbye, it was closed - or it
+        # is only reloading, so wait a moment for it to come back before ending.
+        set waiting to true
+        while waiting
+            set me's restart to false
+            set quiet_for to 6
+            if me's hidden then
+                set quiet_for to 900
+            end
+            http_serve(server, me's handle, {idle: quiet_for})
+            if me's closed then
+                set waiting to false
+            otherwise if not me's restart then
+                if http_serve(server, me's handle, {how_many: 1, idle: 3}) is 0 then
+                    set waiting to false
+                end
+            end
+        end
+        tcp_close(server)
+    end
+
+    define __page_state
+        set timers to []
+        for each id in keys(me's timers)
+            add {id: id, every: me's timers[id]'s every} to timers
+        end
+        set s to {title: text(me's title), widgets: me's __state()'s children, messages: me's messages, timers: timers, problem: me's problem, closed: me's closed}
+        set me's messages to []
+        give back s
+    end
+
+    # Run one of the program's actions; a problem in it is shown in the window, not fatal.
+    define __run_action with handler, what
+        if handler is nothing then
+            give back nothing
+        end
+        set me's problem to ""
+        try
+            handler()
+        on error problem
+            set me's problem to "Problem in the action for {what}: {problem}"
+            say me's problem
+        end
+    end
+
+    define handle with request
+        set token to ""
+        if has_key(request's query, "t") then
+            set token to request's query's t
+        end
+        if has_key(request's headers, "x-plain-token") then
+            set token to request's headers["x-plain-token"]
+        end
+        if token is not me's token or me's token is "" then
+            give back {status: 403, body: "This window belongs to another program."}
+        end
+        if request's path is "/" then
+            set html to replace(__ui_asset("desktop.html"), "__PLAIN_TOKEN__", me's token)
+            set safe to replace(replace(replace(text(me's title), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+            give back {status: 200, body: replace(html, "__PLAIN_TITLE__", safe), headers: {"Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store"}}
+        end
+        if request's path is "/close" then
+            give back {status: 200, body: "", done: true}
+        end
+        if request's path is "/ping" then
+            set now_hidden to has_key(request's query, "hidden") and request's query's hidden is "1"
+            if now_hidden is not me's hidden then
+                # wait longer, or less long, from now on
+                set me's hidden to now_hidden
+                set me's restart to true
+                give back {status: 204, body: "", done: true}
+            end
+            give back {status: 204, body: ""}
+        end
+        if starts_with(request's path, "/image/") then
+            set id to slice(request's path, 8, length of request's path)
+            if has_key(me's registry, id) and file_exists(me's registry[id]'s extra's file) then
+                give back {status: 200, body: read_file(me's registry[id]'s extra's file), headers: {"Content-Type": __image_type(me's registry[id]'s extra's file)}}
+            end
+            give back {status: 404, body: "no such image"}
+        end
+        if request's path is "/event" then
+            me's __event(from_json(request's body))
+        end
+        give back {status: 200, body: to_json(me's __page_state()), headers: {"Content-Type": "application/json"}, done: me's closed}
+    end
+
+    define __event with e
+        # what was typed, ticked and chosen, as the window shows it now
+        for each id in keys(e's values)
+            if has_key(me's registry, id) then
+                set w to me's registry[id]
+                set v to e's values[id]
+                if w's kind is "number" or w's kind is "slider" then
+                    try
+                        set v to number(v)
+                    on error
+                        set v to 0
+                    end
+                end
+                set w's value to v
+            end
+        end
+        set id to e's id
+        if e's kind is "timer" then
+            if has_key(me's timers, id) then
+                me's __run_action(me's timers[id]'s handler, "every " + text(me's timers[id]'s every) + " seconds")
+            end
+            give back nothing
+        end
+        if not has_key(me's registry, id) then
+            give back nothing
+        end
+        set w to me's registry[id]
+        set name to w's kind + " \"" + text(w's text) + "\""
+        if e's kind is "click" then
+            me's __run_action(w's on_click, name)
+        otherwise if e's kind is "change" then
+            me's __run_action(w's on_change, name)
+        otherwise if e's kind is "enter" then
+            me's __run_action(w's on_enter, name)
+        otherwise if e's kind is "pick" then
+            set w's picked to e's index
+            me's __run_action(w's on_pick, name)
+        end
+    end
+end
+
+define __image_type with file
+    set f to lowercase(file)
+    if ends_with(f, ".png") then
+        give back "image/png"
+    end
+    if ends_with(f, ".jpg") or ends_with(f, ".jpeg") then
+        give back "image/jpeg"
+    end
+    if ends_with(f, ".gif") then
+        give back "image/gif"
+    end
+    if ends_with(f, ".svg") then
+        give back "image/svg+xml"
+    end
+    if ends_with(f, ".webp") then
+        give back "image/webp"
+    end
+    give back "application/octet-stream"
+end

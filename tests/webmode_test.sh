@@ -8,7 +8,7 @@ c++ -O1 -std=c++17 -DPLAIN_WASM -o "$WORK/plain_web" "$DIR/../src/main.cpp" || {
 fail=0
 for file in "$DIR"/cases/*.plain; do
     name=$(basename "$file" .plain)
-    case "$name" in network|threads) continue ;; esac
+    case "$name" in network|threads|web_server) continue ;; esac
     input=/dev/null
     [ -f "$DIR/cases/$name.in" ] && input="$DIR/cases/$name.in"
     cp "$file" "$WORK/$name.plain"

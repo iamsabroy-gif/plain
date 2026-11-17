@@ -1,6 +1,7 @@
 // Plain - the standard library: built-in actions written in C++.
 #pragma once
 #include <chrono>
+#include <random>
 #include <climits>
 #include <ctime>
 #ifndef PLAIN_WASM
@@ -17,6 +18,7 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -618,6 +620,7 @@ BUILTIN(b_http_request) {
     return httpRequest(uppercaseCopy(argStr("http_request", a, 0)), argStr("http_request", a, 1), n >= 3 ? a[2] : Value(), n == 4 ? a[3] : Value());
 }
 
+static std::string lowerCopy(std::string s);
 // Plain TCP connections: a connection is just a number that names it.
 static int argConn(const char* fn, Value* a) {
     int64_t fd = argInt(fn, a, 0);
@@ -646,14 +649,22 @@ BUILTIN(b_tcp_connect) {
     if (fd < 0) fail("I couldn't connect to " + host + " on port " + port + ".");
     return Value::integer(fd);
 }
+// tcp_listen(port [, "localhost"]): with "localhost", only programs on this computer can connect.
 BUILTIN(b_tcp_listen) {
+    needArgs("tcp_listen", n, 1, 2);
     int64_t port = argInt("tcp_listen", a, 0);
+    bool local = false;
+    if (n == 2) {
+        std::string where = lowerCopy(argStr("tcp_listen", a, 1));
+        if (where == "localhost" || where == "127.0.0.1") local = true;
+        else if (where != "everywhere" && where != "0.0.0.0") fail("tcp_listen can listen on \"localhost\" (this computer only) or \"everywhere\", but I got " + quote(where) + ".");
+    }
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     int yes = 1;
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof addr);
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_addr.s_addr = htonl(local ? INADDR_LOOPBACK : INADDR_ANY);
     addr.sin_port = htons((uint16_t)port);
     if (fd < 0 || setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) != 0 ||
         bind(fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof addr) != 0 || listen(fd, 64) != 0) {
@@ -940,21 +951,46 @@ static std::string reasonFor(int status) {
     }
 }
 
-// http_serve(server, handler [, how_many]) answers web requests that arrive on a listening
-// connection (made with tcp_listen). The handler gets a map: method, path, query, headers, body.
-// It gives back text, or a map with status, body and headers, or a list/map to send as JSON.
+// http_serve(server, handler [, how_many or options]) answers web requests that arrive on a
+// listening connection (made with tcp_listen). The handler gets a map: method, path, query,
+// headers, body. It gives back text, or a map with status, body and headers (and done: true to
+// stop serving after this reply), or a list/map to send as JSON.
+// Options: {how_many: n, idle: seconds} - stop after n requests, or when none came for that long.
+// Gives back how many requests it answered.
 BUILTIN(b_http_serve) {
     needArgs("http_serve", n, 2, 3);
     int server = argConn("http_serve", a);
     Value handler = a[1];
-    int64_t limit = n == 3 ? argInt("http_serve", a, 2) : -1;
-    for (int64_t served = 0; limit < 0 || served < limit; ++served) {
-        int fd;
+    int64_t limit = -1;
+    double idle = -1;
+    if (n == 3 && isMap(a[2])) {
+        if (Value* v = asMap(a[2])->find(mkstr("how_many"))) {
+            if (!wholeValue(*v, limit)) fail("http_serve's how_many must be a whole number.");
+        }
+        if (Value* v = asMap(a[2])->find(mkstr("idle"))) {
+            if (!isNumber(*v)) fail("http_serve's idle must be a number of seconds.");
+            idle = toDouble(*v);
+        }
+    } else if (n == 3) {
+        limit = argInt("http_serve", a, 2);
+    }
+    int64_t served = 0;
+    bool stopping = false;
+    for (; !stopping && (limit < 0 || served < limit); ++served) {
+        int fd = -1;
         fflush(stdout);
         {
             Unlocked u;
-            fd = accept(server, nullptr, nullptr);
+            if (idle >= 0) {
+                struct pollfd pf;
+                pf.fd = server;
+                pf.events = POLLIN;
+                pf.revents = 0;
+                if (poll(&pf, 1, (int)(idle * 1000)) <= 0) fd = -2;  // nobody came in time
+            }
+            if (fd != -2) fd = accept(server, nullptr, nullptr);
         }
+        if (fd == -2) break;
         if (fd < 0) fail("I couldn't accept a connection.");
         HttpParts head;
         {
@@ -1022,6 +1058,7 @@ BUILTIN(b_http_serve) {
                     else body = fmt(*b);
                 }
                 if (Value* h = r->find(mkstr("headers"))) extra = *h;
+                if (Value* st = r->find(mkstr("done"))) stopping = truthy(*st);
             } else if (isMap(reply) || isList(reply)) {
                 toJson(reply, body, 0, -1, 0);
                 contentType = "application/json";
@@ -1039,10 +1076,16 @@ BUILTIN(b_http_serve) {
         bool hasType = false;
         if (isMap(extra))
             for (const auto& e : asMap(extra)->entries) {
-                std::string name = fmt(e.first), val = fmt(e.second);
-                if (name.find_first_of("\r\n:") != std::string::npos || val.find_first_of("\r\n") != std::string::npos) continue;
-                if (lowerCopy(name) == "content-type") hasType = true;
-                out += name + ": " + val + "\r\n";
+                std::string name = fmt(e.first);
+                if (name.find_first_of("\r\n:") != std::string::npos) continue;
+                // a list gives the header once for each item (like two Set-Cookie lines)
+                std::vector<Value> vals = isList(e.second) ? asList(e.second)->items : std::vector<Value>{e.second};
+                for (const Value& v : vals) {
+                    std::string val = fmt(v);
+                    if (val.find_first_of("\r\n") != std::string::npos) continue;
+                    if (lowerCopy(name) == "content-type") hasType = true;
+                    out += name + ": " + val + "\r\n";
+                }
             }
         if (!hasType) out += "Content-Type: " + contentType + "\r\n";
         out += "\r\n" + body;
@@ -1053,8 +1096,91 @@ BUILTIN(b_http_serve) {
             close(fd);
         }
     }
-    return Value();
+    return Value::integer(served);
 }
+
+// open_url(url [, {app: true, width: 800, height: 600}]): show a web address in the browser, or
+// with app: true in a window of its own (Chrome, Edge or Chromium in app mode, when there is one).
+// PLAIN_NO_BROWSER=1 only prints the address (for servers and tests). Says how it was shown.
+static bool spawnDetached(const std::vector<std::string>& argv) {
+    pid_t pid = fork();
+    if (pid < 0) return false;
+    if (pid == 0) {
+        setsid();
+        if (fork() != 0) _exit(0);  // a grandchild: nobody has to wait for it
+        int devnull = open("/dev/null", O_RDWR);
+        if (devnull >= 0) { dup2(devnull, 0); dup2(devnull, 1); dup2(devnull, 2); }
+        std::vector<char*> args;
+        for (const std::string& s : argv) args.push_back(const_cast<char*>(s.c_str()));
+        args.push_back(nullptr);
+        execvp(args[0], args.data());
+        _exit(127);
+    }
+    int status = 0;
+    waitpid(pid, &status, 0);
+    return true;
+}
+static std::string findProgram(const std::vector<std::string>& names) {
+    const char* path = getenv("PATH");
+    for (const std::string& n : names) {
+        if (n[0] == '/') { if (access(n.c_str(), X_OK) == 0) return n; continue; }
+        std::string p = path ? path : "/usr/bin:/bin";
+        size_t start = 0;
+        while (start <= p.size()) {
+            size_t colon = p.find(':', start);
+            std::string dir = p.substr(start, colon == std::string::npos ? std::string::npos : colon - start);
+            start = colon == std::string::npos ? p.size() + 1 : colon + 1;
+            std::string full = (dir.empty() ? "." : dir) + "/" + n;
+            if (access(full.c_str(), X_OK) == 0) return full;
+        }
+    }
+    return "";
+}
+BUILTIN(b_open_url) {
+    needArgs("open_url", n, 1, 2);
+    std::string url = argStr("open_url", a, 0);
+    if (url.compare(0, 7, "http://") != 0 && url.compare(0, 8, "https://") != 0 && url.compare(0, 7, "file://") != 0)
+        fail("open_url needs a web address that starts with http://, https:// or file://, but I got " + quote(url) + ".");
+    bool app = false;
+    int64_t w = 900, h = 700;
+    if (n == 2 && isMap(a[1])) {
+        if (Value* v = asMap(a[1])->find(mkstr("app"))) app = truthy(*v);
+        if (Value* v = asMap(a[1])->find(mkstr("width"))) wholeValue(*v, w);
+        if (Value* v = asMap(a[1])->find(mkstr("height"))) wholeValue(*v, h);
+    }
+    const char* off = getenv("PLAIN_NO_BROWSER");
+    if (off && *off && std::string(off) != "0") {
+        printf("Open this address in a browser: %s\n", url.c_str());
+        fflush(stdout);
+        return mkstr("printed");
+    }
+    if (app) {
+        std::string chrome = findProgram({"google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "microsoft-edge", "microsoft-edge-stable", "brave-browser",
+                                          "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                                          "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+                                          "/Applications/Chromium.app/Contents/MacOS/Chromium",
+                                          "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"});
+        if (!chrome.empty()) {
+            // its own profile, so the window opens even if the browser is already running
+            std::string profile = (plainHome().empty() ? std::string("/tmp") : plainHome()) + "/app-window";
+            if (spawnDetached({chrome, "--app=" + url, "--user-data-dir=" + profile, "--window-size=" + std::to_string(w) + "," + std::to_string(h),
+                               "--no-first-run", "--no-default-browser-check"}))
+                return mkstr("app window");
+        }
+    }
+#ifdef __APPLE__
+    if (spawnDetached({"open", url})) return mkstr("browser");
+#else
+    std::string opener = findProgram({"xdg-open", "gio", "sensible-browser", "x-www-browser"});
+    if (!opener.empty() && spawnDetached(opener.find("gio") != std::string::npos ? std::vector<std::string>{opener, "open", url} : std::vector<std::string>{opener, url}))
+        return mkstr("browser");
+#endif
+    printf("Open this address in a browser: %s\n", url.c_str());
+    fflush(stdout);
+    return mkstr("printed");
+}
+
+
 #else
 #ifdef PLAIN_WASM
 BUILTIN(b_no_network) { fail("Networking is not available in the web playground. Install Plain on your computer to use it."); }
@@ -1062,6 +1188,7 @@ BUILTIN(b_no_network) { fail("Networking is not available in the web playground.
 BUILTIN(b_no_network) { fail("Networking is not available in the Windows build of Plain yet."); }
 #endif
 #define b_http_get b_no_network
+#define b_open_url b_no_network
 #define b_http_post b_no_network
 #define b_http_request b_no_network
 #define b_tcp_connect b_no_network
@@ -1073,8 +1200,27 @@ BUILTIN(b_no_network) { fail("Networking is not available in the Windows build o
 #define b_tcp_close b_no_network
 #define b_tcp_port b_no_network
 #define b_http_serve b_no_network
-BUILTIN(b_url_encode) { return a[0]; }
-BUILTIN(b_url_decode) { return a[0]; }
+// (These are only text, so they work in every build.)
+BUILTIN(b_url_decode) {
+    const std::string& s = argStr("url_decode", a, 0);
+    std::string out;
+    for (size_t i = 0; i < s.size(); ++i) {
+        if (s[i] == '+') out += ' ';
+        else if (s[i] == '%' && i + 2 < s.size() + 0 && isxdigit((unsigned char)s[i + 1]) && isxdigit((unsigned char)s[i + 2])) {
+            out += (char)strtol(s.substr(i + 1, 2).c_str(), nullptr, 16);
+            i += 2;
+        } else out += s[i];
+    }
+    return mkstr(out);
+}
+BUILTIN(b_url_encode) {
+    std::string out;
+    for (unsigned char c : fmt(a[0])) {
+        if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') out += (char)c;
+        else { char b[4]; snprintf(b, sizeof b, "%%%02X", c); out += b; }
+    }
+    return mkstr(out);
+}
 #endif
 
 // Built-in actions that are easier to write in Plain itself.
@@ -1115,6 +1261,32 @@ define sort_by with items and key_of
 end
 )PLAIN";
 
+// secure_token(bytes): random text from the operating system, safe for session ids and secrets.
+BUILTIN(b_secure_token) {
+    int64_t bytes = n >= 1 ? argInt("secure_token", a, 0) : 16;
+    if (bytes < 1 || bytes > 1024) fail("secure_token can make between 1 and 1024 random bytes.");
+    std::string raw((size_t)bytes, '\0');
+#ifdef PLAIN_POSIX
+    int fd = open("/dev/urandom", O_RDONLY);
+    if (fd < 0 || read(fd, &raw[0], raw.size()) != (ssize_t)raw.size()) { if (fd >= 0) close(fd); fail("I couldn't get random bytes from the system."); }
+    close(fd);
+#else
+    std::random_device rd;  // the operating system's randomness (WASI random_get, or rand_s on Windows)
+    for (char& c : raw) c = (char)(rd() & 0xFF);
+#endif
+    static const char* hex = "0123456789abcdef";
+    std::string out;
+    for (unsigned char c : raw) { out += hex[c >> 4]; out += hex[c & 15]; }
+    return mkstr(out);
+}
+
+// The page and style sheet the web and desktop libraries send (lib/ui, packed into plain).
+BUILTIN(b_ui_asset) {
+    const char* t = packedFile("ui/" + argStr("__ui_asset", a, 0));
+    if (!t) fail("This copy of Plain is missing the file ui/" + asStr(a[0]) + ".");
+    return mkstr(t);
+}
+
 inline void registerBuiltins(Program& prog) {
     struct Entry { const char* name; int arity; NativeFn fn; };
     static const Entry table[] = {
@@ -1138,10 +1310,11 @@ inline void registerBuiltins(Program& prog) {
         {"integer", 1, b_integer}, {"float", 1, b_float}, {"decimal", 1, b_decimal}, {"quotient", 2, b_quotient},
         {"fixed", 2, b_fixed}, {"is_integer", 1, b_is_integer}, {"is_decimal", 1, b_is_decimal}, {"is_float", 1, b_is_float},
         {"http_get", -1, b_http_get}, {"http_post", -1, b_http_post}, {"http_request", -1, b_http_request},
-        {"tcp_connect", 2, b_tcp_connect}, {"tcp_listen", 1, b_tcp_listen}, {"tcp_accept", 1, b_tcp_accept},
+        {"tcp_connect", 2, b_tcp_connect}, {"tcp_listen", -1, b_tcp_listen}, {"tcp_accept", 1, b_tcp_accept},
         {"tcp_send", 2, b_tcp_send}, {"tcp_receive", -1, b_tcp_receive}, {"tcp_receive_line", 1, b_tcp_receive_line},
         {"tcp_close", 1, b_tcp_close}, {"tcp_port", 1, b_tcp_port}, {"http_serve", -1, b_http_serve},
         {"url_encode", 1, b_url_encode}, {"url_decode", 1, b_url_decode},
+        {"open_url", -1, b_open_url}, {"secure_token", -1, b_secure_token}, {"__ui_asset", 1, b_ui_asset},
     };
     for (const Entry& e : table) prog.define(e.name, Value::obj(new Native(e.name, e.arity, e.fn)));
     registerTaskBuiltins(prog);

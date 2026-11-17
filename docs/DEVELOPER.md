@@ -79,8 +79,13 @@ lib/
   problems/       the practice problems, one Plain file each
   lessons/        the beginner lessons, one text file each (format at the top of lessons.hpp)
   viz/            player.html (step viewer) and growth.html (chart): standalone pages
+  web.plain       use "web": WebApp, page, fill, escape_html, sessions, static files
+  desktop.plain   use "desktop": Window and its widgets (a local web server + a page)
+  ui/             what those send: page.css (the web style) and desktop.html (the window's page)
 web/              the browser playground: index.html, worker.js (plain.wasm and player.html are built)
-tools/            embed.sh (pack lib/ into src/libfiles.hpp), build-wasm.sh, update-formula.sh
+tools/            embed.sh (pack lib/ into src/libfiles.hpp), build-wasm.sh, update-formula.sh,
+                  markdown.js (the docs' Markdown converter), make-pdf.js (the PDFs),
+                  build-docs.js and docs-site/ (the documentation web site)
 editors/vscode/   the VS Code extension (grammar, snippets, run/format/check)
 packaging/        the Homebrew formula
 registry/         index.json: the shared package index
@@ -303,6 +308,26 @@ pointers can refer to it. Lists show at most 80 items, maps 60, a variable at mo
 values. Steps inside the built-in library are folded into the line that called them
 (`--into-library` records them).
 
+## The documentation site
+
+The **Documentation** tab of the published site is made by `node tools/build-docs.js [folder]`
+(`make docs-site` builds it into `web/docs`, which git ignores; open `web/docs/index.html`). The
+Pages workflow builds it into `site/docs` on every change to `main`, so it is never edited by hand:
+
+* one page per guide in `docs/` (and the README as "Getting started"), converted by
+  `tools/markdown.js`, the same converter the PDFs use;
+* pages made from the sources: the lessons (`plain lesson --json`), the practice problems
+  (`plain practice --json`, which leaves out hidden tests, hints and solutions) and the library
+  reference (the first comment block of each `lib/*.plain`);
+* a sidebar in four groups (for children, learning to program, building with Plain, working on
+  Plain), search over every section (`search-index.js`), an "On this page" list, and a "Try it"
+  button on every ` ```plain ` example, which opens it in the playground (`../#c=...`);
+  `../#lesson=3` opens a lesson in the playground.
+
+A new guide goes into `GUIDES` and `NAV` at the top of `tools/build-docs.js` (and into `DOCS` in
+`tools/make-pdf.js` for the PDF). The build stops with an error on a link that leads nowhere;
+`tests/docs_site_test.js` checks the site in a browser.
+
 ## The browser playground
 
 `web/` is a static site: `index.html` (editor, Run, Watch it run, Count the work, examples, share
@@ -371,7 +396,7 @@ for Linux x86_64 and arm64, macOS Intel and Apple Silicon, and Windows (MinGW, s
 is pushed:
 
 ```
-git tag -a v2.2.0 -m "Plain 2.2.0" && git push origin v2.2.0
+git tag -a v2.3.0 -m "Plain 2.3.0" && git push origin v2.3.0
 ```
 
 Afterwards: check the Actions tab, then run both installers on a clean machine. The Windows build

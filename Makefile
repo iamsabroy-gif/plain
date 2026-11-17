@@ -2,6 +2,7 @@
 #   make            build ./build/plain
 #   make test       run the test programs
 #   make install    copy plain into $(PREFIX)/bin   (default /usr/local; may need sudo)
+#   make docs-site  build the documentation web site into web/docs (then open web/docs/index.html)
 CXX ?= c++
 CXXFLAGS ?= -O2 -std=c++17 -Wall -Wextra
 PREFIX ?= /usr/local
@@ -10,7 +11,7 @@ LDLIBS ?= $(if $(filter Linux,$(shell uname -s)),-ldl,)
 
 all: build/plain
 
-src/libfiles.hpp: $(wildcard lib/*.plain lib/problems/*.plain lib/lessons/*.lesson lib/viz/*.html)
+src/libfiles.hpp: $(wildcard lib/*.plain lib/problems/*.plain lib/lessons/*.lesson lib/viz/*.html lib/ui/*)
 	sh tools/embed.sh
 
 build/plain: src/main.cpp src/*.hpp
@@ -28,7 +29,7 @@ test: build/plain
 	@sh tests/lesson_test.sh build/plain
 	@sh tests/webmode_test.sh
 	@sh tests/docs_test.sh build/plain
-	@if command -v node >/dev/null 2>&1; then node tests/web_ui_test.js && node tests/wasm_test.js && node tests/web_e2e.js; fi
+	@if command -v node >/dev/null 2>&1; then node tests/web_ui_test.js && node tests/docs_site_test.js && node tests/desktop_test.js && node tests/wasm_test.js && node tests/web_e2e.js; fi
 
 install: build/plain
 	install -d $(DESTDIR)$(PREFIX)/bin
@@ -40,7 +41,10 @@ uninstall:
 pdf:
 	node tools/make-pdf.js
 
+docs-site: build/plain
+	node tools/build-docs.js web/docs
+
 clean:
 	rm -rf build
 
-.PHONY: all test pdf install uninstall clean
+.PHONY: all test pdf docs-site install uninstall clean

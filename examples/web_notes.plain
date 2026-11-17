@@ -1,0 +1,43 @@
+# A small notes web site with a JSON API.   plain examples/web_notes.plain
+# Then open http://localhost:8080/ in a browser.
+use "web"
+
+set app to new WebApp()
+set notes to []
+
+define home with request
+    set rows to ""
+    for each note in notes
+        set rows to rows + "<li>" + escape_html(note) + "</li>\n"
+    end
+    if rows is "" then
+        set rows to "<li class=\"muted\">No notes yet.</li>"
+    end
+    set form to "<form method=\"post\" action=\"/notes\">\n<label>A new note <input name=\"text\" required></label>\n<button>Add it</button>\n</form>"
+    give back page("Notes", "<h1>Notes</h1>\n" + form + "\n<ul>\n" + rows + "</ul>\n<p class=\"muted\">Also as JSON: <a href=\"/api/notes\">/api/notes</a></p>")
+end
+
+define add_note with request
+    if has_key(request's form, "text") and trim(request's form's text) is not "" then
+        add trim(request's form's text) to notes
+    end
+    give back redirect("/")
+end
+
+define list_notes with request
+    give back notes
+end
+
+define one_note with request
+    set n to number(request's params's number)
+    if n is less than 1 or n is greater than length of notes then
+        give back reply(404, {problem: "There is no note {n}."})
+    end
+    give back {number: n, text: notes[n]}
+end
+
+app's get("/", home)
+app's post("/notes", add_note)
+app's get("/api/notes", list_notes)
+app's get("/api/notes/:number", one_note)
+app's start(8080)
