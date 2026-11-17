@@ -67,6 +67,8 @@ details textarea { width: calc(100% - 28px); margin: 0 14px 12px; height: 70px; 
 .flownote { padding: 8px 14px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--line); }
 #flowBox { overflow: auto; height: 74vh; padding: 10px 12px; }
 .vizbody.only-flow #flowBox { height: auto; max-height: 80vh; }
+#flowBox.fit .flowchart { width: 100%; height: auto; }   /* "Fit to width": the whole chart, smaller */
+.flownote button { margin-left: 6px; padding: 1px 9px; font-size: 12px; }
 @media (max-width: 860px) {
   .vizbody { grid-template-columns: minmax(0, 1fr); }
   .flowpane { border-right: 0; border-bottom: 1px solid var(--line); }
@@ -241,7 +243,7 @@ footer a { color: var(--accent); }
     <h2><span id="vizTitle">Watch it run</span><span><button id="flowToggle" style="padding:2px 10px;font-size:12px">Hide flowchart</button> <button id="closeViz" style="padding:2px 10px;font-size:12px">Close</button></span></h2>
     <div class="vizbody" id="vizBody">
       <div class="flowpane" id="flowPane">
-        <div class="flownote" id="flowNote"></div>
+        <div class="flownote"><span id="flowNote"></span><button id="flowFit" aria-pressed="false" title="Shrink the chart to fit, or show it at full size">Fit to width</button></div>
         <div id="flowBox"></div>
       </div>
       <iframe id="vizFrame" title="Step through the program" sandbox="allow-scripts"></iframe>
@@ -603,10 +605,11 @@ window.addEventListener("message", (e) => {
   if (!g) return;
   g.classList.add("fc-on");
   flow.lastOn = id;
-  // keep it in view inside the flowchart's own scroll box
+  // keep it in view inside the flowchart's own scroll box: up and down only when it leaves the view,
+  // and across always centred on it (so the chart never stays scrolled to one side)
   const box = $("flowBox"), rb = box.getBoundingClientRect(), rg = g.getBoundingClientRect();
   if (rg.top < rb.top + 10 || rg.bottom > rb.bottom - 10) box.scrollTop += rg.top - rb.top - box.clientHeight / 3;
-  if (rg.left < rb.left || rg.right > rb.right) box.scrollLeft += rg.left - rb.left - 20;
+  if (box.scrollWidth > box.clientWidth) box.scrollLeft += (rg.left + rg.right) / 2 - (rb.left + rb.right) / 2;
 });
 let flowTimer = null;
 editor.addEventListener("input", () => {
@@ -618,6 +621,11 @@ $("flowBtn").onclick = () => {
   if (!$("vizCard").hidden && flow.mode === "flow") { $("vizCard").hidden = true; flow.mode = null; return; }
   showFlow(editor.value, "flow");
   $("vizCard").scrollIntoView({ behavior: "smooth", block: "start" });
+};
+$("flowFit").onclick = () => {
+  const on = $("flowBox").classList.toggle("fit");
+  $("flowFit").setAttribute("aria-pressed", String(on));
+  $("flowFit").textContent = on ? "Actual size" : "Fit to width";
 };
 $("flowToggle").onclick = () => {
   flow.hidden = !flow.hidden;
