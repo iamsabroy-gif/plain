@@ -184,6 +184,23 @@ const ok = (cond, what) => { results.push((cond ? "ok   " : "FAIL ") + what); };
   await frame.click("#last");
   await p.waitForFunction(() => { const g = document.querySelector("#flowBox .fc-on"); return g && g.classList.contains("fc-end"); });
   ok(true, "at the last step, End is lit");
+  // a wide chart: after a box far to one side was lit, the panel comes back to the lit box
+  await p.click("#algosBtn");
+  await p.click('#algosCard .tile[data-algo="binary-search"]');
+  await p.waitForFunction(() => (document.querySelector("#flowBox .fc-on") || {}).id && document.getElementById("code").value.startsWith("# Binary search"));
+  const bframe = p.frames().find((f) => f !== p.mainFrame());
+  for (let k = 0; k < 14; k++) await bframe.click("#next");
+  await bframe.click("#last");
+  await p.waitForFunction(() => { const g = document.querySelector("#flowBox .fc-on"); return g && g.classList.contains("fc-end"); });
+  const centred = await p.evaluate(() => {
+    const b = document.getElementById("flowBox").getBoundingClientRect(), g = document.querySelector("#flowBox .fc-on").getBoundingClientRect();
+    return { wide: document.getElementById("flowBox").scrollWidth > document.getElementById("flowBox").clientWidth, off: Math.abs((g.left + g.right) / 2 - (b.left + b.right) / 2), half: b.width / 2 };
+  });
+  ok(!centred.wide || centred.off < centred.half * 0.3, "the lit box is kept in the middle of a wide chart (" + Math.round(centred.off) + "px off centre)");
+  await p.click("#flowFit");
+  const fits = await p.evaluate(() => document.querySelector("#flowBox .flowchart").getBoundingClientRect().width <= document.getElementById("flowBox").clientWidth + 1);
+  ok(fits && (await p.textContent("#flowFit")) === "Actual size", "Fit to width shrinks the chart to the panel");
+  await p.click("#flowFit");
   await p.click("#flowToggle");
   ok(!(await p.isVisible("#flowPane")) && await p.isVisible("#vizFrame"), "the flowchart can be hidden, leaving the player");
   await p.click("#flowToggle");
