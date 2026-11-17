@@ -2,14 +2,14 @@
 :root {
   --bg: #f7f6f2; --panel: #ffffff; --ink: #1c1c1a; --muted: #66665f; --line: #deddd5; --soft: #efeee8;
   --accent: #2f5bea; --accent-ink: #ffffff; --go: #1f9d63; --code: #f4f3ee; --chip: #eceef5;
-  --k: #2748c4; --s: #1a7f4b; --c: #77776f; --out: #fffbea; --out-line: #ecd98a; --in: #eef6ff; --in-line: #b9d3f2;
+  --k: #2748c4; --s: #1a7f4b; --c: #77776f; --ins: #a63a8c; --op: #7a5c00; --num: #b8500c; --fn: #0b6f7d; --cls: #8f5000; --me: #7a2fe0; --out: #fffbea; --out-line: #ecd98a; --in: #eef6ff; --in-line: #b9d3f2;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #15161a; --panel: #1d1f25; --ink: #ecebe6; --muted: #a2a19a; --line: #33353d; --soft: #23252c;
     --accent: #7c9bff; --accent-ink: #11131a; --go: #3fb97f; --code: #202229; --chip: #2a2d36;
-    --k: #8fa8ff; --s: #6fd39b; --c: #8d8c86; --out: #2b2717; --out-line: #6b5c22; --in: #182334; --in-line: #34507a;
+    --k: #8fa8ff; --s: #6fd39b; --c: #8d8c86; --ins: #f08bd4; --op: #e8c76a; --num: #ffa36b; --fn: #5fd0e0; --cls: #ffc46b; --me: #c3a0ff; --out: #2b2717; --out-line: #6b5c22; --in: #182334; --in-line: #34507a;
   }
 }
 * { box-sizing: border-box; }
@@ -80,7 +80,10 @@ p, ul, ol, table, pre, blockquote, details { margin: 0 0 1em; }
 code { font: .9em ui-monospace, "SF Mono", Menlo, Consolas, monospace; background: var(--chip); padding: 1px 5px; border-radius: 5px; }
 pre { background: var(--code); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; overflow-x: auto; font: 14.5px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
 pre code { background: none; padding: 0; font: inherit; }
-pre .k { color: var(--k); font-weight: 700; } pre .s { color: var(--s); } pre .c { color: var(--c); font-style: italic; }
+pre .t-kw { color: var(--k); font-weight: 700; } pre .t-ins { color: var(--ins); font-weight: 700; } pre .t-op { color: var(--op); }
+pre .t-str { color: var(--s); } pre .t-hole { background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 3px; }
+pre .t-num, pre .t-lit { color: var(--num); } pre .t-com { color: var(--c); font-style: italic; }
+pre .t-fn { color: var(--fn); } pre .t-def { color: var(--fn); font-weight: 700; } pre .t-cls { color: var(--cls); font-weight: 700; } pre .t-me { color: var(--me); }
 pre.lang-output { background: var(--out); border-color: var(--out-line); }
 pre.lang-input { background: var(--in); border-color: var(--in-line); }
 pre.lang-output::before, pre.lang-input::before { display: block; font: 700 11px system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }

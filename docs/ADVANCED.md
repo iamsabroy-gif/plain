@@ -5,7 +5,7 @@ still part of Plain.
 
 ## Anonymous actions and closures
 
-```
+```plain
 set double to action with x gives x * 2
 say map_each([1, 2, 3], double)            # [2, 4, 6]
 
@@ -32,7 +32,7 @@ A longer anonymous action can use a block: `action with a, b` … `give back …
 
 ## Classes and methods
 
-```
+```plain
 class Animal
     init with name
         set me's name to name
@@ -62,7 +62,7 @@ say how it is shown by `say`. Fields are created by `set me's field to …`.
 
 ## Tasks, channels and locks
 
-```
+```plain-example
 set results to channel()
 define work with id
     send(results, id * 10)

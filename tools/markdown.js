@@ -4,9 +4,8 @@
 // *italic*, `code` and links. Each caller decides where links go.
 "use strict";
 
-const KEYWORDS = new Set(("set to say show print ask into add remove from increase decrease by if then otherwise end repeat times while for each in define " +
-  "with give back stop skip is not and or greater less than at least most equal contains plus minus multiplied divided modulo length of item " +
-  "true false nothing action gives class extends new me parent try on error fail use call").split(" "));
+// Plain code is coloured by web/syntax.js: the same code the playground's editor uses.
+const { highlight: highlightPlain } = require("../web/syntax.js");
 
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const githubSlug = (text) => text.toLowerCase().replace(/<[^>]+>/g, "").replace(/[^\p{L}\p{N}\s_-]/gu, "").trim().replace(/\s+/g, "-");
@@ -28,30 +27,6 @@ function inline(text, ctx) {
   return text.replace(/\u0000(\d+)\u0000/g, (m, i) => holes[+i]);
 }
 // ----------------------------------------------------------------- blocks
-function highlightPlain(code) {
-  let out = "", i = 0;
-  while (i < code.length) {
-    const c = code[i];
-    if (c === "#") {
-      let j = code.indexOf("\n", i); if (j < 0) j = code.length;
-      out += '<span class="c">' + esc(code.slice(i, j)) + "</span>"; i = j;
-    } else if (c === '"') {
-      let j = i + 1;
-      while (j < code.length && code[j] !== '"' && code[j] !== "\n") j += code[j] === "\\" ? 2 : 1;
-      j = Math.min(code.length, j + 1);
-      out += '<span class="s">' + esc(code.slice(i, j)) + "</span>"; i = j;
-    } else if (/[A-Za-z_]/.test(c)) {
-      let j = i; while (j < code.length && /[A-Za-z0-9_]/.test(code[j])) j++;
-      const w = code.slice(i, j);
-      out += KEYWORDS.has(w.toLowerCase()) ? '<span class="k">' + w + "</span>" : esc(w); i = j;
-    } else { out += esc(c); i++; }
-  }
-  return out;
-}
-
-// ctx: { slug: the document's id (headings get ids "slug-heading"),
-//        link(target, ctx): the href for a Markdown link target, or null for plain text,
-//        afterCode(lang, code): optional extra HTML after each fenced code block }
 function convert(markdown, ctx) {
   const doc = { slug: ctx.slug };
   const lines = markdown.replace(/\r/g, "").split("\n");
@@ -151,4 +126,4 @@ function convert(markdown, ctx) {
   return html.join("\n");
 }
 
-module.exports = { KEYWORDS, esc, githubSlug, inline, highlightPlain, convert };
+module.exports = { esc, githubSlug, inline, highlightPlain, convert };

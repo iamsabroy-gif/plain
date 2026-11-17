@@ -171,6 +171,32 @@ static int runProgram(const std::string& src, const std::string& file, const std
     }
 }
 
+// plain check --json [file | -]: say what is wrong, if anything, as one line of JSON, so editors can
+// underline it (the web playground and the VS Code extension use this as you type).
+//   {"ok":true}
+//   {"ok":false,"line":3,"message":"...","incomplete":false,"file":"program.plain"}
+// "incomplete" means the program just ran out while a block was still open (probably still being typed).
+static int checkJson(const std::string& src, const std::string& file) {
+    Program prog;
+    setUp(prog);
+    std::string o;
+    bool ok = true;
+    try {
+        Compiler compiler(prog, src, file);
+        compiler.compileMain();
+        o = "{\"ok\":true}";
+    } catch (const PlainError& e) {
+        ok = false;
+        o = "{\"ok\":false,\"line\":" + std::to_string(e.line > 0 ? e.line : 1) + ",\"message\":";
+        Observer::jsonString(o, e.msg);
+        o += ",\"file\":";
+        Observer::jsonString(o, e.file);
+        o += std::string(",\"incomplete\":") + (e.incomplete ? "true" : "false") + "}";
+    }
+    printf("%s\n", o.c_str());
+    return ok ? 0 : 1;
+}
+
 static void setUp(Program& prog);
 #include "tools.hpp"
 #include "practice.hpp"
@@ -383,6 +409,7 @@ static void usage() {
            "  plain                         start an interactive session\n"
            "  plain program.plain [args]    run a program\n"
            "  plain check program.plain     look for mistakes without running\n"
+           "  plain check --json program.plain   the same, as one line of JSON (use - to read standard input)\n"
            "  plain check --beginner program.plain\n"
            "                                list the advanced features a program uses\n"
            "  plain format program.plain    rewrite a program in the standard style (--check, --print)\n"
@@ -458,21 +485,29 @@ int main(int argc, char** argv) {
         if (cmd == "lesson" || cmd == "lessons") return lessonCommand(args);
         if (cmd == "growth") return growthCommand(args);
         if (cmd == "compare") return compareCommand(args);
-        bool explain = false, check = false, beginner = false;
+        bool explain = false, check = false, beginner = false, jsonCheck = false;
         size_t at = 0;
         if (cmd == "--explain") { explain = true; at = 1; }
         else if (cmd == "check") {
             check = true;
             at = 1;
-            if (at < args.size() && args[at] == "--beginner") { beginner = true; at = 2; }
+            for (; at < args.size() && (args[at] == "--beginner" || args[at] == "--json"); ++at) {
+                if (args[at] == "--beginner") beginner = true;
+                else jsonCheck = true;
+            }
         }
         else if (cmd == "run") { at = 1; }
         if (at >= args.size()) { usage(); return 2; }
         std::string src;
+        if (jsonCheck && args[at] == "-") {  // the program arrives on standard input (editors, the web playground)
+            src.assign(std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>());
+            return checkJson(src, "program.plain");
+        }
         if (!readFile(args[at], src)) {
             fprintf(stderr, "I couldn't open the file '%s'.\n", args[at].c_str());
             return 2;
         }
+        if (jsonCheck) return checkJson(src, args[at]);
         if (beginner) return beginnerCheck(args[at], src);
         return finish(runProgram(src, args[at], {args.begin() + (long)at + 1, args.end()}, explain, check));
     } catch (const std::exception& e) {

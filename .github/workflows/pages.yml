@@ -38,7 +38,7 @@ jobs:
       - name: Pack the site
         run: |
           mkdir site
-          cp web/index.html web/worker.js web/plain.wasm web/player.html site/
+          cp web/index.html web/worker.js web/syntax.js web/plain.wasm web/player.html site/
           node tools/build-docs.js site/docs
       - uses: actions/upload-pages-artifact@v3
         with:

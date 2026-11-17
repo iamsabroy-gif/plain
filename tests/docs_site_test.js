@@ -98,6 +98,14 @@ const ok = (cond, what) => results.push((cond ? "ok   " : "FAIL ") + what);
   await p.waitForFunction(() => !document.getElementById("run").disabled && document.getElementById("output").textContent.trim() !== "");
   ok(!(await p.locator("#output .err").count()), "and it runs without a problem");
 
+  // code in the docs is coloured by what the words are (the same colours as the playground's editor)
+  await p.goto("http://plain.test/docs/advanced.html");
+  const colours = await p.evaluate(() => ["t-kw", "t-ins", "t-str", "t-def", "t-cls", "t-fn"].filter((c) => document.querySelector("pre ." + c)));
+  ok(colours.length === 6, "code blocks use the richer colours: " + colours.join(" "));
+  await p.goto("http://plain.test/docs/apps.html");
+  ok((await p.locator("pre .t-def").count()) >= 2 && (await p.locator("pre .t-cls").count()) >= 1, "names after define and class stand out in the apps guide too");
+  ok((await p.locator("a.try").count()) === 0, "examples that need a network or a window have no Try it button");
+
   // lessons page and its link into the playground
   await p.goto("http://plain.test/docs/lessons.html");
   ok((await p.locator(".exercise").count()) === 31, "the lessons page has all 31 exercises");

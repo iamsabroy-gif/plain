@@ -82,7 +82,7 @@ lib/
   web.plain       use "web": WebApp, page, fill, escape_html, sessions, static files
   desktop.plain   use "desktop": Window and its widgets (a local web server + a page)
   ui/             what those send: page.css (the web style) and desktop.html (the window's page)
-web/              the browser playground: index.html, worker.js (plain.wasm and player.html are built)
+web/              the browser playground: index.html, worker.js, syntax.js (plain.wasm and player.html are built)
 tools/            embed.sh (pack lib/ into src/libfiles.hpp), build-wasm.sh, update-formula.sh,
                   markdown.js (the docs' Markdown converter), make-pdf.js (the PDFs),
                   build-docs.js and docs-site/ (the documentation web site)
@@ -332,9 +332,29 @@ A new guide goes into `GUIDES` and `NAV` at the top of `tools/build-docs.js` (an
 
 `web/` is a static site: `index.html` (editor, Run, Watch it run, Count the work, examples, share
 links), `worker.js` (runs the interpreter in a Web Worker so a stuck program can be stopped, and
-supplies the small "operating system" the interpreter needs) and `plain.wasm`. "Watch it run"
-runs `plain visualize --json -e ...` in the worker and gives the trace to the same player that
-`plain visualize` writes.
+supplies the small "operating system" the interpreter needs), `syntax.js` and `plain.wasm`.
+"Watch it run" runs `plain visualize --json -e ...` in the worker and gives the trace to the same
+player that `plain visualize` writes.
+
+**The editor** is a transparent `<textarea>` over a coloured copy of its text (same font, padding
+and scrolling, so the two line up exactly; the test checks the copy's text equals the editor's).
+`syntax.js` is the one place that knows how Plain looks: it colours code (`PlainSyntax.highlight`,
+used by the playground, the docs site and the PDFs, so they agree) and counts blocks
+(`opensBlock`, `unclosedBlocks`, `matchingIndent`). Both are word-based, not a parse, so they are
+quick enough for every key press. On top of it the editor:
+
+* indents after a block line, and when Enter is pressed at the end of one whose block is not
+  closed anywhere, adds the `end` and leaves the cursor inside (`unclosedBlocks(text) > 0`);
+* moves `end`, `otherwise` and `on error` back to the line that opened their block as the last
+  letter is typed (`matchingIndent`);
+* runs `plain check --json -` (the program on standard input; one line of JSON back) in a second
+  worker 600 ms after typing stops, and underlines the line it names: red for a mistake, orange
+  (`incomplete`) for a block that is still open. The VS Code extension does the same
+  (`plain.checkAsYouType`). It finds what the compiler finds; a name that was never set is only
+  noticed when the program runs.
+
+A new keyword needs adding to `syntax.js` (colours), `editors/vscode/syntaxes` (the same, for
+VS Code) and, if it opens a block, `opensBlock`.
 
 The interpreter is this same source built with `-DPLAIN_WASM` (set automatically by a WASI
 compiler). `value.hpp` defines `PLAIN_POSIX` for full builds (not Windows, not WebAssembly):

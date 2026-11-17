@@ -1,4 +1,4 @@
-// Plain for VS Code: run, visualize, format, and underline mistakes found by 'plain check'.
+// Plain for VS Code: run, visualize, format, and underline mistakes (found by 'plain check') as you type.
 const vscode = require("vscode");
 const { execFile } = require("child_process");
 const path = require("path");
@@ -7,11 +7,13 @@ function plainCommand() {
     return vscode.workspace.getConfiguration("plain").get("path") || "plain";
 }
 
-// "Oops! Line 3: The 'if' ... never closed." -> { line: 3, message: "The 'if' ..." }
-function parseProblem(output) {
-    const m = /Line (\d+):\s*(.*)/.exec(output);
-    if (!m) return null;
-    return { line: Math.max(0, parseInt(m[1], 10) - 1), message: m[2].trim() };
+// What "plain check --json -" said (one line of JSON) as a problem to underline, or null.
+//   {"ok":false,"line":3,"message":"...","incomplete":false}
+function parseCheck(output) {
+  let v;
+  try { v = JSON.parse(String(output).trim().split("\n")[0]); } catch (e) { return null; }
+  if (!v || v.ok !== false || (v.file && v.file !== "program.plain")) return null;
+  return { line: Math.max(0, (v.line || 1) - 1), message: v.message || "There is a mistake here.", incomplete: !!v.incomplete };
 }
 
 function runInTerminal(args, cwd) {
@@ -63,26 +65,39 @@ function activate(context) {
         })
     );
 
-    // plain check on save: underline the first mistake it finds.
+    // Mistakes, underlined as you type (a moment after you stop) and when a file is opened or saved.
+    // The text is sent to "plain check --json -", so nothing needs saving first. A block that is
+    // still open is only a warning (you are probably still typing it).
+    const config = () => vscode.workspace.getConfiguration("plain");
+    const timers = new Map();
     function check(doc) {
-        if (doc.languageId !== "plain" || doc.uri.scheme !== "file") return;
-        if (!vscode.workspace.getConfiguration("plain").get("checkOnSave")) return;
-        execFile(plainCommand(), ["check", doc.fileName], { cwd: path.dirname(doc.fileName) }, (err, stdout, stderr) => {
-            const problem = err ? parseProblem(stderr + stdout) : null;
-            if (!problem) return diagnostics.set(doc.uri, []);
+        if (doc.languageId !== "plain" || doc.uri.scheme === "output") return;
+        const child = execFile(plainCommand(), ["check", "--json", "-"], { maxBuffer: 1 << 24 }, (err, stdout) => {
+            const problem = parseCheck(stdout);
+            if (!problem || doc.isClosed) return diagnostics.set(doc.uri, []);
             const line = Math.min(problem.line, doc.lineCount - 1);
-            const range = doc.lineAt(line).range;
-            diagnostics.set(doc.uri, [new vscode.Diagnostic(range, problem.message, vscode.DiagnosticSeverity.Error)]);
+            const d = new vscode.Diagnostic(doc.lineAt(line).range, problem.message,
+                problem.incomplete ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Error);
+            d.source = "plain";
+            diagnostics.set(doc.uri, [d]);
         });
+        child.on("error", () => diagnostics.set(doc.uri, []));   // no plain command: say nothing
+        child.stdin.on("error", () => {});
+        child.stdin.end(doc.getText());
+    }
+    function checkSoon(doc) {
+        clearTimeout(timers.get(doc.uri.toString()));
+        timers.set(doc.uri.toString(), setTimeout(() => check(doc), 500));
     }
     context.subscriptions.push(
-        vscode.workspace.onDidSaveTextDocument(check),
-        vscode.workspace.onDidOpenTextDocument(check),
-        vscode.workspace.onDidCloseTextDocument((doc) => diagnostics.delete(doc.uri))
+        vscode.workspace.onDidChangeTextDocument((e) => { if (config().get("checkAsYouType")) checkSoon(e.document); }),
+        vscode.workspace.onDidSaveTextDocument((doc) => { if (config().get("checkOnSave")) check(doc); }),
+        vscode.workspace.onDidOpenTextDocument((doc) => { if (config().get("checkOnSave") || config().get("checkAsYouType")) check(doc); }),
+        vscode.workspace.onDidCloseTextDocument((doc) => { clearTimeout(timers.get(doc.uri.toString())); diagnostics.delete(doc.uri); })
     );
-    vscode.workspace.textDocuments.forEach(check);
+    vscode.workspace.textDocuments.forEach((doc) => { if (config().get("checkOnSave") || config().get("checkAsYouType")) check(doc); });
 }
 
 function deactivate() {}
 
-module.exports = { activate, deactivate, parseProblem };
+module.exports = { activate, deactivate, parseCheck };

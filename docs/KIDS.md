@@ -20,6 +20,15 @@ Open the playground. You will see a big box for your program on the left and a b
 You can also press **Examples** to pick a program that is already written, and change it
 to see what happens. Changing things is the best way to learn!
 
+The box helps you as you type:
+
+* It **colours your words**: the words that tell the computer what to do are blue, the words
+  you make up for your own actions stand out, and what is inside quote marks is green.
+* When you press Enter after a line like `if` or `repeat`, it **writes the `end` for you** and
+  puts you in the right place to type the next line.
+* If Plain can see a mistake, it draws a **red wavy line** under that line and tells you what
+  to fix, underneath the box. (An orange line just means a block is not finished yet.)
+
 ## 1. Make the computer talk
 
 `say` makes the computer say something. Put what it should say inside quote marks.
