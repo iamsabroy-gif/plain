@@ -1,10 +1,11 @@
-# Publishes the browser playground (web/) to GitHub Pages whenever main changes.
+# Publishes the browser playground (web/) and, under docs/, the documentation site to GitHub Pages
+# whenever main changes.
 # One-time setup by the repository owner: Settings > Pages > Build and deployment > Source: "GitHub Actions".
 name: playground
 on:
   push:
     branches: [main]
-    paths: ["src/**", "lib/**", "web/**", "tools/**", ".github/workflows/pages.yml"]
+    paths: ["src/**", "lib/**", "web/**", "tools/**", "docs/**", "README.md", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -32,10 +33,13 @@ jobs:
           node-version: 22
       - name: Test it
         run: node tests/wasm_test.js
+      - name: Build plain (the documentation reads the lessons and problems from it)
+        run: make
       - name: Pack the site
         run: |
           mkdir site
           cp web/index.html web/worker.js web/plain.wasm web/player.html site/
+          node tools/build-docs.js site/docs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

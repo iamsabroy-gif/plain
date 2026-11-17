@@ -4,3 +4,4 @@ report.txt
 .old/
 web/plain.wasm
 web/player.html
+web/docs/

@@ -46,9 +46,11 @@ Linux line inside it.) To build it yourself you need a C++ compiler: `make`, the
 ## Try it without installing
 
 The browser playground (`web/`) runs Plain right in a web page: type a program, press
-Run, or press "Watch it run" to step through it. Once it is published (see
-[docs/DEVELOPER.md](docs/DEVELOPER.md#the-browser-playground)) the address will be
-`https://iamsabroy-gif.github.io/plain/`.
+Run, or press "Watch it run" to step through it. Next to it, the **Documentation** tab has
+everything below as a searchable web site, with paths for children, adults learning to
+program, and developers, and a "Try it" button on the examples. Once it is published (see
+[docs/DEVELOPER.md](docs/DEVELOPER.md#the-browser-playground)) the addresses will be
+`https://iamsabroy-gif.github.io/plain/` and `https://iamsabroy-gif.github.io/plain/docs/`.
 
 ## Your first minute
 

@@ -26,6 +26,10 @@ header h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
 header .tag { color: var(--muted); font-size: 15px; flex: 1 1 200px; }
 header a { color: var(--accent); text-decoration: none; font-size: 14px; }
 header a:hover { text-decoration: underline; }
+.tabs { display: flex; gap: 4px; align-self: stretch; margin: -12px 0; }
+.tabs a { display: flex; align-items: center; padding: 0 12px; color: var(--muted); font-size: 15px; font-weight: 600; border-bottom: 3px solid transparent; }
+.tabs a:hover { color: var(--ink); text-decoration: none; }
+.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
 main { flex: 1; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; padding: 16px 18px 28px; align-items: start; }
 @media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
@@ -120,11 +124,11 @@ footer a { color: var(--accent); }
 <body>
 <header>
   <h1>Plain</h1>
+  <nav class="tabs" aria-label="Site"><a href="./" aria-current="page">Playground</a><a href="docs/">Documentation</a></nav>
   <span class="tag">Write a program, press Run. Nothing to install.</span>
   <button id="lessonsBtn" title="Lessons with exercises that are checked">&#128218; Lessons</button>
-  <a href="https://github.com/iamsabroy-gif/plain#install">Install on your computer</a>
-  <a href="https://github.com/iamsabroy-gif/plain/blob/main/docs/KIDS.md">Guide for kids</a>
-  <a href="https://github.com/iamsabroy-gif/plain/blob/main/docs/CORE.md">Learn the first words</a>
+  <a href="docs/kids.html">Guide for kids</a>
+  <a href="docs/overview.html#overview-install">Install on your computer</a>
 </header>
 <div id="unsupported"></div>
 <main id="app">
@@ -624,6 +628,14 @@ function checkExercise(key, ex, result, nextBtn, dots, i) {
   });
 }
 $("lessonsBtn").onclick = showLessons;
+// A link like  #lesson=3  (from the documentation) opens that lesson.
+async function openLessonFromLink() {
+  const m = location.hash.match(/^#lesson=(\d+)$/);
+  if (!m) return;
+  await showLessons();
+  const L = LESSONS && LESSONS.find((x) => x.number === Number(m[1]));
+  if (L) showLesson(L);
+}
 $("lessonsBack").onclick = showLessons;
 $("lessonsClose").onclick = () => { leaveExercise(); $("lessonsCard").hidden = true; };
 
@@ -679,6 +691,7 @@ picker.onchange = () => { if (picker.value) { setCode(EXAMPLES[picker.value]); o
       statusEl.textContent = "Ready";
       for (const id of ["run", "watch", "count", "tidy"]) $(id).disabled = false;
       ready = true;
+      openLessonFromLink();
       probe.terminate();
     } else if (ev.data.type === "failed") {
       statusEl.textContent = "Could not start";
