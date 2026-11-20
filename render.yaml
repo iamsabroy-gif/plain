@@ -1,0 +1,19 @@
+# Render Blueprint: hosts the browser playground and the documentation as a free static site.
+# On render.com: New > Blueprint, pick this repository, and Render reads this file.
+# Every push to main rebuilds and redeploys it.
+services:
+  - type: web
+    name: plain-playground
+    runtime: static
+    branch: main
+    buildCommand: sh tools/render-build.sh
+    staticPublishPath: site
+    buildFilter:
+      paths: ["src/**", "lib/**", "web/**", "tools/**", "docs/**", "README.md", "render.yaml"]
+    headers:
+      - path: /*.wasm
+        name: Content-Type
+        value: application/wasm
+      - path: /*.wasm
+        name: Cache-Control
+        value: public, max-age=3600

@@ -398,6 +398,10 @@ Notes that cost time to find out:
   can't sleep with `Atomics.wait`.
 * `.github/workflows/pages.yml` builds and publishes `web/` whenever `main` changes. One-time:
   Settings, Pages, Source: "GitHub Actions".
+* To host it on [Render](https://render.com) instead (or as well): `render.yaml` is a Blueprint for
+  a free static site. On Render: New, Blueprint, pick the repository. Its build runs
+  `sh tools/render-build.sh`, which does what `pages.yml` does and leaves the site in `site/`;
+  run it locally to try the same build.
 
 ## Tests
 

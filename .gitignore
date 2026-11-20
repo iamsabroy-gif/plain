@@ -5,3 +5,5 @@ report.txt
 web/plain.wasm
 web/player.html
 web/docs/
+wasi-sdk/
+site/
