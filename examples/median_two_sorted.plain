@@ -1,0 +1,124 @@
+# LeetCode 4: Median of Two Sorted Arrays, solved in Plain.   plain examples/median_two_sorted.plain
+#
+# Two sorted lists, a and b. Find the median of all their numbers together in O(log(min(m, n))).
+#
+# The idea: cut both lists in two, so that the left halves together hold half of all the numbers.
+#
+#     a:  a[1] .. a[i]        |  a[i + 1] .. a[m]
+#     b:  b[1] .. b[j]        |  b[j + 1] .. b[n]          with i + j = half
+#
+# The cut is right when everything on the left is no bigger than everything on the right,
+# which only needs two checks:  a[i] <= b[j + 1]  and  b[j] <= a[i + 1].
+# Choosing i fixes j, so binary search on i over the shorter list.
+#   a[i] too big   -> take fewer from a (move the cut left)
+#   b[j] too big   -> take more from a  (move the cut right)
+# Then the median is the biggest number on the left (odd total), or the average of
+# that and the smallest number on the right (even total).
+
+# Numbers in the problem lie between -1000000 and 1000000, so these stand for "no number here".
+set BELOW_ALL to -1000001
+set ABOVE_ALL to 1000001
+
+define find_median_sorted_arrays with a, b
+    # search over the shorter list so the cut in the longer one always exists
+    if length of a is greater than length of b then
+        give back find_median_sorted_arrays(b, a)
+    end
+    set m to length of a
+    set n to length of b
+    set half to quotient(m + n + 1, 2)  # how many numbers go on the left
+    set low to 0  # i = how many come from a
+    set high to m
+    while low is at most high
+        set i to quotient(low + high, 2)
+        set j to half - i
+
+        set a_left to BELOW_ALL
+        if i is greater than 0 then
+            set a_left to a[i]
+        end
+        set a_right to ABOVE_ALL
+        if i is less than m then
+            set a_right to a[i + 1]
+        end
+        set b_left to BELOW_ALL
+        if j is greater than 0 then
+            set b_left to b[j]
+        end
+        set b_right to ABOVE_ALL
+        if j is less than n then
+            set b_right to b[j + 1]
+        end
+
+        if a_left is at most b_right and b_left is at most a_right then
+            set left_max to max(a_left, b_left)
+            if (m + n) % 2 is 1 then
+                give back left_max
+            end
+            give back (left_max + min(a_right, b_right)) / 2
+        otherwise if a_left is greater than b_right then
+            set high to i - 1
+        otherwise
+            set low to i + 1
+        end
+    end
+    give back nothing  # only reached if a or b was not sorted
+end
+
+# ================================================================ the checks
+set checks to 0
+set checks_failed to 0
+define check with name, got, want
+    increase checks by 1
+    if got is want then
+        say "ok  ", name, "->", got
+    otherwise
+        increase checks_failed by 1
+        say "FAIL", name, "gave", got, "but should give", want
+    end
+end
+
+# the slow, obviously right answer: merge, sort, take the middle
+define median_by_sorting with a, b
+    set all to sort(a + b)
+    set total to length of all
+    if total % 2 is 1 then
+        give back all[quotient(total, 2) + 1]
+    end
+    give back (all[total / 2] + all[total / 2 + 1]) / 2
+end
+
+say "4 Median of Two Sorted Arrays"
+check("[1,3] and [2]", find_median_sorted_arrays([1, 3], [2]), 2)
+check("[1,2] and [3,4]", find_median_sorted_arrays([1, 2], [3, 4]), 2.5)
+check("[] and [1]", find_median_sorted_arrays([], [1]), 1)
+check("[2] and []", find_median_sorted_arrays([2], []), 2)
+check("[0,0] and [0,0]", find_median_sorted_arrays([0, 0], [0, 0]), 0)
+check("[1,2,3,4,5] and [6,7,8]", find_median_sorted_arrays([1, 2, 3, 4, 5], [6, 7, 8]), 4.5)
+check("[-5,3,6,12,15] and [-12,-10,-6,-3,4,10]", find_median_sorted_arrays([-5, 3, 6, 12, 15], [-12, -10, -6, -3, 4, 10]), 3)
+check("[1000000] and [-1000000]", find_median_sorted_arrays([1000000], [-1000000]), 0)
+
+# 300 random pairs of lists, compared with the slow answer
+set agreed to 0
+for round from 1 to 300
+    set a to []
+    set b to []
+    for k from 1 to random(0, 8)
+        add random(-20, 20) to a
+    end
+    for k from 1 to random(0, 8)
+        add random(-20, 20) to b
+    end
+    if length of a + length of b is 0 then
+        add 7 to a
+    end
+    set a to sort(a)
+    set b to sort(b)
+    if find_median_sorted_arrays(a, b) is median_by_sorting(a, b) then
+        increase agreed by 1
+    otherwise
+        say "FAIL random", a, b, find_median_sorted_arrays(a, b), median_by_sorting(a, b)
+    end
+end
+check("300 random pairs agree with sorting", agreed, 300)
+say checks, "checks,", checks_failed, "failed"
